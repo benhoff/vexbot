@@ -17,7 +17,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import yaml
 
 import brain
-import jasperpath
 
 from g2p import PhonetisaurusG2P
 try:
@@ -26,7 +25,6 @@ except ImportError:
     logging.getLogger(__name__).error("Error importing CMUCLMTK module. " +
                                       "PocketsphinxVocabulary will not work " +
                                       "correctly.", exc_info=True)
-
 
 class AbstractVocabulary(object, metaclass=ABCMeta):
     """

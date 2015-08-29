@@ -38,10 +38,6 @@ try:
 except ImportError:
     pass
 
-import diagnose
-import jasperpath
-
-
 class AbstractTTSEngine(object, metaclass=ABCMeta):
     """
     Generic parent class for all speakers

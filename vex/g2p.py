@@ -7,10 +7,6 @@ import logging
 
 import yaml
 
-import diagnose
-import jasperpath
-
-
 class PhonetisaurusG2P(object):
     PATTERN = re.compile(r'^(?P<word>.+)\t(?P<precision>\d+\.\d+)\t<s> ' +
                          r'(?P<pronounciation>.*) </s>', re.MULTILINE)

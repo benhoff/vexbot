@@ -9,11 +9,8 @@ import logging
 import yaml
 import argparse
 
-import tts, stt, jasperpath, diagnose
+import tts, stt
 from conversation import Conversation
-
-# Add jasperpath.LIB_PATH to sys.path
-sys.path.append(jasperpath.LIB_PATH)
 
 parser = argparse.ArgumentParser(description='Jasper Voice Control Center')
 parser.add_argument('--local', action='store_true',
@@ -134,10 +131,6 @@ if __name__ == "__main__":
     if not args.no_network_check and not diagnose.check_network_connection():
         logger.warning("Network not connected. This may prevent Jasper from " +
                        "running properly.")
-
-    if args.diagnose:
-        failed_checks = diagnose.run()
-        sys.exit(0 if not failed_checks else 1)
 
     try:
         app = Jasper()
