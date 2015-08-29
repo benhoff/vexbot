@@ -34,7 +34,7 @@ class TestBrain(unittest.TestCase):
     def testSortByPriority(self):
         """Does Brain sort modules by priority?"""
         my_brain = TestBrain._emptyBrain()
-        priorities = filter(lambda m: hasattr(m, 'PRIORITY'), my_brain.modules)
+        priorities = [m for m in my_brain.modules if hasattr(m, 'PRIORITY')]
         target = sorted(priorities, key=lambda m: m.PRIORITY, reverse=True)
         self.assertEqual(target, priorities)
 

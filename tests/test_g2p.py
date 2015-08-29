@@ -28,10 +28,10 @@ class TestG2P(unittest.TestCase):
 
     def testTranslateWord(self):
         for word in WORDS:
-            self.assertIn(word, self.g2pconv.translate(word).keys())
+            self.assertIn(word, list(self.g2pconv.translate(word).keys()))
 
     def testTranslateWords(self):
-        results = self.g2pconv.translate(WORDS).keys()
+        results = list(self.g2pconv.translate(WORDS).keys())
         for word in WORDS:
             self.assertIn(word, results)
 
@@ -56,7 +56,7 @@ class TestPatchedG2P(unittest.TestCase):
         with mock.patch('client.g2p.diagnose.check_executable',
                         return_value=True):
             with tempfile.NamedTemporaryFile() as f:
-                conf = g2p.PhonetisaurusG2P.get_config().items()
+                conf = list(g2p.PhonetisaurusG2P.get_config().items())
                 with mock.patch.object(g2p.PhonetisaurusG2P, 'get_config',
                                        classmethod(lambda cls: dict(conf +
                                                    [('fst_model', f.name)]))):
@@ -67,11 +67,11 @@ class TestPatchedG2P(unittest.TestCase):
             with mock.patch('subprocess.Popen',
                             return_value=TestPatchedG2P.DummyProc()):
                 for word in WORDS:
-                    self.assertIn(word, self.g2pconv.translate(word).keys())
+                    self.assertIn(word, list(self.g2pconv.translate(word).keys()))
 
     def testTranslateWords(self):
             with mock.patch('subprocess.Popen',
                             return_value=TestPatchedG2P.DummyProc()):
-                results = self.g2pconv.translate(WORDS).keys()
+                results = list(self.g2pconv.translate(WORDS).keys())
                 for word in WORDS:
                     self.assertIn(word, results)
