@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8-*-
 
 import os
@@ -9,8 +9,8 @@ import logging
 import yaml
 import argparse
 
-from client import tts, stt, jasperpath, diagnose
-from client.conversation import Conversation
+import tts, stt, jasperpath, diagnose
+from conversation import Conversation
 
 # Add jasperpath.LIB_PATH to sys.path
 sys.path.append(jasperpath.LIB_PATH)
@@ -26,9 +26,9 @@ parser.add_argument('--debug', action='store_true', help='Show debug messages')
 args = parser.parse_args()
 
 if args.local:
-    from client.local_mic import Mic
+    from local_mic import Mic
 else:
-    from client.mic import Mic
+    from mic import Mic
 
 
 class Jasper(object):

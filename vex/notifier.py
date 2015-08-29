@@ -1,7 +1,6 @@
 # -*- coding: utf-8-*-
 import queue
 import atexit
-from .modules import Gmail
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 

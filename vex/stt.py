@@ -12,9 +12,9 @@ import subprocess
 from abc import ABCMeta, abstractmethod
 import requests
 import yaml
-from . import jasperpath
-from . import diagnose
-from . import vocabcompiler
+import jasperpath
+import diagnose
+import vocabcompiler
 
 
 class AbstractSTTEngine(object, metaclass=ABCMeta):

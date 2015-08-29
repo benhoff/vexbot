@@ -38,8 +38,8 @@ try:
 except ImportError:
     pass
 
-from . import diagnose
-from . import jasperpath
+import diagnose
+import jasperpath
 
 
 class AbstractTTSEngine(object, metaclass=ABCMeta):
