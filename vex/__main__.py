@@ -5,6 +5,7 @@ import sys
 import shutil
 import logging
 import argparse
+import asyncio
 
 import yaml
 
@@ -20,7 +21,8 @@ class Bot(object):
         # create logger
         self._logger = logging.getLogger(__name__)
         # Read config
-        self._logger.debug("Trying to read config file: '%s'", new_configfile)
+        #self._logger.debug("Trying to read config file: '%s'", new_configfile)
+        """
         # TODO: Create a default config and load it by defaul
         try:
             with open(new_configfile, "r") as f:
@@ -28,7 +30,8 @@ class Bot(object):
         except OSError:
             self._logger.error("Can't open config file: '%s'", new_configfile)
             raise
-
+        """
+        """
         try:
             stt_engine_slug = self.config['stt_engine']
         except KeyError:
@@ -50,30 +53,34 @@ class Bot(object):
             logger.warning("tts_engine not specified in profile, defaulting " +
                            "to '%s'", tts_engine_slug)
         tts_engine_class = tts.get_engine_by_slug(tts_engine_slug)
-
+        """
+        """
         # Initialize Mic
         self.mic = Mic(tts_engine_class.get_instance(),
                        stt_passive_engine_class.get_passive_instance(),
                        stt_engine_class.get_active_instance())
+        """
 
-    def run(self):
+    def run(self, event_loop=None):
         if 'first_name' in self.config:
             salutation = ("How can I be of service, %s?"
                           % self.config["first_name"])
         else:
             salutation = "How can I be of service?"
+
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_forever()
+        finally:
+            loop.close()
+        """
         self.mic.say(salutation)
 
         conversation = Conversation("JASPER", self.mic, self.config)
         conversation.handleForever()
+        """
 
-if __name__ == "__main__":
-
-    print("*******************************************************")
-    print("*             JASPER - THE TALKING COMPUTER           *")
-    print("* (c) 2015 Shubhro Saha, Charlie Marsh & Jan Holthuis *")
-    print("*******************************************************")
-
+def main():
     logging.basicConfig()
     logger = logging.getLogger()
     logger.getChild("client.stt").setLevel(logging.INFO)
@@ -82,9 +89,12 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
 
     try:
-        app = Jasper()
+        app = Bot()
     except Exception:
         logger.error("Error occured!", exc_info=True)
         sys.exit(1)
 
     app.run()
+
+if __name__ == "__main__":
+    main()
