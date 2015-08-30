@@ -11,6 +11,7 @@ import yaml
 
 import tts, stt
 from conversation import Conversation
+from adapters import Shell
 
 parser = argparse.ArgumentParser(description='Jasper Voice Control Center')
 parser.add_argument('--debug', action='store_true', help='Show debug messages')
@@ -20,6 +21,10 @@ class Bot(object):
     def __init__(self, config_path=None):
         # create logger
         self._logger = logging.getLogger(__name__)
+        # adapters are inputs into the bot. Like a mic or shell input
+        self._adapters = []
+        self._adapters.append(Shell(self))
+
         # Read config
         #self._logger.debug("Trying to read config file: '%s'", new_configfile)
         """
@@ -60,25 +65,22 @@ class Bot(object):
                        stt_passive_engine_class.get_passive_instance(),
                        stt_engine_class.get_active_instance())
         """
+    def hear(self, regex, option, callback):
+        #self._listeners.append(Listener(regex, option, callback))
+        pass
+
 
     def run(self, event_loop=None):
-        if 'first_name' in self.config:
-            salutation = ("How can I be of service, %s?"
-                          % self.config["first_name"])
-        else:
-            salutation = "How can I be of service?"
-
+        # TODO: Loop over all the possible adapters and 
+        # instantiate them all
+        # second step is to run them all
         loop = asyncio.get_event_loop()
+        for adapter in self._adapters:
+            asyncio.async(adapter.run())
         try:
             loop.run_forever()
         finally:
             loop.close()
-        """
-        self.mic.say(salutation)
-
-        conversation = Conversation("JASPER", self.mic, self.config)
-        conversation.handleForever()
-        """
 
 def main():
     logging.basicConfig()
