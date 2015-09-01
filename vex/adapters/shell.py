@@ -4,6 +4,7 @@ import asyncio
 from asyncio.streams import StreamWriter, FlowControlMixin
 
 from adapters import Adapter
+from message import Message
 
 class Shell(Adapter):
     def __init__(self, bot=None):
@@ -11,6 +12,7 @@ class Shell(Adapter):
         self._writer = None
         self._reader = None
         self.bot = bot
+        self.messages = []
 
     def _stdio(self, loop=None):
         if loop is None:
@@ -24,17 +26,24 @@ class Shell(Adapter):
     def send(self, message):
         if self._writer is not None:
             self._writer.write(message)
-
+    
     @asyncio.coroutine
     def run(self, loop=None):
         # Initialzies the plugin
         yield from self._stdio()
         while True:
-            self._writer.write(b'>>> ')
+            self._writer.write('{}> '.format(self.bot.name).encode('utf-8'))
             line = yield from self._reader.readline()
-            #print(line.decode('ascii'))
-            # TODO: Fix/determine this api
-            #bot.process_input(line)
+            if line == b'':
+                pass
+            else:
+                str_input = line.decode('ascii')
+                inputs = str_input.split(self.bot.name)
+                for input in inputs:
+                    # TODO: make a message class
+                    command, string_arg = input.split(' ', 1)
+                    msg = Message(command, string_arg)
+                    self.bot.message(msg)
 
 if __name__ == '__main__':
     shell = Shell()

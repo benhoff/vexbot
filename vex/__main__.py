@@ -18,7 +18,8 @@ parser.add_argument('--debug', action='store_true', help='Show debug messages')
 args = parser.parse_args()
 
 class Bot(object):
-    def __init__(self, config_path=None):
+    def __init__(self, config_path=None, bot_name="vex"):
+        self.name = bot_name
         # create logger
         self._logger = logging.getLogger(__name__)
         # adapters are inputs into the bot. Like a mic or shell input
@@ -69,7 +70,10 @@ class Bot(object):
         #self._listeners.append(Listener(regex, option, callback))
         pass
 
-
+    def message(self, message):
+        if message.argument is not None:
+            print(message.argument)
+    
     def run(self, event_loop=None):
         # TODO: Loop over all the possible adapters and 
         # instantiate them all
