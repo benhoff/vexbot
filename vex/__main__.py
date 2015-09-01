@@ -26,6 +26,8 @@ class Bot(object):
         self._adapters = []
         self._adapters.append(Shell(self))
 
+        self._listeners = []
+
         # Read config
         #self._logger.debug("Trying to read config file: '%s'", new_configfile)
         """
@@ -71,8 +73,9 @@ class Bot(object):
         pass
 
     def message(self, message):
-        if message.argument is not None:
-            print(message.argument)
+        for listener in self._listeners:
+            result = listener.call(message.command, message.argument)
+            # TODO: Return the result to the correct adapter
     
     def run(self, event_loop=None):
         # TODO: Loop over all the possible adapters and 
