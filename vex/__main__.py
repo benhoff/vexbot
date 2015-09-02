@@ -8,6 +8,7 @@ import argparse
 import asyncio
 
 import yaml
+from yapsy.PluginManager import PluginManager
 
 import tts, stt
 from conversation import Conversation
@@ -26,7 +27,18 @@ class Bot(object):
         self._adapters = []
         self._adapters.append(Shell(self))
 
+        self._plugin_manager = PluginManager()
+        plugin_path = os.path.dirname(os.path.realpath(__file__))
+        plugin_path = os.path.join(plugin_path, 'plugins')
+        self._plugin_manager.setPluginPlaces([plugin_path])
+        self._plugin_manager.collectPlugins()
+
         self._listeners = []
+        # FIXME: right now added ALL plugins
+        for plugin_info in self._plugin_manager.getAllPlugins():
+            self._plugin_manager.activatePluginByName(plugin_info.name)
+            plugin_info.plugin_object.set_bot(self)
+            self._listeners.append(plugin_info.plugin_object)
 
         # Read config
         #self._logger.debug("Trying to read config file: '%s'", new_configfile)
@@ -68,6 +80,7 @@ class Bot(object):
                        stt_passive_engine_class.get_passive_instance(),
                        stt_engine_class.get_active_instance())
         """
+
     def hear(self, regex, option, callback):
         #self._listeners.append(Listener(regex, option, callback))
         pass
@@ -75,6 +88,7 @@ class Bot(object):
     def message(self, message):
         for listener in self._listeners:
             result = listener.call(message.command, message.argument)
+            print(result)
             # TODO: Return the result to the correct adapter
     
     def run(self, event_loop=None):
