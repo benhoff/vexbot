@@ -40,7 +40,6 @@ class Shell(Adapter):
                 str_input = line.decode('ascii')
                 inputs = str_input.split(self.bot.name)
                 for input in inputs:
-                    # TODO: make a message class
                     command, string_arg = input.split(' ', 1)
                     msg = Message(command, string_arg)
                     self.bot.message(msg)
