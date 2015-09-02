@@ -88,7 +88,8 @@ class Bot(object):
     def message(self, message):
         for listener in self._listeners:
             result = listener.call(message.command, message.argument)
-            print(result)
+            if result is not None:
+                print(result)
             # TODO: Return the result to the correct adapter
     
     def run(self, event_loop=None):
