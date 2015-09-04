@@ -16,11 +16,10 @@ import shutil
 from abc import ABCMeta, abstractmethod, abstractproperty
 import yaml
 
-import brain
-
 from g2p import PhonetisaurusG2P
 try:
-    import cmuclmtk
+    #import cmuclmtk
+    pass
 except ImportError:
     logging.getLogger(__name__).error("Error importing CMUCLMTK module. " +
                                       "PocketsphinxVocabulary will not work " +
@@ -284,11 +283,11 @@ class PocketsphinxVocabulary(AbstractVocabulary):
 
         # Create vocab file from text
         self._logger.debug("Creating vocab file: '%s'", vocab_file)
-        cmuclmtk.text2vocab(text, vocab_file)
+        #cmuclmtk.text2vocab(text, vocab_file)
 
         # Create language model from text
         self._logger.debug("Creating languagemodel file: '%s'", output_file)
-        cmuclmtk.text2lm(text, output_file, vocab_file=vocab_file)
+        #cmuclmtk.text2lm(text, output_file, vocab_file=vocab_file)
 
         # Get words from vocab file
         self._logger.debug("Getting words from vocab file and removing it " +
@@ -514,7 +513,7 @@ def get_all_phrases():
     """
     phrases = []
 
-    modules = brain.Brain.get_modules()
+    modules = []
     for module in modules:
         phrases.extend(get_phrases_from_module(module))
 

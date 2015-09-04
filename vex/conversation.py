@@ -1,7 +1,5 @@
 # -*- coding: utf-8-*-
 import logging
-from notifier import Notifier
-from brain import Brain
 
 
 class Conversation(object):
@@ -11,8 +9,6 @@ class Conversation(object):
         self.persona = persona
         self.mic = mic
         self.profile = profile
-        self.brain = Brain(mic, profile)
-        self.notifier = Notifier(profile)
 
     def handleForever(self):
         """
@@ -22,7 +18,8 @@ class Conversation(object):
                           self.persona)
         while True:
             # Print notifications until empty
-            notifications = self.notifier.get_all_notifications()
+            #notifications = self.notifier.get_all_notifications()
+            notifications = []
             for notif in notifications:
                 self._logger.info("Received notification: '%s'", str(notif))
 
@@ -44,6 +41,7 @@ class Conversation(object):
                                threshold)
 
             if input:
-                self.brain.query(input)
+                pass
+                #self.brain.query(input)
             else:
                 self.mic.say("Pardon?")

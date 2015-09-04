@@ -1,4 +1,5 @@
 import asyncio
+from message import Message
 
 class Socket(object):
     def __init__(self, bot=None, host='localhost', port=6000):
@@ -13,20 +14,32 @@ class Socket(object):
         self.writers = []
         self.adapter = None
 
-    @asyncio.coroutine
     def call(self, response):
-        print(response)
         if self.adapter:
             try:
-                adapter_response = yield from self.adapter.message(response.command)
+                adapter_response = self.adapter.message(response)
             except Exception as e:
                 print(e)
 
-    def _client_connected(self, reader, writer):
+    @asyncio.coroutine
+    def _handle_client(self, reader, writer):
         print('client connected!')
         self.readers.append(reader)
         self.writers.append(writer)
-
+        while True:
+            line = yield from reader.readline()
+            if not line:
+                print('broke')
+                break
+            line = line.decode('utf-8').rstrip()
+            try:
+                command, string_arg = line.split(' ', 1)
+            except ValueError:
+                command = line
+                string_arg = None
+            msg = Message(command, string_arg)
+            print(msg)
+            self.bot.recieve(msg)
 
     @asyncio.coroutine
     def activate(self):
@@ -35,7 +48,7 @@ class Socket(object):
 
         # Try to create a server listener
         try:
-            self.server = yield from asyncio.start_server(self._client_connected, self.host, self.port)
+            self.server = yield from asyncio.start_server(self._handle_client, self.host, self.port)
             print('server created!')
             self.is_activated = True
 
@@ -48,11 +61,8 @@ class Socket(object):
 
     @asyncio.coroutine
     def run(self):
-        print(self.is_activated, 'run')
-        if not self.is_activated:
-            return
         while True:
-            print(self.readers)
-            for reader in self.readers:
-                command = yield from reader.read(8192)
-                print(command)
+            if not self.is_activated:
+                yield from asyncio.sleep(1)
+            else:
+                yield from asyncio.sleep(1)

@@ -1,3 +1,4 @@
+import re
 import asyncio
 
 class Socket(object):
@@ -9,11 +10,10 @@ class Socket(object):
         self.writer = None
         self.is_activated = False
     
-    @asyncio.coroutine
     def message(self, message):
-        self.writer.write(message)
-        line = yield from self.reader.readline()
-        return line
+        argument = message.argument if message.argument else ''
+        message = ''.join([message.command.pattern, ' ', argument, '\n'])
+        self.writer.write(message.encode('utf-8'))
 
     @asyncio.coroutine
     def activate(self):

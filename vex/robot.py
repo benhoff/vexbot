@@ -14,15 +14,6 @@ from middleware import Middleware
 # FIXME
 from middleware import Socket as SocketMiddleware
 
-def _register_socket(self, bot=None):
-    if self.port_occupied:
-        print('port occupied!')
-        if bot is not None:
-            bot.adapters.append(SocketAdapter(bot, 
-                                              self.address, 
-                                              self.family, 
-                                              self.authkey))
-
 class Bot(object):
     def __init__(self, config_path=None, bot_name="vex"):
         self.name = bot_name
@@ -77,7 +68,7 @@ class Bot(object):
     def run(self, event_loop=None):
         loop = asyncio.get_event_loop()
         # TODO: Need to block slightly on a module
-        self.receive_middleware.activate()
+        asyncio.async(self.receive_middleware.activate())
         asyncio.async(self.listener_middleware.run())
         asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:
