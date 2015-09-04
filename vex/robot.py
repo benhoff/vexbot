@@ -11,7 +11,8 @@ from conversation import Conversation
 from adapters import Shell
 from adapters import Socket as SocketAdapter
 from middleware import Middleware
-from middleware import Socket as SocketMiddleware
+# FIXME
+from .socket import Socket as SocketMiddleware
 
 class Bot(object):
     def __init__(self, config_path=None, bot_name="vex"):
@@ -62,8 +63,8 @@ class Bot(object):
         # instantiate them all
         # second step is to run them all
         loop = asyncio.get_event_loop()
-        for middleware in self._middleware:
-            asyncio.async(middleware.run())
+        asyncio.async(self.listener_middleware.run())
+        asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:
             asyncio.async(adapter.run())
         try:
