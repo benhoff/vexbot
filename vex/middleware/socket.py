@@ -1,6 +1,5 @@
 import multiprocessing
 import asyncio
-from adapters import Socket as SocketAdapter
 
 class Socket(object):
     def __init__(self, bot=None, 
@@ -12,23 +11,45 @@ class Socket(object):
         self.family = family
         self.authkey = authkey
         self.listener = None
-    
-    @asyncio.coroutine
-    def run(self):
+
+        self.port_occupied = False 
+        self.is_activated = False
+
+    def activate(self, callback=None, *args, **kwargs):
+        if self.is_activated:
+            return
+
         # Try to create a listener
         try:
             self.listener = multiprocessing.connection.Listener(self.address,
                                                                 self.family,
                                                                 authkey=self.authkey)
+
+            print('server created!')
+            self.is_activated = True
         # If address and port is already in use, 
         # create an adapter for address and port!
         except OSError:
-            adapter = SocketAdapter(self.bot, self.address, self.family, self.authkey)
+            print('server not created!')
+            self.port_occupied = True
+            self.is_activated = False
+            if callback is not None:
+                callback(self, *args, **kwargs)
+                # FIXME: currently this method is not a coroutine
+                # due to issues with passing in args. When this is fixed
+                # the below line needs to be deleted
+                self.is_activated = True
 
-            self.bot.adapters.append(adapter)
+    
+    @asyncio.coroutine
+    def run(self):
+        if not self.is_activated:
+            return
 
-        """
-        with self.listener.accept() as conn:
-            print('connection accepted from', self.listener.last_accepted)
-            conn.send_bytes(b'hello!')
-        """
+        # FIXME: currently this method is not a coroutine
+        # due to issues with passing in args. When this is fixed
+        # the below line needs to be deleted
+        if self.listener is not None:
+            with self.listener.accept() as conn:
+                print('connection accepted from', self.listener.last_accepted)
+                conn.send_bytes(b'hello!')

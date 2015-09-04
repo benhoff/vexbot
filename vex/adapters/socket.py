@@ -3,7 +3,7 @@ import asyncio
 
 class Socket(object):
     def __init__(self, bot=None, 
-                 address=('127.0.0.1', 65432),
+                 address=('localhost', 6000),
                  family='AF_INET', authkey=None):
 
         self.address = address

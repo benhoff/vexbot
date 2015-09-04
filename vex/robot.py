@@ -12,7 +12,16 @@ from adapters import Shell
 from adapters import Socket as SocketAdapter
 from middleware import Middleware
 # FIXME
-from my_socket import Socket as SocketMiddleware
+from middleware import Socket as SocketMiddleware
+
+def _register_socket(self, bot=None):
+    if self.port_occupied:
+        print('port occupied!')
+        if bot is not None:
+            bot.adapters.append(SocketAdapter(bot, 
+                                              self.address, 
+                                              self.family, 
+                                              self.authkey))
 
 class Bot(object):
     def __init__(self, config_path=None, bot_name="vex"):
@@ -21,17 +30,21 @@ class Bot(object):
         self._logger = logging.getLogger(__name__)
         # adapters are inputs into the bot. Like a mic or shell input
         self.adapters = []
-        self.adapters.append(Shell(self))
-        #self.adapters.append(SocketAdapter(self))
+        self.adapters.append(Shell(bot=self))
 
         self._listeners = []
         self._register_plugins()
         self.commands = []
-        self.receive_middleware = Middleware(self)
-        self.receive_middleware.stack.append(SocketMiddleware(self))
-        self.listener_middleware =  Middleware(self)
+        self.receive_middleware = Middleware(bot=self)
+
+        socket_middleware = SocketMiddleware(bot=self)
+        socket_middleware.activate(_register_socket, self)
+
+        self.receive_middleware.stack.append(socket_middleware)
+        self.listener_middleware = Middleware(bot=self)
 
     def _register_plugins(self):
+        # FIXME: Something is messing up in here
         self._plugin_manager = PluginManager()
         plugin_path = os.path.dirname(os.path.realpath(__file__))
         plugin_path = os.path.join(plugin_path, 'plugins')
@@ -63,6 +76,9 @@ class Bot(object):
         # instantiate them all
         # second step is to run them all
         loop = asyncio.get_event_loop()
+        asyncio.async(self.listener_middleware.activate())
+        asyncio.async(self.receive_middleware.activate())
+
         asyncio.async(self.listener_middleware.run())
         asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:

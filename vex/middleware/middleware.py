@@ -3,6 +3,17 @@ import asyncio
 class Middleware(object):
     def __init__(self, bot=None):
         self.stack = []
+        self.is_activated = False
+    
+    @asyncio.coroutine
+    def activate(self):
+        if self.is_activated:
+            return
+
+        for item in self.stack:
+            if not item.is_activated:
+                asyncio.async(item.activate())
+        self.is_activated = True
 
     def execute(self, response, next=None):
         """
@@ -16,6 +27,9 @@ class Middleware(object):
     
     @asyncio.coroutine
     def run(self):
+        if not self.is_activated:
+            return
+
         for middleware in self.stack:
             if getattr(middleware, 'run'):
                 asyncio.async(middleware.run())
