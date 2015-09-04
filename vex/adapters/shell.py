@@ -13,15 +13,17 @@ class Shell(Adapter):
         self._reader = None
         self.bot = bot
         self.messages = []
-
-    def _stdio(self, loop=None):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-            self._reader = asyncio.StreamReader()
-            reader_protocol = asyncio.StreamReaderProtocol(self._reader)
-            writer_transport, writer_protocol = yield from loop.connect_write_pipe(FlowControlMixin, os.fdopen(0, 'wb'))
-            self._writer = StreamWriter(writer_transport, writer_protocol, None, loop)
-            yield from loop.connect_read_pipe(lambda: reader_protocol, sys.stdin)
+        self.is_activated = False
+    
+    @asyncio.coroutine
+    def activate(self):
+        loop = asyncio.get_event_loop()
+        self._reader = asyncio.StreamReader()
+        reader_protocol = asyncio.StreamReaderProtocol(self._reader)
+        writer_transport, writer_protocol = yield from loop.connect_write_pipe(FlowControlMixin, os.fdopen(0, 'wb'))
+        self._writer = StreamWriter(writer_transport, writer_protocol, None, loop)
+        yield from loop.connect_read_pipe(lambda: reader_protocol, sys.stdin)
+        self.is_activated = True
 
     def send(self, message):
         if self._writer is not None:
@@ -29,8 +31,9 @@ class Shell(Adapter):
     
     @asyncio.coroutine
     def run(self, loop=None):
-        # Initialzies the plugin
-        yield from self._stdio()
+        if not self.is_activated:
+            yield from self.activate()
+
         while True:
             self._writer.write('{}> '.format(self.bot.name).encode('utf-8'))
             line = yield from self._reader.readline()
@@ -48,11 +51,3 @@ class Shell(Adapter):
                         string_arg = None
                     msg = Message(command, string_arg)
                     self.bot.recieve(msg)
-
-if __name__ == '__main__':
-    shell = Shell()
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(shell.run(loop))
-    finally:
-        loop.close()
