@@ -76,9 +76,6 @@ class Bot(object):
         # instantiate them all
         # second step is to run them all
         loop = asyncio.get_event_loop()
-        asyncio.async(self.listener_middleware.activate())
-        asyncio.async(self.receive_middleware.activate())
-
         asyncio.async(self.listener_middleware.run())
         asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:

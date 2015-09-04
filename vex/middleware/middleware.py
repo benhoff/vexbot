@@ -28,7 +28,7 @@ class Middleware(object):
     @asyncio.coroutine
     def run(self):
         if not self.is_activated:
-            return
+            yield from self.activate()
 
         for middleware in self.stack:
             if getattr(middleware, 'run'):
