@@ -47,7 +47,7 @@ class Shell(Adapter):
                         command = input.rstrip()
                         string_arg = None
                     msg = Message(command, string_arg)
-                    self.bot.message(msg)
+                    self.bot.recieve(msg)
 
 if __name__ == '__main__':
     shell = Shell()
