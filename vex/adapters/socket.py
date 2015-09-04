@@ -1,8 +1,6 @@
 import multiprocessing
 import asyncio
 
-from middleware import Socket as MiddlewareSocket
-
 class Socket(object):
     def __init__(self, bot=None, 
                  address=('127.0.0.1', 65432),

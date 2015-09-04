@@ -12,7 +12,7 @@ from adapters import Shell
 from adapters import Socket as SocketAdapter
 from middleware import Middleware
 # FIXME
-from .socket import Socket as SocketMiddleware
+from my_socket import Socket as SocketMiddleware
 
 class Bot(object):
     def __init__(self, config_path=None, bot_name="vex"):
