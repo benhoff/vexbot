@@ -1,2 +1,3 @@
-from adapters.adapter import Adapter
-from adapters.shell import Shell
+from .adapter import Adapter
+from .shell import Shell
+from .socket import Socket
