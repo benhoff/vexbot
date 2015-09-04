@@ -37,10 +37,7 @@ class Bot(object):
         self.commands = []
         self.receive_middleware = Middleware(bot=self)
 
-        socket_middleware = SocketMiddleware(bot=self)
-        socket_middleware.activate(_register_socket, self)
-
-        self.receive_middleware.stack.append(socket_middleware)
+        self.receive_middleware.stack.append(SocketMiddleware(bot=self))
         self.listener_middleware = Middleware(bot=self)
 
     def _register_plugins(self):
@@ -71,11 +68,15 @@ class Bot(object):
     def recieve(self, message):
         self.receive_middleware.execute(message, self.process_listeners)
 
+    def add_socket_helper(self, host, port):
+        socket = SocketAdapter(self, host, port)
+        asyncio.async(socket.activate())
+        self.adapters.append(socket)
+    
     def run(self, event_loop=None):
-        # TODO: Loop over all the possible adapters and 
-        # instantiate them all
-        # second step is to run them all
         loop = asyncio.get_event_loop()
+        # TODO: Need to block slightly on a module
+        asyncio.async(self.receive_middleware.activate())
         asyncio.async(self.listener_middleware.run())
         asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:

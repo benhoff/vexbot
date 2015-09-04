@@ -1,24 +1,21 @@
-import multiprocessing
 import asyncio
 
 class Socket(object):
-    def __init__(self, bot=None, 
-                 address=('localhost', 6000),
-                 family='AF_INET', authkey=None):
-
-        self.address = address
-        self.family = family
-        self.authkey = authkey
+    def __init__(self, bot=None, host='localhost', port=6000):
+        self.host = host
+        self.port = port
         self.connection = None
+        self.reader = None
+        self.writer = None
+        self.is_activated = False
+
+    @asyncio.coroutine
+    def activate(self):
+        self.reader, self.writer = yield from asyncio.open_connection(self.host, self.port)
+        print('socket activated!')
+        self.is_activated = True
     
     @asyncio.coroutine
     def run(self):
-        # NOTE: want to see the failure for when something occupies
-        # that address
-        self.connection = multiprocessing.connection.Client(self.address,
-                                                            self.family,
-                                                            authkey=self.authkey)
-
-        # NOTE: nominal implemenation
-        #self.bot.add_middleware()
-
+        if not self.is_activated:
+            return

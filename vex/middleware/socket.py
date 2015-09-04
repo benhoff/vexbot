@@ -1,55 +1,38 @@
-import multiprocessing
 import asyncio
 
 class Socket(object):
-    def __init__(self, bot=None, 
-                 address=('localhost', 6000),
-                 family='AF_INET', authkey=None):
-        
+    def __init__(self, bot=None, host='localhost', port=6000):
         self.bot = bot
-        self.address = address
-        self.family = family
-        self.authkey = authkey
-        self.listener = None
+        self.host = host
+        self.port = port
+        self.server = None
 
         self.port_occupied = False 
         self.is_activated = False
 
-    def activate(self, callback=None, *args, **kwargs):
+    def _hello_world(self):
+        print('socket connected!')
+
+    @asyncio.coroutine
+    def activate(self):
         if self.is_activated:
             return
 
-        # Try to create a listener
+        # Try to create a server listener
         try:
-            self.listener = multiprocessing.connection.Listener(self.address,
-                                                                self.family,
-                                                                authkey=self.authkey)
-
+            self.server = yield from asyncio.start_server(self._hello_world, self.host, self.port)
             print('server created!')
             self.is_activated = True
+
         # If address and port is already in use, 
         # create an adapter for address and port!
         except OSError:
             print('server not created!')
             self.port_occupied = True
-            self.is_activated = False
-            if callback is not None:
-                callback(self, *args, **kwargs)
-                # FIXME: currently this method is not a coroutine
-                # due to issues with passing in args. When this is fixed
-                # the below line needs to be deleted
-                self.is_activated = True
+            self.bot.add_socket_helper(self.host, self.port)
+            self.is_activated = True 
 
-    
     @asyncio.coroutine
     def run(self):
         if not self.is_activated:
             return
-
-        # FIXME: currently this method is not a coroutine
-        # due to issues with passing in args. When this is fixed
-        # the below line needs to be deleted
-        if self.listener is not None:
-            with self.listener.accept() as conn:
-                print('connection accepted from', self.listener.last_accepted)
-                conn.send_bytes(b'hello!')
