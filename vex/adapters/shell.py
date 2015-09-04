@@ -35,7 +35,7 @@ class Shell(Adapter):
             yield from self.activate()
 
         while True:
-            self._writer.write('{}> '.format(self.bot.name).encode('utf-8'))
+            self._writer.write('{}: '.format(self.bot.name).encode('utf-8'))
             line = yield from self._reader.readline()
             if line == b'':
                 pass
