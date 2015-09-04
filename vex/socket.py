@@ -23,8 +23,7 @@ class Socket(object):
         # If address and port is already in use, 
         # create an adapter for address and port!
         except OSError:
-            adapter = SocketAdapter(self.bot, self.address,
-                                    self.family, self.authkey)
+            adapter = SocketAdapter(self.bot, self.address, self.family, self.authkey)
 
             self.bot.adapters.append(adapter)
 
