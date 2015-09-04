@@ -8,6 +8,12 @@ class Socket(object):
         self.reader = None
         self.writer = None
         self.is_activated = False
+    
+    @asyncio.coroutine
+    def message(self, message):
+        self.writer.write(message)
+        line = yield from self.reader.readline()
+        return line
 
     @asyncio.coroutine
     def activate(self):

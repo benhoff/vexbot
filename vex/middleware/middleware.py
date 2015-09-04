@@ -16,12 +16,9 @@ class Middleware(object):
         self.is_activated = True
 
     def execute(self, response, next=None):
-        """
         for middleware in self.stack:
-            response, continue_processing yield from middleware.call(response)
-            if not continue_processing:
-                break
-        """
+            response = middleware.call(response)
+
         if next is not None:
             next(response)
     

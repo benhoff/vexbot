@@ -72,11 +72,12 @@ class Bot(object):
         socket = SocketAdapter(self, host, port)
         asyncio.async(socket.activate())
         self.adapters.append(socket)
+        return socket
     
     def run(self, event_loop=None):
         loop = asyncio.get_event_loop()
         # TODO: Need to block slightly on a module
-        asyncio.async(self.receive_middleware.activate())
+        self.receive_middleware.activate()
         asyncio.async(self.listener_middleware.run())
         asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:
