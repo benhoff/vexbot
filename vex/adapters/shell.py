@@ -4,6 +4,7 @@ import asyncio
 from asyncio.streams import StreamWriter, FlowControlMixin
 
 from adapters import Adapter
+from user import User
 from message import Message
 
 class Shell(Adapter):
@@ -12,7 +13,6 @@ class Shell(Adapter):
         self._writer = None
         self._reader = None
         self.bot = bot
-        self.messages = []
         self.is_activated = False
     
     @asyncio.coroutine
@@ -40,6 +40,7 @@ class Shell(Adapter):
             if line == b'':
                 pass
             else:
+                user = User('1', room='shell')
                 str_input = line.decode('ascii')
                 inputs = str_input.split(self.bot.name)
                 for input in inputs:
@@ -49,5 +50,5 @@ class Shell(Adapter):
                     except ValueError:
                         command = input.rstrip()
                         string_arg = None
-                    msg = Message(command, string_arg)
+                    msg = Message(self, user, command, string_arg)
                     self.bot.recieve(msg)

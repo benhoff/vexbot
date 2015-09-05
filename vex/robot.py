@@ -1,5 +1,6 @@
 import os
 import sys
+import types
 import logging
 import asyncio
 
@@ -8,6 +9,7 @@ from yapsy.PluginManager import PluginManager
 
 import tts, stt
 from conversation import Conversation
+from response import Response
 from adapters import Shell
 from adapters import Socket as SocketAdapter
 from middleware import Middleware
@@ -36,7 +38,9 @@ class Bot(object):
         self._plugin_manager = PluginManager()
         plugin_path = os.path.dirname(os.path.realpath(__file__))
         plugin_path = os.path.join(plugin_path, 'plugins')
+        print(plugin_path)
         self._plugin_manager.setPluginPlaces([plugin_path])
+        print(self._plugin_manager.getAllPlugins())
         for plugin_info in self._plugin_manager.getAllPlugins():
             self._plugin_manager.activatePluginByName(plugin_info.name)
             plugin_info.plugin_object.set_bot(self)
@@ -49,15 +53,24 @@ class Bot(object):
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)
 
-    def process_listeners(self, response):
+    def process_listeners(self, response, done=None):
         for listener in self._listeners:
-            result = listener.call(message.command, message.argument)
-            if result is not None:
+            result, done = listener.call(response.message.command, response.message.argument, done)
+            print(result, done)
+    
+            if isinstance(done, bool) and done:
+                # TODO: pass back to the appropriate adapter?
                 print(result)
-            # TODO: Return the result to the correct adapter
+                return
 
-    def recieve(self, message):
-        self.receive_middleware.execute(message, self.process_listeners)
+    def recieve(self, message, callback=None):
+        response = Response(self, message)
+        done = self.receive_middleware.execute(response,
+                                               self.process_listeners,
+                                               callback)
+        if isinstance(done, bool) and done:
+            return
+        self.process_listeners(response, done)
 
     def add_socket_helper(self, host, port):
         socket = SocketAdapter(self, host, port)

@@ -1,7 +1,10 @@
+import types
 import asyncio
 from message import Message
+from user import User
 
 class Socket(object):
+    # TODO: break into two separate classes and make this a manager class
     def __init__(self, bot=None, host='localhost', port=6000):
         self.bot = bot
         self.host = host
@@ -12,18 +15,42 @@ class Socket(object):
         self.is_activated = False
         self.readers = []
         self.writers = []
-        self.adapter = None
+        self.socket = None
 
-    def call(self, response):
-        if self.adapter:
+    def call(self, bot, response, next=None, done=None):
+        # Need to do three things
+        # if this is a client of a server, try to ask server first!
+        #   if server does not respond, continue
+        #   if server does respond, stop messaging?
+
+        # if this is the server, continue 
+        if self.socket:
             try:
-                adapter_response = self.adapter.message(response)
+                self.socket.message(response)
+                # NOTE: nominal interface, not working
+                # TODO: add in timeout
+                #result = yield from self.socket.readline()
+                result = None
+                if result:
+                    original_adapter = response.message.adapter
+                    original_adapter.reply(result)
+                    if isinstance(done, types.FunctionType):
+                        done()
+                    done = True
+                    return next, done
+                else:
+                    return next, done
+
             except Exception as e:
                 print(e)
+                return next, done
+        else:
+            # NOTE: If there isn't a socket, assume server and return
+            return next, done
 
     @asyncio.coroutine
     def _handle_client(self, reader, writer):
-        print('client connected!')
+        #print('client connected!')
         self.readers.append(reader)
         self.writers.append(writer)
         while True:
@@ -31,14 +58,17 @@ class Socket(object):
             if not line:
                 print('broke')
                 break
+
+            # NOTE: passing in the writer to the user obj?
             line = line.decode('utf-8').rstrip()
+            print(line)
             try:
                 command, string_arg = line.split(' ', 1)
             except ValueError:
                 command = line
                 string_arg = None
-            msg = Message(command, string_arg)
-            print(msg)
+            user = User('1', room='socket', writer=writer)
+            msg = Message(self, user, command, string_arg)
             self.bot.recieve(msg)
 
     @asyncio.coroutine
@@ -49,14 +79,14 @@ class Socket(object):
         # Try to create a server listener
         try:
             self.server = yield from asyncio.start_server(self._handle_client, self.host, self.port)
-            print('server created!')
+            #print('server created!')
             self.is_activated = True
 
         # If address and port is already in use, 
         # create an adapter for address and port!
         except OSError:
-            print('server not created!')
-            self.adapter = self.bot.add_socket_helper(self.host, self.port)
+            #print('server not created!')
+            self.socket = self.bot.add_socket_helper(self.host, self.port)
             self.is_activated = True 
 
     @asyncio.coroutine
