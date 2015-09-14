@@ -93,6 +93,6 @@ class Socket(object):
     def run(self):
         while True:
             if not self.is_activated:
-                yield from asyncio.sleep(1)
+                yield from self.activate()
             else:
                 yield from asyncio.sleep(1)

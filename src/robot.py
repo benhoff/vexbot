@@ -1,52 +1,45 @@
 import os
 import sys
-import types
 import logging
 import asyncio
 
 import yaml
+import simpleyapsy
+import plugins
 
-import tts, stt
-from conversation import Conversation
+from listener import Listener
 from response import Response
 from adapters import Shell
 from adapters import Socket as SocketAdapter
 from middleware import Middleware
-# FIXME
-from middleware import Socket as SocketMiddleware
 
 class Bot(object):
     def __init__(self, config_path=None, bot_name="vex"):
         self.name = bot_name
-        # create logger
         self._logger = logging.getLogger(__name__)
+
         # adapters are inputs into the bot. Like a mic or shell input
         self.adapters = []
         self.adapters.append(Shell(bot=self))
 
         self.listeners = []
-        self._register_plugins()
         self.commands = []
-        self.receive_middleware = Middleware(bot=self)
 
-        self.receive_middleware.stack.append(SocketMiddleware(bot=self))
+        self.receive_middleware = Middleware(bot=self)
+        self.plugin_manager = simpleyapsy.PluginManager()
+        self.plugin_manager.add_dirs(plugins.__path__[0])
+        # FIXME: nominal api
+        self.plugin_manager.grab_plugins()
         self.listener_middleware = Middleware(bot=self)
 
-    def _register_plugins(self):
-        # FIXME: Something is messing up in here
-        self._plugin_manager = PluginManager()
-        plugin_path = os.path.dirname(os.path.realpath(__file__))
-        plugin_path = os.path.join(plugin_path, 'plugins')
-        print(plugin_path)
-        self._plugin_manager.setPluginPlaces([plugin_path])
-        print(self._plugin_manager.getAllPlugins())
-        for plugin_info in self._plugin_manager.getAllPlugins():
-            self._plugin_manager.activatePluginByName(plugin_info.name)
-            plugin_info.plugin_object.set_bot(self)
-            self.listeners.append(plugin_info.plugin_object)
-        self._plugin_manager.collectPlugins()
+    def listen(self, matcher_function, callback):
+        pass
 
-    def hear(self, regex, option, callback):
+    def hear(self, regex, callback):
+        # FIXME
+        self.listeners.append(Listener(self, regex, callback))
+
+    def catch_all(self, callback):
         pass
 
     def listener_middleware(self, middleware):
@@ -54,7 +47,12 @@ class Bot(object):
 
     def _process_listeners(self, response, done=None):
         for listener in self.listeners:
-            result, done = listener.call(response.message.command, response.message.argument, done)
+            result, done = listener.call(response.message.command, 
+                                         response.message.argument, 
+                                         done)
+            
+            #self.listener_middleware.execute(result, done=done)
+
             print(result, done)
     
             if isinstance(done, bool) and done:
@@ -67,6 +65,7 @@ class Bot(object):
         done = self.receive_middleware.execute(response,
                                                self._process_listeners,
                                                callback)
+
         if isinstance(done, bool) and done:
             return
         self._process_listeners(response, done)
@@ -81,11 +80,12 @@ class Bot(object):
         loop = asyncio.get_event_loop()
         # TODO: Need to block slightly on a module
         asyncio.async(self.receive_middleware.activate())
-        asyncio.async(self.listener_middleware.run())
-        asyncio.async(self.receive_middleware.run())
         for adapter in self.adapters:
             asyncio.async(adapter.run())
         try:
             loop.run_forever()
         finally:
             loop.close()
+
+    def shutdown(self):
+        pass
