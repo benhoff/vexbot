@@ -5,7 +5,6 @@ import logging
 import asyncio
 
 import yaml
-from yapsy.PluginManager import PluginManager
 
 import tts, stt
 from conversation import Conversation
@@ -25,7 +24,7 @@ class Bot(object):
         self.adapters = []
         self.adapters.append(Shell(bot=self))
 
-        self._listeners = []
+        self.listeners = []
         self._register_plugins()
         self.commands = []
         self.receive_middleware = Middleware(bot=self)
@@ -44,7 +43,7 @@ class Bot(object):
         for plugin_info in self._plugin_manager.getAllPlugins():
             self._plugin_manager.activatePluginByName(plugin_info.name)
             plugin_info.plugin_object.set_bot(self)
-            self._listeners.append(plugin_info.plugin_object)
+            self.listeners.append(plugin_info.plugin_object)
         self._plugin_manager.collectPlugins()
 
     def hear(self, regex, option, callback):
@@ -53,8 +52,8 @@ class Bot(object):
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)
 
-    def process_listeners(self, response, done=None):
-        for listener in self._listeners:
+    def _process_listeners(self, response, done=None):
+        for listener in self.listeners:
             result, done = listener.call(response.message.command, response.message.argument, done)
             print(result, done)
     
@@ -66,11 +65,11 @@ class Bot(object):
     def recieve(self, message, callback=None):
         response = Response(self, message)
         done = self.receive_middleware.execute(response,
-                                               self.process_listeners,
+                                               self._process_listeners,
                                                callback)
         if isinstance(done, bool) and done:
             return
-        self.process_listeners(response, done)
+        self._process_listeners(response, done)
 
     def add_socket_helper(self, host, port):
         socket = SocketAdapter(self, host, port)

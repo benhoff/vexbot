@@ -1,6 +1,5 @@
 import types
 
-
 class Listener(object):
     def __init__(self, robot, matcher, callback=None):
         """
