@@ -20,7 +20,9 @@ class Listener(object):
         """
         self.bot = robot
         self.matcher = matcher
+        self.callback = callback
 
     def call(self, message):
-        pass
-
+        result = self.matcher(message)
+        if result and self.callback is not None:
+            self.callback()

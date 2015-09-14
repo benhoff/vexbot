@@ -1,16 +1,17 @@
 import os
+import re
 import sys
+import types
 import logging
 import asyncio
 
 import yaml
-import simpleyapsy
-import plugins
+#import simpleyapsy
+#import plugins
 
 from listener import Listener
 from response import Response
 from adapters import Shell
-from adapters import Socket as SocketAdapter
 from middleware import Middleware
 
 class Bot(object):
@@ -26,21 +27,19 @@ class Bot(object):
         self.commands = []
 
         self.receive_middleware = Middleware(bot=self)
-        self.plugin_manager = simpleyapsy.PluginManager()
-        self.plugin_manager.add_dirs(plugins.__path__[0])
+        #self.plugin_manager = simpleyapsy.PluginManager()
+        #self.plugin_manager.add_dirs(plugins.__path__[0])
         # FIXME: nominal api
-        self.plugin_manager.grab_plugins()
+        #self.plugin_manager.grab_plugins()
         self.listener_middleware = Middleware(bot=self)
+        self.catch_all = None
 
     def listen(self, matcher_function, callback):
-        pass
+        self.listeners.append(Listener(self, matcher_function, callback))
 
     def hear(self, regex, callback):
-        # FIXME
-        self.listeners.append(Listener(self, regex, callback))
-
-    def catch_all(self, callback):
-        pass
+        match_function = regex.match
+        self.listeners.append(Listener(self, match_function, callback))
 
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)
@@ -53,12 +52,17 @@ class Bot(object):
             
             #self.listener_middleware.execute(result, done=done)
 
-            print(result, done)
-    
             if isinstance(done, bool) and done:
                 # TODO: pass back to the appropriate adapter?
                 print(result)
                 return
+            elif isinstance(done, types.FunctionType) and result:
+                done()
+                print(result)
+                return
+
+        if self.catch_all is not None:
+            self.catch_all()
 
     def recieve(self, message, callback=None):
         response = Response(self, message)
@@ -70,16 +74,8 @@ class Bot(object):
             return
         self._process_listeners(response, done)
 
-    def add_socket_helper(self, host, port):
-        socket = SocketAdapter(self, host, port)
-        asyncio.async(socket.activate())
-        self.adapters.append(socket)
-        return socket
-    
     def run(self, event_loop=None):
         loop = asyncio.get_event_loop()
-        # TODO: Need to block slightly on a module
-        asyncio.async(self.receive_middleware.activate())
         for adapter in self.adapters:
             asyncio.async(adapter.run())
         try:
