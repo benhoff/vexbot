@@ -5,7 +5,7 @@ import logging
 import argparse
 from robot import Bot
 
-parser = argparse.ArgumentParser(description='Jasper Voice Control Center')
+parser = argparse.ArgumentParser(description='Vex, personal assistant')
 parser.add_argument('--debug', action='store_true', help='Show debug messages')
 args = parser.parse_args()
 
