@@ -3,18 +3,18 @@ import sys
 import asyncio
 from asyncio.streams import StreamWriter, FlowControlMixin
 
-from adapters import Adapter
+from .adapter import Adapter
 from user import User
 from message import Message
 
 class Shell(Adapter):
     def __init__(self, bot=None):
-        super(Shell, self).__init__()
+        super().__init__()
         self._writer = None
         self._reader = None
         self.bot = bot
         self.is_activated = False
-    
+
     @asyncio.coroutine
     def activate(self):
         loop = asyncio.get_event_loop()
@@ -28,7 +28,14 @@ class Shell(Adapter):
     def send(self, message):
         if self._writer is not None:
             self._writer.write(message)
-    
+
+    def reply(self, message):
+        raise Exception("not implemented")
+
+    def receive(self, message):
+        super().receive
+        raise Exception("not impelemented")
+
     @asyncio.coroutine
     def run(self, loop=None):
         if not self.is_activated:

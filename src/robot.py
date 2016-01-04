@@ -6,12 +6,10 @@ import logging
 import asyncio
 
 import yaml
-#import simpleyapsy
-#import plugins
 
 from listener import Listener
 from response import Response
-from adapters import Shell
+import adapters
 from middleware import Middleware
 
 class Bot(object):
@@ -27,8 +25,6 @@ class Bot(object):
         self.commands = []
 
         self.receive_middleware = Middleware(bot=self)
-        #self.plugin_manager = simpleyapsy.PluginManager()
-        #self.plugin_manager.add_dirs(plugins.__path__[0])
         # FIXME: nominal api
         #self.plugin_manager.grab_plugins()
         self.listener_middleware = Middleware(bot=self)
@@ -46,10 +42,10 @@ class Bot(object):
 
     def _process_listeners(self, response, done=None):
         for listener in self.listeners:
-            result, done = listener.call(response.message.command, 
-                                         response.message.argument, 
+            result, done = listener.call(response.message.command,
+                                         response.message.argument,
                                          done)
-            
+
             #self.listener_middleware.execute(result, done=done)
 
             if isinstance(done, bool) and done:
