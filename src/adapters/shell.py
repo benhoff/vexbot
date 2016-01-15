@@ -57,5 +57,5 @@ class Shell(Adapter):
                     except ValueError:
                         command = input.rstrip()
                         string_arg = None
-                    msg = Message(self, user, command, string_arg)
+                    msg = Message(self, user, command)
                     self.bot.recieve(msg)

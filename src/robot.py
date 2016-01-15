@@ -6,20 +6,19 @@ import logging
 import asyncio
 
 import yaml
-
+import adapters
 from listener import Listener
 from response import Response
-import adapters
 from middleware import Middleware
 
-class Bot(object):
+class Robot(object):
     def __init__(self, config_path=None, bot_name="vex"):
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
 
         # adapters are inputs into the bot. Like a mic or shell input
         self.adapters = []
-        self.adapters.append(Shell(bot=self))
+        self.adapters.append(adapters.Shell(bot=self))
 
         self.listeners = []
         self.commands = []
@@ -76,8 +75,11 @@ class Bot(object):
             asyncio.async(adapter.run())
         try:
             loop.run_forever()
-        finally:
-            loop.close()
+        except KeyboardInterrupt:
+            pass
+
+        loop.close()
+        sys.exit()
 
     def shutdown(self):
         pass

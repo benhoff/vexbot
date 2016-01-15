@@ -3,7 +3,7 @@
 import sys
 import logging
 import argparse
-from robot import Bot
+from robot import Robot
 
 parser = argparse.ArgumentParser(description='Vex, personal assistant')
 parser.add_argument('--debug', action='store_true', help='Show debug messages')
@@ -18,7 +18,7 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     try:
-        app = Bot()
+        app = Robot()
     except Exception:
         logger.error("Error occured!", exc_info=True)
         sys.exit(1)

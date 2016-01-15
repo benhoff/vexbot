@@ -6,4 +6,3 @@ class Message(object):
         self.user = user
         # TODO: rm the distinction between command and argument?
         self.command = re.compile(command)
-        self.argument = argument
