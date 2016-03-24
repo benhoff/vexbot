@@ -9,19 +9,17 @@ class Socket(object):
         self.reader = None
         self.writer = None
         self.is_activated = False
-    
+
     def message(self, message):
         argument = message.argument if message.argument else ''
         message = ''.join([message.command.pattern, ' ', argument, '\n'])
         self.writer.write(message.encode('utf-8'))
 
-    @asyncio.coroutine
-    def activate(self):
-        self.reader, self.writer = yield from asyncio.open_connection(self.host, self.port)
+    async def activate(self):
+        self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
         print('socket activated!')
         self.is_activated = True
-    
-    @asyncio.coroutine
-    def run(self):
+
+    async def run(self):
         if not self.is_activated:
             return

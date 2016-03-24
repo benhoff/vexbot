@@ -6,27 +6,38 @@ import logging
 import asyncio
 
 import yaml
+import pluginmanager
 
 from listener import Listener
 from response import Response
-import adapters
+import vexbot.adapters as adapters
 from middleware import Middleware
+from vexbot.messager import Messager
+from vexbot.plugin_wrapper import PluginWrapper
 
-class Bot(object):
+class Robot(object):
     def __init__(self, config_path=None, bot_name="vex"):
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
+        self.messager = Messager()
 
         # adapters are inputs into the bot. Like a mic or shell input
+        adapter_manager = pluginmanager.PluginInterface()
+        adapter_manager.set_entry_points('vexbot.adapters')
+        plugins = adapter_manager.collect_entry_point_plugins()
+        plugin_wrapper = PluginWrapper(plugins[0])
+        pub_address = 'tcp://127.0.0.1:5555'
+        plugin_wrapper.activate(invoke_kwargs={'--pub_address': pub_address,
+                                               '--prompt_name': 'vexbot'})
+
+        self.messager.subscribe_to_address(pub_address)
+        self.messager.thread.start()
         self.adapters = []
-        self.adapters.append(Shell(bot=self))
 
         self.listeners = []
         self.commands = []
 
         self.receive_middleware = Middleware(bot=self)
-        # FIXME: nominal api
-        #self.plugin_manager.grab_plugins()
         self.listener_middleware = Middleware(bot=self)
         self.catch_all = None
 
@@ -76,6 +87,8 @@ class Bot(object):
             asyncio.async(adapter.run())
         try:
             loop.run_forever()
+        except KeyboardInterrupt:
+            pass
         finally:
             loop.close()
 
