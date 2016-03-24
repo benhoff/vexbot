@@ -1,6 +1,7 @@
-import types
+from pluginmanager import IPlugin
 
-class Listener(object):
+
+class Listener(IPlugin):
     def __init__(self, robot, matcher, callback=None):
         """
         Listeners receive every messsage from the chat source and 
@@ -18,6 +19,7 @@ class Listener(object):
 
         callback - a function that is triggered if the message matches
         """
+        super().__init__()
         self.bot = robot
         self.matcher = matcher
         self.callback = callback

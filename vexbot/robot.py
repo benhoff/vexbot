@@ -6,11 +6,17 @@ import logging
 import asyncio
 
 import yaml
+<<<<<<< HEAD:vexbot/robot.py
 import pluginmanager
 
 from listener import Listener
 from response import Response
 import vexbot.adapters as adapters
+=======
+import adapters
+from listener import Listener
+from response import Response
+>>>>>>> fab2cd310dbbd1b24618c6aa89a75b48c6ae35d9:src/robot.py
 from middleware import Middleware
 from vexbot.messager import Messager
 from vexbot.plugin_wrapper import PluginWrapper
@@ -33,6 +39,10 @@ class Robot(object):
         self.messager.subscribe_to_address(pub_address)
         self.messager.thread.start()
         self.adapters = []
+<<<<<<< HEAD:vexbot/robot.py
+=======
+        self.adapters.append(adapters.Shell(bot=self))
+>>>>>>> fab2cd310dbbd1b24618c6aa89a75b48c6ae35d9:src/robot.py
 
         self.listeners = []
         self.commands = []
@@ -89,8 +99,14 @@ class Robot(object):
             loop.run_forever()
         except KeyboardInterrupt:
             pass
+<<<<<<< HEAD:vexbot/robot.py
         finally:
             loop.close()
+=======
+
+        loop.close()
+        sys.exit()
+>>>>>>> fab2cd310dbbd1b24618c6aa89a75b48c6ae35d9:src/robot.py
 
     def shutdown(self):
         pass
