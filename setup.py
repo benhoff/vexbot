@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.0.1',
+    version='0.0.2',
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',
@@ -25,7 +25,7 @@ setup(
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
     entry_points={'vexbot.adapters': ['shell=vexbot.adapters.shell'],
-                  'console_scripts': ['vexbot=vexbot.__main__']},
+                  'console_scripts': ['vexbot=vexbot.__main__:main']},
     packages= find_packages(), # exclude=['docs', 'tests']
     install_requires=[
         'pluginmanager',
@@ -33,7 +33,7 @@ setup(
         ],
 
     extras_require={
-        'dev': ['flake8'],
+        'dev': ['flake8', 'twine'],
         'speechtotext': ['speechtotext'],
     }
 )
