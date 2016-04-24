@@ -3,6 +3,8 @@ import argparse
 
 import zmq
 
+from vexbot.adapters.communication_messaging import ZmqMessaging
+
 
 class Shell(cmd.Cmd):
     def __init__(self,
@@ -11,13 +13,11 @@ class Shell(cmd.Cmd):
                  pub_address='tcp://127.0.0.1:5555'):
 
         super().__init__()
+        self.messaging = ZmqMessaging('shell', pub_address)
         self.prompt = prompt_name + ': '
-        context = context or zmq.Context()
-        self.pub_socket = context.socket(zmq.PUB)
-        self.pub_socket.bind(pub_address)
 
     def default(self, arg):
-        self.pub_socket.send(arg.encode('ascii'))
+        self.messaging.send_message(arg)
 
     def _create_command_function(self, command):
         def resulting_function(arg):
@@ -46,8 +46,9 @@ def _get_kwargs():
     return vars(args)
 
 
-def main():
-    kwargs = _get_kwargs()
+def main(**kwargs):
+    if not kwargs:
+        kwargs = _get_kwargs()
     shell = Shell(**kwargs)
     shell.cmdloop()
 

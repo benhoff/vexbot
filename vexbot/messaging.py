@@ -4,7 +4,7 @@ import zmq.asyncio
 from threading import Thread
 
 
-class Messager:
+class Messaging:
     def __init__(self, context=None):
         self.context = context or zmq.Context()
 

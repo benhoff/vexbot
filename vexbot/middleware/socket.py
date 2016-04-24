@@ -1,7 +1,5 @@
 import types
 import asyncio
-from message import Message
-from user import User
 
 class Socket(object):
     # TODO: break into two separate classes and make this a manager class

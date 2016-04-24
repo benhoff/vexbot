@@ -1,30 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8-*-
 import sys
-import logging
-import argparse
-from vexbot.robot import Robot
+import atexit
+from os import path
+from subprocess import Popen
+from vexbot.adapters.shell import main as shell_main
 
 
-def main(*args, **kwargs):
-    logging.basicConfig()
-    logger = logging.getLogger()
-    logger.getChild("client.stt").setLevel(logging.INFO)
-
-    """
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-    """
-
-    try:
-        app = Robot()
-    except Exception:
-        logger.error("Error occured!", exc_info=True)
-        sys.exit(1)
-
-    app.run()
-
-
+"""
 def _get_kargs():
     parser = argparse.ArgumentParser(description='Vex, personal assistant')
     parser.add_argument('--debug',
@@ -33,7 +15,23 @@ def _get_kargs():
 
     args = parser.parse_args()
     return vars(args)
+"""
+def _kill_subprocess(process):
+    process.terminate()
+
 
 if __name__ == "__main__":
-    kwargs = _get_kargs()
-    main(**kwargs)
+    # Need to start the robot program as a subprocess
+    # Grab the filepath
+    root_directory = path.abspath(path.dirname(__file__))
+    robot_filepath = path.join(root_directory, 'robot.py')
+
+    # Start the subprocess
+    main_robot_args = (sys.executable, robot_filepath)
+    main_subprocess = Popen(main_robot_args)
+
+    # make sure to kill the subprocess when the main is killed?
+    atexit.register(_kill_subprocess, main_subprocess)
+
+    # Launch the shell interface
+    shell_main()

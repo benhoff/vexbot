@@ -4,49 +4,53 @@ import sys
 import types
 import logging
 import asyncio
+from os import path
 
 import yaml
 import pluginmanager
+from vexparser.classification_parser import ClassifyParser
 
-from listener import Listener
-from response import Response
-
-from middleware import Middleware
-from vexbot.messager import Messager
+from vexbot.middleware import Middleware
+from vexbot.messaging import Messaging
 from vexbot.plugin_wrapper import PluginWrapper
 
-class Robot(object):
+
+class Robot:
     def __init__(self, config_path=None, bot_name="vex"):
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
-        self.messager = Messager()
+        self.messaging = Messaging()
+
+        data_file = path.join(path.dirname(__file__), 'example.yaml')
+        with open(data_file) as f:
+            data = yaml.load(f)
+
+        self.parser = ClassifyParser(data)
 
         # adapters are inputs into the bot. Like a mic or shell input
         adapter_manager = pluginmanager.PluginInterface()
         adapter_manager.set_entry_points('vexbot.adapters')
         plugins = adapter_manager.collect_entry_point_plugins()
-        plugin_wrapper = PluginWrapper(plugins[0])
         pub_address = 'tcp://127.0.0.1:5555'
-        plugin_wrapper.activate(invoke_kwargs={'--pub_address': pub_address,
-                                               '--prompt_name': 'vexbot'})
-
         self.messager.subscribe_to_address(pub_address)
-        self.messager.thread.start()
+        # self.messaging.thread.start()
         self.adapters = []
 
         self.listeners = []
         self.commands = []
 
-        self.receive_middleware = Middleware(bot=self)
-        self.listener_middleware = Middleware(bot=self)
+        # self.receive_middleware = Middleware(bot=self)
+        # self.listener_middleware = Middleware(bot=self)
         self.catch_all = None
 
-    def listen(self, matcher_function, callback):
-        self.listeners.append(Listener(self, matcher_function, callback))
-
-    def hear(self, regex, callback):
-        match_function = regex.match
-        self.listeners.append(Listener(self, match_function, callback))
+    def run(self):
+        while True:
+            frame = self.messaging.sub_socket.recv_multipart()
+            # I.E. Shell adapter
+            source = frame[0]
+            msg = frame[1]
+            result = self.parser.parse(msg)
+            print(result)
 
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)
@@ -81,6 +85,7 @@ class Robot(object):
             return
         self._process_listeners(response, done)
 
+    """
     def run(self, event_loop=None):
         loop = asyncio.get_event_loop()
         for adapter in self.adapters:
@@ -92,6 +97,10 @@ class Robot(object):
         finally:
             loop.close()
         sys.exit()
+    """
 
     def shutdown(self):
         pass
+
+if __name__ == '__main__':
+    robot = Robot()
