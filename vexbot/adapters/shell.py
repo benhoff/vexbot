@@ -10,14 +10,20 @@ class Shell(cmd.Cmd):
     def __init__(self,
                  context=None,
                  prompt_name='vexbot',
-                 pub_address='tcp://127.0.0.1:5555'):
+                 pub_address='tcp://127.0.0.1:5555',
+                 sub_address='tcp://127.0.0.1:5556'):
 
         super().__init__()
-        self.messaging = ZmqMessaging('shell', pub_address)
+        self.messaging = ZmqMessaging('shell',
+                                      pub_address,
+                                      sub_address)
+
         self.prompt = prompt_name + ': '
 
     def default(self, arg):
         self.messaging.send_message(arg)
+        frame = self.messaging.sub_socket.recv_pyobj()
+        print(frame)
 
     def _create_command_function(self, command):
         def resulting_function(arg):

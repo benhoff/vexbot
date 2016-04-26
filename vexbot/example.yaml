@@ -1,40 +1,23 @@
-intents:
-    # this is the experience intent
+adapters:
     youtube:
         training_data:
-            ['bring up youtube']
+            ['bring up youtube',
+             'start up youtube',
+             'youtube',
+             'to the tubes']
         # this is the text response that will be returned
         response: "Starting up the youtube adapter"
 
-    # answers about how to get the nyancat
-    irc:
-        # this is the text response that will be returned
-        response: "The nyancat is part of the terminal emulator `Terminology`. It's a custom theme that comes bundled with the terminal"
-
+    watchpeoplecode:
         training_data:
-            ['how do you get the nyancat',
-            'nyancat',
-            'nice nyan cat as a cursor',
-            'nice cursor']
+            ['start wpc',
+             'bring up wpc',
+             'watchpeoplecode',
+             'go wpc'
+            ]
 
-    xmpp:
-        response: "the text editor Ben uses is vim with jedi-vim for autocomplete"
-    
-        training_data:
-            ['cool IDE',
-            'whats that IDE',
-            "what's your vim setup",
-            'what is the editor']
-
-    # answers what I'm working on
-    socket_io:
-        # this is the text response that will be returned
-        response: "Ben is working on a personal assistant bot, specifically moving adapter code over from another project"
-
-        training_data:
-            ['what are you coding',
-            'what are you making',
-            'what are you doing',
-            'what are you doing at the moment',
-            'what are you working on',
-            'what you making']
+        needed_data:
+            streamer_name: ''
+            namespace: '/chat'
+            website_url: 'http://www.watchpeoplecode.com/socket.io/1/'
+            socket_address: ''
