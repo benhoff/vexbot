@@ -1,5 +1,7 @@
 import sys
+import atexit
 from subprocess import Popen
+
 
 class SubprocessManager:
     def __init__(self):
@@ -7,6 +9,11 @@ class SubprocessManager:
         self._registered = {}
         # these will be subprocesses
         self._subprocess = {}
+        atexit.register(self._close_subprocesses)
+
+    def _close_subprocesses(self):
+        for process in self._subprocess.values():
+            process.terminate()
 
     def register(self, keys, values, settings=None):
         if settings is None:

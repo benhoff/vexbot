@@ -1,14 +1,8 @@
-import sys
 import types
 import logging
-import asyncio
 
-import yaml
 import pluginmanager
-from vexparser.classification_parser import ClassifyParser
-from vexparser.callback_manager import CallbackManager
 
-from vexbot.middleware import Middleware
 from vexbot.messaging import Messaging
 from vexbot.subprocess_manager import SubprocessManager
 from vexbot.argenvconfig import ArgEnvConfig
@@ -21,7 +15,7 @@ class Robot:
         self.messaging = Messaging()
         self.plugin_manager = pluginmanager.PluginInterface()
         self.plugin_manager.add_entry_points(('vexbot.plugins',
-                                             'vexbot.adapters'))
+                                              'vexbot.adapters'))
 
         self.subprocess_manager = SubprocessManager()
 
@@ -31,6 +25,7 @@ class Robot:
         self.subprocess_manager.register(plugin_names, plugins)
         settings_path = config.get('settings_path')
         settings = config.load_settings(settings_path)
+        self.messaging.pub_socket.bind(settings['robot_address'])
 
         for name in plugin_names:
             plugin_settings = settings[name]
@@ -39,18 +34,18 @@ class Robot:
                 values.extend(k_v)
             self.subprocess_manager.update(name, setting=values)
 
-        self.subprocess_manager.start(settings['startup_adapters'])
         self.subprocess_manager.start(settings['startup_plugins'])
+        self.subprocess_manager.start(settings['startup_adapters'])
 
         self.listeners = []
         self.commands = []
 
-        # self.receive_middleware = Middleware(bot=self)
-        # self.listener_middleware = Middleware(bot=self)
         self.catch_all = None
 
     def run(self):
         while True:
+            pass
+        """
             frame = self.messaging.sub_socket.recv_pyobj()
             # I.E. Shell adapter
             source = frame[0]
@@ -58,21 +53,9 @@ class Robot:
             results = self.parser.parse(msg)
 
             # check to see if go into a context mode here?
-            """
             with self.parser.parse(msg):
                 pass
-            """
-
-            # Here's an alternative idea
-            """
-            for callback in self.parser.parse(msg):
-                with callback(self.messaging)
-            """
-
-            # third idea would be to spin up a subprocess that
-            # takes over the receving socket for awhile?
-
-            self.messaging.pub_socket.send_pyobj(results)
+        """
 
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)
@@ -83,7 +66,7 @@ class Robot:
                                          response.message.argument,
                                          done)
 
-            #self.listener_middleware.execute(result, done=done)
+            # self.listener_middleware.execute(result, done=done)
 
             if isinstance(done, bool) and done:
                 # TODO: pass back to the appropriate adapter?
@@ -98,6 +81,7 @@ class Robot:
             self.catch_all()
 
     def recieve(self, message, callback=None):
+        """
         response = Response(self, message)
         done = self.receive_middleware.execute(response,
                                                self._process_listeners,
@@ -106,27 +90,18 @@ class Robot:
         if isinstance(done, bool) and done:
             return
         self._process_listeners(response, done)
-
-    """
-    def run(self, event_loop=None):
-        loop = asyncio.get_event_loop()
-        for adapter in self.adapters:
-            asyncio.async(adapter.run())
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            loop.close()
-        sys.exit()
-    """
+        """
+        pass
 
     def shutdown(self):
         pass
 
+
 def _get_config():
     config = ArgEnvConfig()
-    config.add_argument('--settings_path', default='settings.yml', action='store')
+    config.add_argument('--settings_path',
+                        default='settings.yml',
+                        action='store')
 
     return config
 

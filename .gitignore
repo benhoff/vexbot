@@ -66,3 +66,5 @@ target/
 
 # SublimeLinter config file
 .sublimelinterrc
+
+settings.yml

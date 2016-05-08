@@ -12,8 +12,7 @@ def main(client_secret_filepath, socket_address):
     try:
         messaging = ZmqMessaging('youtube', socket_address)
     except ZMQError:
-        # Already running
-        break
+        return
 
     scope = ['https://www.googleapis.com/auth/youtube',
              'https://www.googleapis.com/auth/youtube.force-ssl',

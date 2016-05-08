@@ -90,7 +90,7 @@ def main(nick, password, host, channel, socket_address, service_name):
     try:
         messaging = ZmqMessaging(service_name, socket_address)
     except ZMQError:
-        break
+        return
     # Duck type messaging onto irc_client, FTW
     irc_client.messaging = messaging
 

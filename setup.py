@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.0.3',
+    version='0.0.4',
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',
@@ -24,15 +24,14 @@ setup(
         'Operating System :: OS Independent'],
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
-    entry_points={'vexbot.adapters': ['shell=vexbot.adapters.shell'],
-                  'chatimusmaximus.communication_protocols': ['irc = vexbot.adapters.irc',
-                                                              'javascript_webscraper = vexbot.adapters.javascript_webscraper',
-                                                              'xmpp = vexbot.adapters.xmpp',
-                                                              'socket_io = vexbot.adapters.socket_io',
-                                                              'youtube_api = vexbot.adapters.youtube_api'],
-
+    entry_points={'vexbot.adapters': ['shell=vexbot.adapters.shell',
+                                      'irc = vexbot.adapters.irc',
+                                      'xmpp = vexbot.adapters.xmpp',
+                                      'socket_io = vexbot.adapters.socket_io',
+                                      'youtube_api = vexbot.adapters.youtube_api'],
 
                   'console_scripts': ['vexbot=vexbot.__main__:main']},
+
     packages= find_packages(), # exclude=['docs', 'tests']
     install_requires=[
         'pluginmanager',

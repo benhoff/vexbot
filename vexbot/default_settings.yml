@@ -22,8 +22,10 @@ irc:
     --nick: ""
     --host: 'irc.twitch.tv'
     --socket_address: ""
+    --service_name: ''
 
 xmpp:
+    --service_name: ''
     # this MUST be your livecode name
     # This is a name
     --local: ""
@@ -39,12 +41,14 @@ xmpp:
 # socket_io is hardcoded for watchpeople code
 # feel free to yell at me about that on github
 socket_io:
+    --service_name: ''
     --streamer_name: ""
     --namespace: '/chat'
     --website_url: 'http://www.watchpeoplecode.com/socket.io/1/'
     --socket_address: ""
 
-youtube:
+youtube_api:
+    --service_name: ''
     --socket_address: ""
     # can either be 'javascript' or 'api'
     --connection_type: 'api'
