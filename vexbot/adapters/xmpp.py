@@ -89,15 +89,20 @@ def main():
     args = _get_args()
     jid = '{}@{}/{}'.format(args.local, args.domain, args.resource)
     kwargs = vars(args)
+    already_running = False
 
-    xmpp_bot = ReadOnlyXMPPBot(jid, **kwargs)
+    try:
+        xmpp_bot = ReadOnlyXMPPBot(jid, **kwargs)
+    except zmq.ZMQError:
+        already_running = True
 
-    while True:
-        try:
-            xmpp_bot.connect()
-            xmpp_bot.process()
-        except Exception:
-            sleep(1)
+    if not already_running:
+        while True:
+            try:
+                xmpp_bot.connect()
+                xmpp_bot.process()
+            except Exception:
+                sleep(1)
 
 if __name__ == '__main__':
     main()

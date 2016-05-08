@@ -3,6 +3,7 @@ import asyncio
 import argparse
 
 import irc3
+from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
 
 from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
@@ -86,7 +87,10 @@ def main(nick, password, host, channel, socket_address, service_name):
                                 host,
                                 channel=channel)
 
-    messaging = ZmqMessaging(service_name, socket_address)
+    try:
+        messaging = ZmqMessaging(service_name, socket_address)
+    except ZMQError:
+        break
     # Duck type messaging onto irc_client, FTW
     irc_client.messaging = messaging
 

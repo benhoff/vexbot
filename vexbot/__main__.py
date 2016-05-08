@@ -1,37 +1,46 @@
 #!/usr/bin/env python3
 import sys
-import atexit
 from os import path
 from subprocess import Popen
+from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.adapters.shell import main as shell_main
+from vexbot.messaging import Messaging
 
 
-"""
-def _get_kargs():
-    parser = argparse.ArgumentParser(description='Vex, personal assistant')
-    parser.add_argument('--debug',
-                        action='store_true',
-                        help='Show debug messages')
+def _get_config():
+    config_manager = ArgEnvConfig()
+    config_manager.add_argument('--settings_path',
+                                default='settings.yml',
+                                action='store')
 
-    args = parser.parse_args()
-    return vars(args)
-"""
-def _kill_subprocess(process):
-    process.terminate()
+    return config_manager
 
 
 if __name__ == "__main__":
-    # Need to start the robot program as a subprocess
-    # Grab the filepath
+    config = _get_config()
+    settings_path = config.get('settings_path')
+    settings = config.load_settings(settings_path)
+
+    messaging = Messaging()
+
+    # TODO:
+    # if messaging.pub_socket.bind(settings['robot_address']):
+
     root_directory = path.abspath(path.dirname(__file__))
     robot_filepath = path.join(root_directory, 'robot.py')
 
     # Start the subprocess
-    main_robot_args = (sys.executable, robot_filepath)
-    main_subprocess = Popen(main_robot_args)
+    main_robot_args = (sys.executable,
+                       robot_filepath,
+                       '--settings_path',
+                       settings_path)
 
-    # make sure to kill the subprocess when the main is killed?
-    atexit.register(_kill_subprocess, main_subprocess)
+    print('starting bot')
+    main_subprocess = Popen(main_robot_args)
+    shell_settings = settings['shell']
+    for key in set(shell_settings.keys()):
+        value = shell_settings.pop(key)
+        shell_settings[key[2:]] = value
 
     # Launch the shell interface
-    shell_main()
+    shell_main(**shell_settings)

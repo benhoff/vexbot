@@ -1,63 +1,46 @@
-import os
-import re
 import sys
 import types
 import logging
 import asyncio
-from os import path
 
 import yaml
 import pluginmanager
 from vexparser.classification_parser import ClassifyParser
 from vexparser.callback_manager import CallbackManager
 
-from vexbot.adapter_starter import AdapterStart
 from vexbot.middleware import Middleware
 from vexbot.messaging import Messaging
-from vexbot.plugin_wrapper import PluginWrapper
-
-
-def _return_closure(print_statement):
-    def return_func():
-        return print_statement
-    return return_func
+from vexbot.subprocess_manager import SubprocessManager
+from vexbot.argenvconfig import ArgEnvConfig
 
 
 class Robot:
-    def __init__(self, config_path=None, bot_name="vex"):
+    def __init__(self, configuration, bot_name="vex"):
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
         self.messaging = Messaging()
+        self.plugin_manager = pluginmanager.PluginInterface()
+        self.plugin_manager.add_entry_points(('vexbot.plugins',
+                                             'vexbot.adapters'))
 
-        data_file = path.join(path.dirname(__file__), 'example.yaml')
-        with open(data_file) as f:
-            data = yaml.load(f)
+        self.subprocess_manager = SubprocessManager()
 
-        classifier_data = []
-        self.adapter_starter = AdapterStart()
+        collect_ep = self.plugin_manager.collect_entry_point_plugins
+        plugins, plugin_names = collect_ep()
+        plugins = [plugin.__file__ for plugin in plugins]
+        self.subprocess_manager.register(plugin_names, plugins)
+        settings_path = config.get('settings_path')
+        settings = config.load_settings(settings_path)
 
-        self.callback_manager = CallbackManager()
+        for name in plugin_names:
+            plugin_settings = settings[name]
+            values = []
+            for k_v in plugin_settings.items():
+                values.extend(k_v)
+            self.subprocess_manager.update(name, setting=values)
 
-        for intent, intent_data in data['adapters'].items():
-            intent_data_for_classifier = [(d, intent)
-                                          for d
-                                          in intent_data['training_data']]
-
-            classifier_data.extend(intent_data_for_classifier)
-            c = self.adapter_starter.track_adapter(intent, intent_data)
-            self.callback_manager.associate_key_with_callback(intent, c)
-
-        self.parser = ClassifyParser(classifier_data)
-        self.parser.add_callback_manager(self.callback_manager)
-
-        # adapters are inputs into the bot. Like a mic or shell input
-        adapter_manager = pluginmanager.PluginInterface()
-        adapter_manager.set_entry_points('vexbot.adapters')
-        plugins = adapter_manager.collect_entry_point_plugins()
-        pub_address = 'tcp://127.0.0.1:5555'
-        self.messaging.subscribe_to_address(pub_address)
-        # self.messaging.thread.start()
-        self.adapters = []
+        self.subprocess_manager.start(settings['startup_adapters'])
+        self.subprocess_manager.start(settings['startup_plugins'])
 
         self.listeners = []
         self.commands = []
@@ -141,6 +124,14 @@ class Robot:
     def shutdown(self):
         pass
 
+def _get_config():
+    config = ArgEnvConfig()
+    config.add_argument('--settings_path', default='settings.yml', action='store')
+
+    return config
+
+
 if __name__ == '__main__':
-    robot = Robot()
+    config = _get_config()
+    robot = Robot(config)
     robot.run()

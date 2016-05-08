@@ -1,0 +1,66 @@
+robot_address: ''
+startup_plugins: []
+startup_adapters: []
+
+shell:
+    publish_address: ''
+    subscribe_address: ''
+
+shell:
+    --publish_address: ''
+    --subscribe_address: ''
+
+irc:
+    # I use this site to get oauth_token 
+    # https://twitchapps.com/tmi/
+    # use this format: `oauth:asdasd234asd234ad234asds23`
+    --password: ""
+    # this will be your twitch channel
+    # should be something like "#beohoff"
+    --channel: ""
+    # I believe this has to be your twitch acct name
+    --nick: ""
+    --host: 'irc.twitch.tv'
+    --socket_address: ""
+
+xmpp:
+    # this MUST be your livecode name
+    # This is a name
+    --local: ""
+    # this can be your profile password
+    --password: ""
+    --bot_nick: ""
+    # room is going to look something like `benhoff@chat.livecoding.tv`
+    --room: ""
+    --domain: 'livecoding.tv'
+    --resource: 'CHATIMUSMAXIMUS'
+    --socket_address: ""
+
+# socket_io is hardcoded for watchpeople code
+# feel free to yell at me about that on github
+socket_io:
+    --streamer_name: ""
+    --namespace: '/chat'
+    --website_url: 'http://www.watchpeoplecode.com/socket.io/1/'
+    --socket_address: ""
+
+youtube:
+    --socket_address: ""
+    # can either be 'javascript' or 'api'
+    --connection_type: 'api'
+    
+    # optional arg if using api
+    --youtube_url: ""
+   
+    # Optional arg if using `javascript` 
+    # use an absolute filepath!
+    --client_secrets_file: ""
+    # HOWTO: go to goole developers console. Create an app and request
+    # YouTube Data API v3 access. Create and download OAuth credentials
+    # and put the filepath info in `client_secrets_file`
+
+vexparser:
+    --settings_path: ''
+
+chatimusmaximus:
+    --settings_path: ''

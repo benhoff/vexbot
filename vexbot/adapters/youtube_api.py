@@ -1,12 +1,20 @@
 import sys
 import argparse
 from time import sleep
+
+from zmq import ZMQError
+
 from chatimusmaximus.util import youtube_authentication
 from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
 
 
 def main(client_secret_filepath, socket_address):
-    messaging = ZmqMessaging('youtube', socket_address)
+    try:
+        messaging = ZmqMessaging('youtube', socket_address)
+    except ZMQError:
+        # Already running
+        break
+
     scope = ['https://www.googleapis.com/auth/youtube',
              'https://www.googleapis.com/auth/youtube.force-ssl',
              'https://www.googleapis.com/auth/youtube.readonly']

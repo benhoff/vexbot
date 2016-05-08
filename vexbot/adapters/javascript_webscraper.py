@@ -5,6 +5,7 @@ from time import sleep
 
 import selenium
 from selenium import webdriver
+from zmq import ZMQError
 
 from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
 
@@ -121,6 +122,11 @@ if __name__ == '__main__':
     # python magic to get a list of args
     # vars changes namespace to dict, `values()` gets the values out of dict
     kwargs = vars(_get_args())
-    webscraper = JavascriptWebscraper(**kwargs)
+    already_running = False
+    try:
+        webscraper = JavascriptWebscraper(**kwargs)
+    except ZMQError:
+        already_running = True
 
-    webscraper.run_forever()
+    if not already_running:
+        webscraper.run_forever()

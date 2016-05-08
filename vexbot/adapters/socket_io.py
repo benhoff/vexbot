@@ -6,6 +6,7 @@ import logging
 from time import sleep
 
 import websocket
+from zmq import ZMQError
 
 from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
 
@@ -135,5 +136,11 @@ def _get_args():
 if __name__ == '__main__':
 
     args = vars(_get_args())
-    client = ReadOnlyWebSocket(**args)
-    client.repeat_run_forever()
+    already_running = False
+    try:
+        client = ReadOnlyWebSocket(**args)
+    except ZMQError:
+        already_running = True
+
+    if not already_running:
+        client.repeat_run_forever()
