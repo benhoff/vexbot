@@ -28,10 +28,13 @@ class Robot:
         self.messaging.pub_socket.bind(settings['robot_address'])
 
         for name in plugin_names:
-            plugin_settings = settings[name]
-            values = []
-            for k_v in plugin_settings.items():
-                values.extend(k_v)
+            try:
+                plugin_settings = settings[name]
+                values = []
+                for k_v in plugin_settings.items():
+                    values.extend(k_v)
+            except KeyError:
+                values = []
             self.subprocess_manager.update(name, setting=values)
 
         self.subprocess_manager.start(settings['startup_plugins'])
