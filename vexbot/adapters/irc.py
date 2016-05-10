@@ -6,7 +6,7 @@ import irc3
 from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
 
-from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.communication_messaging import ZmqMessaging
 
 
 @irc3.plugin

@@ -6,7 +6,7 @@ from asyncio import sleep
 
 import zmq
 
-from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
 
 
 class ReadOnlyXMPPBot(slixmpp.ClientXMPP):

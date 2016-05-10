@@ -8,7 +8,7 @@ from time import sleep
 import websocket
 from zmq import ZMQError
 
-from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.communication_messaging import ZmqMessaging
 
 
 class ReadOnlyWebSocket(websocket.WebSocketApp):

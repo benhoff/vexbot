@@ -7,7 +7,7 @@ import selenium
 from selenium import webdriver
 from zmq import ZMQError
 
-from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
 
 
 class JavascriptWebscraper:

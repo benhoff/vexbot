@@ -4,8 +4,9 @@ from time import sleep
 
 from zmq import ZMQError
 
+# FIXME
 from chatimusmaximus.util import youtube_authentication
-from chatimusmaximus.communication_protocols.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
 
 
 def main(client_secret_filepath, socket_address):
