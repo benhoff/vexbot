@@ -1,15 +1,15 @@
 import logging
 import argparse
-import slixmpp
-import asyncio # flake8: noqa
-from asyncio import sleep
+from sleekxmpp import ClientXMPP
+from sleekxmpp.exceptions import IqError, IqTimeout
+from time import sleep
 
 import zmq
 
 from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
 
 
-class ReadOnlyXMPPBot(slixmpp.ClientXMPP):
+class ReadOnlyXMPPBot(ClientXMPP):
     def __init__(self,
                  jid,
                  password,
@@ -22,6 +22,7 @@ class ReadOnlyXMPPBot(slixmpp.ClientXMPP):
         # Initialize the parent class
         super().__init__(jid, password)
         self.messaging = ZmqMessaging(service_name, socket_address)
+        self.messaging.start_messaging()
 
         self.room = room
         self.nick = bot_nick
@@ -40,10 +41,6 @@ class ReadOnlyXMPPBot(slixmpp.ClientXMPP):
 
     def _connected(self, *args):
         self.messaging.send_message('CONNECTED')
-
-    def process(self):
-        self.init_plugins()
-        super().process()
 
     def _register_plugin_helper(self):
         """
@@ -100,8 +97,9 @@ def main():
         while True:
             try:
                 xmpp_bot.connect()
-                xmpp_bot.process()
-            except Exception:
+                xmpp_bot.process(block=True)
+            except Exception as e:
+                print(e)
                 sleep(1)
 
 if __name__ == '__main__':
