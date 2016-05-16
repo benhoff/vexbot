@@ -25,7 +25,9 @@ if __name__ == "__main__":
     messaging = Messaging()
 
     already_running = False
-    pub_address = settings['robot_address']
+    pub_address = settings.get('publish_address',
+                               'tcp://127.0.0.1:4001')
+
     try:
         messaging.pub_socket.bind(pub_address)
     except ZMQError:

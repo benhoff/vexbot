@@ -45,6 +45,9 @@ class ArgEnvConfig:
         args = self._arg.parse_args()
         return getattr(args, value)
 
+    def get_args(self):
+        return self._arg.parse_args()
+
     def load_settings(self, filepath):
         with open(filepath) as f:
             settings = yaml.load(f)

@@ -1,31 +1,94 @@
 import types
 import logging
+import pickle
+from time import sleep
 
+import zmq
+import zmq.devices
 import pluginmanager
 
-from vexbot.messaging import Messaging
 from vexbot.subprocess_manager import SubprocessManager
 from vexbot.argenvconfig import ArgEnvConfig
 
 
 class Robot:
     def __init__(self, configuration, bot_name="vex"):
-        self.name = bot_name
-        self._logger = logging.getLogger(__name__)
-        self.messaging = Messaging()
+        # get the settings path and then load the settings from file
+        settings_path = configuration.get('settings_path')
+        settings = configuration.load_settings(settings_path)
+
+        # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
+        # add the entry points of interest
         self.plugin_manager.add_entry_points(('vexbot.plugins',
                                               'vexbot.adapters'))
 
+        # create the subprocess manager and add in the plugins
         self.subprocess_manager = SubprocessManager()
+        self._update_plugins(settings,
+                             self.subprocess_manager,
+                             self.plugin_manager)
 
-        collect_ep = self.plugin_manager.collect_entry_point_plugins
+        subprocesses_to_start = settings.get('startup_adapters', [])
+        subprocesses_to_start.extend(settings.get('startup_plugins', []))
+        self.subprocess_manager.start(subprocesses_to_start)
+
+        self.name = bot_name
+        self._logger = logging.getLogger(__name__)
+        context = zmq.Context()
+
+        self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
+        self._proxy.bind_in(settings.get('subscribe_address',
+                                         'tcp://127.0.0.1:4000'))
+
+        self._proxy.bind_out(settings.get('publish_address',
+                                          'tcp://127.0.0.1:4001'))
+        proxy_address = 'tcp://127.0.0.1:4002'
+
+        self._proxy.bind_mon(proxy_address)
+
+        self._monitor_socket = context.socket(zmq.SUB)
+        self._monitor_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        self._monitor_socket.connect(proxy_address)
+
+        self._proxy.start()
+
+        self.listeners = []
+        self.commands = []
+
+        self.catch_all = None
+
+    def run(self):
+        while True:
+            frame = self._monitor_socket.recv()
+            try:
+                frame = pickle.loads(frame)
+            except pickle.UnpicklingError:
+                frame = None
+            if frame:
+                frame_len = len(frame)
+                if frame_len == 4:
+                    print(frame)
+                    source = frame[0]
+                    msg = frame[1]
+
+
+    def _update_plugins(self,
+                        settings,
+                        subprocess_manager=None,
+                        plugin_manager=None):
+        """
+        Helper process which loads the plugins from the entry points
+        """
+        if subprocess_manager is None:
+            subprocess_manager = self.subprocess_manager
+        if plugin_manager is None:
+            plugin_manager = self.plugin_manager
+
+        collect_ep = plugin_manager.collect_entry_point_plugins
         plugins, plugin_names = collect_ep()
         plugins = [plugin.__file__ for plugin in plugins]
-        self.subprocess_manager.register(plugin_names, plugins)
-        settings_path = config.get('settings_path')
-        settings = config.load_settings(settings_path)
-        self.messaging.pub_socket.bind(settings['robot_address'])
+        subprocess_manager.register(plugin_names, plugins)
 
         for name in plugin_names:
             try:
@@ -36,29 +99,6 @@ class Robot:
             except KeyError:
                 values = []
             self.subprocess_manager.update(name, setting=values)
-
-        self.subprocess_manager.start(settings['startup_plugins'])
-        self.subprocess_manager.start(settings['startup_adapters'])
-
-        self.listeners = []
-        self.commands = []
-
-        self.catch_all = None
-
-    def run(self):
-        while True:
-            pass
-        """
-            frame = self.messaging.sub_socket.recv_pyobj()
-            # I.E. Shell adapter
-            source = frame[0]
-            msg = frame[1]
-            results = self.parser.parse(msg)
-
-            # check to see if go into a context mode here?
-            with self.parser.parse(msg):
-                pass
-        """
 
     def listener_middleware(self, middleware):
         self.listener_middleware.stack.append(middleware)

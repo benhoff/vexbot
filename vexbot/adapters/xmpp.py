@@ -99,8 +99,7 @@ def main():
                 xmpp_bot.connect()
                 xmpp_bot.process(block=True)
             except Exception as e:
-                print(e)
-                sleep(1)
+                xmpp_bot.log.error(e)
 
 if __name__ == '__main__':
     main()

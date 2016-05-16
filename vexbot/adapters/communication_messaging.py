@@ -6,8 +6,8 @@ class ZmqMessaging:
         self._service_name = service_name
         self.pub_socket = None
         self.sub_socket = None
-        self.sub_address = sub_address
         self.pub_address = pub_address
+        self.sub_address = sub_address
         self._messaging_started = False
 
     def start_messaging(self):
@@ -19,7 +19,7 @@ class ZmqMessaging:
         self.pub_socket = context.socket(zmq.PUB)
         if self.pub_address:
             try:
-                self.pub_socket.bind(self.pub_address)
+                self.pub_socket.connect(self.pub_address)
             except zmq.error.ZMQError:
                 err = """
                       Incorrect value passed in for socket address in {}, fix it
