@@ -49,7 +49,7 @@ class Shell(cmd.Cmd):
         self.prompt = prompt_name + ': '
 
     def default(self, arg):
-        self.messaging.send_message(arg)
+        self.messaging.send_message('CMD', arg)
         if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
             frame = self.messaging.sub_socket.recv_pyobj()
             print(frame)

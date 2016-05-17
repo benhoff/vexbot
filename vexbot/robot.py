@@ -1,3 +1,4 @@
+import sys
 import types
 import logging
 import pickle
@@ -43,6 +44,7 @@ class Robot:
 
         self._proxy.bind_out(settings.get('publish_address',
                                           'tcp://127.0.0.1:4001'))
+
         proxy_address = 'tcp://127.0.0.1:4002'
 
         self._proxy.bind_mon(proxy_address)
@@ -58,19 +60,30 @@ class Robot:
 
         self.catch_all = None
 
+    def _run_command(self, command):
+        commands = command.split()
+        command = commands.pop(0)
+        if command == 'start':
+            self.subprocess_manager.start(commands)
+        elif command == 'restart':
+            self.subprocess_manager.restart(commands)
+        elif command == 'kill':
+            self.subprocess_manager.kill(commands)
+        elif command == 'killall':
+            self.subprocess_manager.killall()
+            # sys.exit() ?
+
     def run(self):
         while True:
             frame = self._monitor_socket.recv()
             try:
                 frame = pickle.loads(frame)
-            except pickle.UnpicklingError:
+            except (pickle.UnpicklingError, EOFError):
                 frame = None
             if frame:
                 frame_len = len(frame)
-                if frame_len == 4:
-                    print(frame)
-                    source = frame[0]
-                    msg = frame[1]
+                if frame[1] == 'CMD':
+                    self._run_command(frame[2])
 
 
     def _update_plugins(self,

@@ -1,6 +1,6 @@
 import sys
 import atexit
-from subprocess import Popen
+from subprocess import Popen, DEVNULL, STDOUT
 
 
 class SubprocessManager:
@@ -43,7 +43,7 @@ class SubprocessManager:
                 args = [sys.executable, data[0]]
                 if data[1]:
                     args.extend(data[1])
-                process = Popen(args)
+                process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
                 self._subprocess[key] = process
 
     def restart(self, values):
@@ -56,3 +56,7 @@ class SubprocessManager:
         for value in values:
             process = self._subprocess[value]
             process.kill()
+
+    def killall(self):
+        for subprocess in self._subprocess.values():
+            subprocess.kill()
