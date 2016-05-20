@@ -89,6 +89,7 @@ def main(nick, password, host, channel, socket_address, service_name):
 
     try:
         messaging = ZmqMessaging(service_name, socket_address)
+        messaging.set_socket_filter('')
         messaging.start_messaging()
     except ZMQError:
         return

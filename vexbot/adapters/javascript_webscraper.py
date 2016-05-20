@@ -30,6 +30,7 @@ class JavascriptWebscraper:
         ie., 'comment-text' for youtube
         """
         self.messaging = ZmqMessaging(service_name, socket_address)
+        messaging.set_socket_filter('')
         self.messaging.start_messaging()
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.NOTSET)

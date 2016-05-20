@@ -18,6 +18,7 @@ from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
 def main(client_secret_filepath, socket_address):
     try:
         messaging = ZmqMessaging('youtube', socket_address)
+        messaging.set_socket_filter('')
         messaging.start_messaging()
     except ZMQError:
         return

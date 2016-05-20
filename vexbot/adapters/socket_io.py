@@ -25,6 +25,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
         self.log.setLevel(0)
         self.messaging = ZmqMessaging(service_name, socket_address)
         self.messaging.start_messaging()
+        self.messaging.set_socket_filter('')
         self._streamer_name = streamer_name
         self.namespace = namespace
         self._website_url = website_url

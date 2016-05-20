@@ -2,7 +2,6 @@ import sys
 import types
 import logging
 import pickle
-from time import sleep
 
 import zmq
 import zmq.devices
@@ -39,19 +38,27 @@ class Robot:
         context = zmq.Context()
 
         self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
-        self._proxy.bind_in(settings.get('subscribe_address',
-                                         'tcp://127.0.0.1:4000'))
-
-        self._proxy.bind_out(settings.get('publish_address',
-                                          'tcp://127.0.0.1:4001'))
-
         proxy_address = 'tcp://127.0.0.1:4002'
+        subscribe_address = settings.get('subscribe_address',
+                                         'tcp://127.0.0.1:4000')
+
+        publish_address = settings.get('publish_address',
+                                       'tcp://127.0.0.1:4001')
+
+        self._proxy.bind_in(subscribe_address)
+        self._proxy.bind_out(publish_address)
 
         self._proxy.bind_mon(proxy_address)
+        name = b'vexbot'
 
         self._monitor_socket = context.socket(zmq.SUB)
+        # self._monitor_socket.setsockopt(zmq.SUBSCRIBE, name)
         self._monitor_socket.setsockopt(zmq.SUBSCRIBE, b'')
         self._monitor_socket.connect(proxy_address)
+
+        self._publish_socket = context.socket(zmq.PUB)
+        # self._publish_socket.setsockopt(zmq.IDENTITY, name)
+        self._publish_socket.connect(publish_address)
 
         self._proxy.start()
 
@@ -71,7 +78,10 @@ class Robot:
             self.subprocess_manager.kill(commands)
         elif command == 'killall':
             self.subprocess_manager.killall()
-            # sys.exit() ?
+            sys.exit()
+        elif command == 'list':
+            # how do I send information back?
+            pass
 
     def run(self):
         while True:
@@ -84,7 +94,6 @@ class Robot:
                 frame_len = len(frame)
                 if frame[1] == 'CMD':
                     self._run_command(frame[2])
-
 
     def _update_plugins(self,
                         settings,

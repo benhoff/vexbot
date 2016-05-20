@@ -22,6 +22,7 @@ class ReadOnlyXMPPBot(ClientXMPP):
         # Initialize the parent class
         super().__init__(jid, password)
         self.messaging = ZmqMessaging(service_name, socket_address)
+        self.messaging.set_socket_filter('')
         self.messaging.start_messaging()
 
         self.room = room

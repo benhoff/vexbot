@@ -3,6 +3,7 @@ import argparse
 
 import zmq
 
+from vexbot.util import start_vexbot
 from vexbot.adapters.communication_messaging import ZmqMessaging
 
 """
@@ -31,7 +32,6 @@ self.messaging.subscribe_to_address(pub_address)
 """
 
 
-
 class Shell(cmd.Cmd):
     def __init__(self,
                  context=None,
@@ -44,15 +44,21 @@ class Shell(cmd.Cmd):
                                       publish_address,
                                       subscribe_address)
 
+        self.messaging.register_command('start vexbot',
+                                        start_vexbot)
+
+        # self.messaging.set_socket_identity('shell')
+        self.messaging.set_socket_filter('')
         self.messaging.start_messaging()
 
         self.prompt = prompt_name + ': '
 
     def default(self, arg):
-        self.messaging.send_message('CMD', arg)
-        if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
-            frame = self.messaging.sub_socket.recv_pyobj()
-            print(frame)
+        if not self.messaging.is_command(arg):
+            self.messaging.send_message('CMD', arg)
+            if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
+                frame = self.messaging.sub_socket.recv_pyobj()
+                print(frame)
 
     def _create_command_function(self, command):
         def resulting_function(arg):
