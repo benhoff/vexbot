@@ -41,5 +41,11 @@ setup(
     extras_require={
         'dev': ['flake8', 'twine'],
         'speechtotext': ['speechtotext'],
+        'gui': ['chatimusmaximus'],
+        'javascript_webscrapper': ['selenium'],
+        'irc': ['irc'],
+        'socket_io': ['requests', 'websocket-client'],
+        'xmpp': ['sleekxmpp', 'dnspython3'],
+        'youtube': ['google-api-python-client'],
     }
 )
