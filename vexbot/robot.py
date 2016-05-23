@@ -7,15 +7,19 @@ import zmq
 import zmq.devices
 import pluginmanager
 
-from vexbot.subprocess_manager import SubprocessManager
+from vexbot.messaging import Messaging
 from vexbot.argenvconfig import ArgEnvConfig
+from vexbot.command_manager import CommandManager
+from vexbot.subprocess_manager import SubprocessManager
 
 
 class Robot:
     def __init__(self, configuration, bot_name="vex"):
+        self.command_manager = CommandManager(robot=self)
         # get the settings path and then load the settings from file
         settings_path = configuration.get('settings_path')
         settings = configuration.load_settings(settings_path)
+        self.messaging = Messaging(settings)
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
@@ -35,57 +39,11 @@ class Robot:
 
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
-        context = zmq.Context()
-
-        self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
-        proxy_address = 'tcp://127.0.0.1:4002'
-        subscribe_address = settings.get('subscribe_address',
-                                         'tcp://127.0.0.1:4000')
-
-        publish_address = settings.get('publish_address',
-                                       'tcp://127.0.0.1:4001')
-
-        self._proxy.bind_in(subscribe_address)
-        self._proxy.bind_out(publish_address)
-
-        self._proxy.bind_mon(proxy_address)
         name = b'vexbot'
-
-        self._monitor_socket = context.socket(zmq.SUB)
-        # self._monitor_socket.setsockopt(zmq.SUBSCRIBE, name)
-        self._monitor_socket.setsockopt(zmq.SUBSCRIBE, b'')
-        self._monitor_socket.connect(proxy_address)
-
-        self._publish_socket = context.socket(zmq.PUB)
-        # self._publish_socket.setsockopt(zmq.IDENTITY, name)
-        self._publish_socket.connect(publish_address)
-
-        self._proxy.start()
-
-        self.listeners = []
-        self.commands = []
-
-        self.catch_all = None
-
-    def _run_command(self, command):
-        commands = command.split()
-        command = commands.pop(0)
-        if command == 'start':
-            self.subprocess_manager.start(commands)
-        elif command == 'restart':
-            self.subprocess_manager.restart(commands)
-        elif command == 'kill':
-            self.subprocess_manager.kill(commands)
-        elif command == 'killall':
-            self.subprocess_manager.killall()
-            sys.exit()
-        elif command == 'list':
-            # how do I send information back?
-            pass
 
     def run(self):
         while True:
-            frame = self._monitor_socket.recv()
+            frame = self.messaging._monitor_socket.recv()
             try:
                 frame = pickle.loads(frame)
             except (pickle.UnpicklingError, EOFError):
@@ -93,7 +51,7 @@ class Robot:
             if frame:
                 frame_len = len(frame)
                 if frame[1] == 'CMD':
-                    self._run_command(frame[2])
+                    self.command_manager.parse_commands(frame[2])
 
     def _update_plugins(self,
                         settings,
@@ -121,45 +79,6 @@ class Robot:
             except KeyError:
                 values = []
             self.subprocess_manager.update(name, setting=values)
-
-    def listener_middleware(self, middleware):
-        self.listener_middleware.stack.append(middleware)
-
-    def _process_listeners(self, response, done=None):
-        for listener in self.listeners:
-            result, done = listener.call(response.message.command,
-                                         response.message.argument,
-                                         done)
-
-            # self.listener_middleware.execute(result, done=done)
-
-            if isinstance(done, bool) and done:
-                # TODO: pass back to the appropriate adapter?
-                print(result)
-                return
-            elif isinstance(done, types.FunctionType) and result:
-                done()
-                print(result)
-                return
-
-        if self.catch_all is not None:
-            self.catch_all()
-
-    def recieve(self, message, callback=None):
-        """
-        response = Response(self, message)
-        done = self.receive_middleware.execute(response,
-                                               self._process_listeners,
-                                               callback)
-
-        if isinstance(done, bool) and done:
-            return
-        self._process_listeners(response, done)
-        """
-        pass
-
-    def shutdown(self):
-        pass
 
 
 def _get_config():

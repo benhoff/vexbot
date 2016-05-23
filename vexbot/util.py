@@ -1,7 +1,7 @@
 import sys
 from os import path
 from subprocess import Popen
-from zmq import ZMQError
+import zmq
 from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.messaging import Messaging
 
@@ -15,24 +15,28 @@ def _get_config():
     return config_manager
 
 
+def _running(address_to_check):
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
+    already_running = False
+    try:
+        socket.bind(address_to_check)
+    except zmq.ZMQError:
+        already_running = True
+
+    if not already_running:
+        socket.disconnect(address_to_check)
+
+    return already_running
+
+
 def start_vexbot():
     config = _get_config()
     settings_path = config.get('settings_path')
     settings = config.load_settings(settings_path)
+    process = None
 
-    messaging = Messaging()
-
-    already_running = False
-    pub_address = settings.get('publish_address',
-                               'tcp://127.0.0.1:4001')
-
-    try:
-        messaging.pub_socket.bind(pub_address)
-    except ZMQError:
-        already_running = True
-
-    if not already_running:
-        messaging.pub_socket.disconnect(pub_address)
+    if not _running(settings.get('monitor_address')):
         root_directory = path.abspath(path.dirname(__file__))
         robot_filepath = path.join(root_directory, 'robot.py')
 
@@ -42,6 +46,6 @@ def start_vexbot():
                            '--settings_path',
                            settings_path)
 
-        Popen(main_robot_args)
+        process = Popen(main_robot_args)
 
-    return settings
+    return settings, process

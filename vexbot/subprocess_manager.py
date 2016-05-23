@@ -54,8 +54,11 @@ class SubprocessManager:
 
     def kill(self, values):
         for value in values:
-            process = self._subprocess[value]
-            process.kill()
+            try:
+                process = self._subprocess[value]
+                process.kill()
+            except KeyError:
+                pass
 
     def killall(self):
         for subprocess in self._subprocess.values():
