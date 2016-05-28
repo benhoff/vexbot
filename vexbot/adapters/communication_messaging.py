@@ -1,3 +1,4 @@
+import pickle
 import zmq
 
 
@@ -8,7 +9,7 @@ class ZmqMessaging:
         self._socket_identity = None
         self._socket_filter = None
 
-        self._service_name = service_name
+        self._service_name = service_name.encode('ascii')
         self._pub_address = pub_address
         self._sub_address = sub_address
         self._messaging_started = False
@@ -64,8 +65,13 @@ class ZmqMessaging:
 
     def send_message(self, *msg):
         msg = list(msg)
-        msg.insert(0, self._service_name)
-        self.pub_socket.send_pyobj(msg)
+        msg = pickle.dumps(msg)
+        # use send_multipart instead
+        # use pickle to encode the msg
+        # self.pub_socket.send_pyobj(msg)
+        self.pub_socket.send_multipart((self._service_name, msg))
+
+
 
     def register_command(self, cmd, function):
         self._commands[cmd] = function

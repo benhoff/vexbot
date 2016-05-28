@@ -1,35 +1,15 @@
+import os
+import sys
+import tempfile
 import cmd
 import argparse
 
+from subprocess import call
+
 import zmq
 
-from vexbot.util import start_vexbot
+from vexbot.util import start_vexbot, create_vexdir
 from vexbot.adapters.communication_messaging import ZmqMessaging
-
-"""
-classifier_data = []
-
-self.callback_manager = CallbackManager()
-
-for intent, intent_data in data['adapters'].items():
-    intent_data_for_classifier = [(d, intent)
-                                  for d
-                                  in intent_data['training_data']]
-
-    classifier_data.extend(intent_data_for_classifier)
-    c = self.adapter_starter.track_adapter(intent, intent_data)
-    self.callback_manager.associate_key_with_callback(intent, c)
-
-self.parser = ClassifyParser(classifier_data)
-self.parser.add_callback_manager(self.callback_manager)
-
-# adapters are inputs into the bot. Like a mic or shell input
-adapter_manager = pluginmanager.PluginInterface()
-adapter_manager.set_entry_points('vexbot.adapters')
-plugins = adapter_manager.collect_entry_point_plugins()
-pub_address = 'tcp://127.0.0.1:5555'
-self.messaging.subscribe_to_address(pub_address)
-"""
 
 
 class Shell(cmd.Cmd):
@@ -46,6 +26,10 @@ class Shell(cmd.Cmd):
 
         self.messaging.register_command('start vexbot',
                                         start_vexbot)
+
+        # TODO: allow the speficiation of a file suffix
+        self.messaging.register_command('call editor',
+                                        _call_editor)
 
         # self.messaging.set_socket_identity('shell')
         self.messaging.set_socket_filter('')
@@ -76,6 +60,50 @@ class Shell(cmd.Cmd):
         setattr(self,
                 'do_{}'.format(command),
                 self._create_command_function(command))
+
+
+def _this_is_a_func():
+    vexdir = create_vexdir()
+    """ def my_func():
+            print('4')
+    """
+    code_output = _call_editor(vexdir)
+    exec(code_output)
+
+    # is this how you do it?
+    code_output.my_func()
+
+def _call_editor(directory=None):
+    editor = os.environ.get('EDITOR', 'vim')
+    initial_message = b""
+    file = None
+    filename = None
+
+    if directory is not None:
+        # create a random filename
+        filename = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+        filename = filename + '.py'
+        # TODO: loop back if isfile is True
+        filepath = os.path.join(directory, filename)
+        file = open(filepath, 'w+b')
+    else:
+        file = tempfile.NamedTemporaryFile(prefix=prefix, suffix='.py')
+        filename = file.name
+    file.write(initial_message)
+    file.flush()
+    call([editor, filename])
+
+    file.seek(0)
+    message = file.read()
+    file.close()
+    try:
+        code = compile(message, tf, 'exec')
+        # code = compile(message, tf)
+    except Exception as e:
+        print(e)
+
+    return code
 
 
 def _get_kwargs():

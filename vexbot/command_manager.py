@@ -4,6 +4,20 @@ from subprocess import Popen
 from vexbot.util import _get_config
 
 
+# need to create a directory for vexbot
+# need a way to input the code
+# need to store code permenantly
+
+## compile function allows us to compile 'single' and 'exec'
+
+# Create error catching
+# feeback loop
+##  Need to implement pub-sub filtering |CHECK THE BOX|
+
+# need to store the code in a file
+# need to load the code somehow
+# run the code
+
 class CommandManager:
     # Think about passing in an adapter? And hooking up a command manager to
     # adapter

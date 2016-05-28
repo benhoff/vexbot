@@ -6,6 +6,15 @@ from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.messaging import Messaging
 
 
+def create_vexdir():
+    home_direct = os.path.expanduser("~")
+    vexdir = os.path.join(home_direct, '.vexbot')
+    if not os.path.isdir(vexdir):
+        os.mkdir(vexdir)
+
+    return vexdir
+
+
 def _get_config():
     config_manager = ArgEnvConfig()
     config_manager.add_argument('--settings_path',

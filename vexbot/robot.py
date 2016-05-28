@@ -43,9 +43,9 @@ class Robot:
 
     def run(self):
         while True:
-            frame = self.messaging._monitor_socket.recv()
+            frame = self.messaging._monitor_socket.recv_multipart()
             try:
-                frame = pickle.loads(frame)
+                frame = [frame[0].decode('ascii'), *pickle.loads(frame[1])]
             except (pickle.UnpicklingError, EOFError):
                 frame = None
             if frame:

@@ -1,4 +1,5 @@
 import sys
+import os
 import argparse
 import tempfile
 from time import sleep
@@ -86,14 +87,13 @@ def _youtube_authentication(client_filepath, youtube_scope=_READ_ONLY):
                                    scope=youtube_scope,
                                    message=missing_client_message)
 
-    with tempfile.TemporaryDirectory() as tempdir:
+    dir = os.path.abspath(__file__) 
+    filepath = "{}-oauth2.json".format(dir)
+    # remove old oauth files to be safe
+    if os.path.isfile(filepath):
+        os.remove(filepath)
 
-        filepath = "{}-oauth2.json".format(tempdir)
-        # remove old oauth files to be safe
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-
-        storage = Storage(filepath)
+    storage = Storage(filepath)
     credentials = storage.get()
     if credentials is None or credentials.invalid:
         credentials = run_flow(flow, storage, argparser.parse_args())
