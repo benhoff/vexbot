@@ -6,7 +6,7 @@ from vexbot.adapters.shell import main as shell_main
 
 def _kill_vexbot(process):
     def inner():
-        process.kill()
+        process.terminate()
 
     return inner
 

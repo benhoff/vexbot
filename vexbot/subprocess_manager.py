@@ -1,5 +1,6 @@
 import sys
 import atexit
+import signal
 from subprocess import Popen, DEVNULL, STDOUT
 
 
@@ -10,8 +11,17 @@ class SubprocessManager:
         # these will be subprocesses
         self._subprocess = {}
         atexit.register(self._close_subprocesses)
+        signal.signal(signal.SIGINT, self._handle_close_signal)
+        signal.signal(signal.SIGTERM, self._handle_close_signal)
+
+    def _handle_close_signal(self, signum=None, frame=None):
+        self._close_subprocesses()
+        sys.exit()
 
     def _close_subprocesses(self):
+        """
+        signum and frame are part of the signal lib
+        """
         for process in self._subprocess.values():
             process.terminate()
 
@@ -46,8 +56,7 @@ class SubprocessManager:
                 args = [sys.executable, data[0]]
                 if data[1]:
                     args.extend(data[1])
-                # process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
-                process = Popen(args)
+                process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
                 self._subprocess[key] = process
 
     def restart(self, values):

@@ -7,6 +7,8 @@ import zmq
 import zmq.devices
 import pluginmanager
 
+from vexmessage import decode_vex_message
+
 from vexbot.messaging import Messaging
 from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.command_manager import CommandManager
@@ -39,22 +41,25 @@ class Robot:
 
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
-        name = b'vexbot'
+        try:
+            import setproctitle
+            setproctitle.setproctitle(bot_name)
+        except ImportError:
+            pass
 
     def run(self):
         while True:
             frame = self.messaging._monitor_socket.recv_multipart()
+            msg = None
             try:
-                frame = [frame[0].decode('ascii'), *pickle.loads(frame[1])]
-                print(frame)
+                msg = decode_vex_message(frame)
             except Exception:
-                frame = None
-            if frame:
-                frame_len = len(frame)
+                pass
+            if msg:
                 # Right now this is hardcoded into being only
                 # the shell adapter
-                if frame[1] == 'command_line':
-                    self.command_manager.parse_commands(frame[3])
+                if msg.source == 'command_line':
+                    self.command_manager.parse_commands(msg.contents[0])
 
     def _update_plugins(self,
                         settings,

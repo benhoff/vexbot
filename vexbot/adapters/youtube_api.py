@@ -58,7 +58,7 @@ def main(client_secret_filepath, socket_address):
                 continue
             message = snippet['displayMessage']
             author = live_chat_message['authorDetails']['displayName']
-            messaging.send_message('MSG', author, message)
+            messaging.send_message(author, message)
 
     messaging.send_status('DISCONNECTED')
 

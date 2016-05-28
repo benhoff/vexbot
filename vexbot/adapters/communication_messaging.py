@@ -19,6 +19,11 @@ class ZmqMessaging:
 
         self._messaging_started = False
         self._commands = {}
+        try:
+            import setproctitle
+            setproctitle.setproctitle(service_name)
+        except ImportError:
+            pass
 
     def start_messaging(self):
         if self._messaging_started:
@@ -64,9 +69,14 @@ class ZmqMessaging:
         frame = create_vex_message(target, self._service_name, 'MSG', msg)
         self.pub_socket.send_multipart(frame)
 
-    def send_status(self, status, target=''):
-        frame = create_vex_message(target, self._service_name, 'STATUS', msg)
+    def send_status(self, *status, target=''):
+        frame = create_vex_message(target, self._service_name, 'STATUS', status)
         self.pub_socket.send_multipart(frame)
+
+    def send_command(self, *command, target=''):
+        frame = create_vex_message(target, self._service_name, 'CMD', command)
+        self.pub_socket.send_multipart(frame)
+
 
     def register_command(self, cmd, function):
         self._commands[cmd] = function

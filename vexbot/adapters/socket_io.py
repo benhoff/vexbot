@@ -97,7 +97,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                 message = data['args'][0]
                 sender = html.unescape(message['sender'])
                 message = html.unescape(message['text'])
-                self.messaging.send_message('MSG', sender, message)
+                self.messaging.send_message(sender, message)
 
     def on_error(self, *args):
         print(args[1])

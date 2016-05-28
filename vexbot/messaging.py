@@ -1,7 +1,6 @@
-import pickle
-
 import zmq
-import zmq.asyncio
+
+from vexmessage import create_vex_message
 
 
 class Messaging:
@@ -33,12 +32,6 @@ class Messaging:
         self._publish_socket = context.socket(zmq.PUB)
         self._publish_socket.connect(publish_address)
 
-    def send_message(self, *msg, target=None):
-        if target is None:
-            target = self._service_name
-        else:
-            target = target.encode('ascii')
-
-        msg = pickle.dumps(msg)
-        frame = (target, msg)
+    def send_message(self, *msg, target=''):
+        frame = create_vex_message(target, 'robot', 'MSG', *msg)
         self._publish_socket.send_multipart(frame)

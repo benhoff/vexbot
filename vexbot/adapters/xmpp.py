@@ -64,9 +64,7 @@ class ReadOnlyXMPPBot(ClientXMPP):
         self.get_roster()
 
     def muc_message(self, msg):
-        self.messaging.send_message('MSG',
-                                    msg['mucnick'],
-                                    msg['body'])
+        self.messaging.send_message(msg['mucnick'], msg['body'])
 
 
 def _get_args():
