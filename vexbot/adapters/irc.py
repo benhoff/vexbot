@@ -3,6 +3,7 @@ import asyncio
 import argparse
 
 import irc3
+import zmq
 from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
 
@@ -17,21 +18,21 @@ class AutoJoinMessage(AutoJoins):
         super().__init__(bot)
 
     def connection_lost(self):
-        self.bot.messaging.send_message('DISCONNECTED')
+        self.bot.messaging.send_status('DISCONNECTED')
         super(AutoJoinMessage, self).connection_lost()
 
     def join(self, channel=None):
         super(AutoJoinMessage, self).join(channel)
-        self.bot.messaging.send_message('CONNECTED')
+        self.bot.messaging.send_status('CONNECTED')
 
     @irc3.event(irc3.rfc.KICK)
     def on_kick(self, mask, channel, target, **kwargs):
-        self.bot.messaging.send_message('DISCONNECTED')
+        self.bot.messaging.send_status('DISCONNECTED')
         super().on_kick(mask, channel, target, **kwargs)
 
     @irc3.event("^:\S+ 47[1234567] \S+ (?P<channel>\S+).*")
     def on_err_join(self, channel, **kwargs):
-        self.bot.messaging.send_message('DISCONNECTED')
+        self.bot.messaging.send_status('DISCONNECTED')
         super().on_err_join(channel, **kwargs)
 
 
@@ -81,6 +82,18 @@ def create_irc_bot(nick,
     return bot
 
 
+async def _check_subscription(bot):
+    while True:
+        await asyncio.sleep(1)
+        msg = None
+        try:
+            msg = bot.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
+        except zmq.error.Again:
+            pass
+        if msg:
+            print(msg)
+
+
 def main(nick, password, host, channel, socket_address, service_name):
     irc_client = create_irc_bot(nick,
                                 password,
@@ -89,7 +102,7 @@ def main(nick, password, host, channel, socket_address, service_name):
 
     try:
         messaging = ZmqMessaging(service_name, socket_address)
-        messaging.set_socket_filter('')
+        messaging.set_socket_filter('irc')
         messaging.start_messaging()
     except ZMQError:
         return
@@ -99,6 +112,7 @@ def main(nick, password, host, channel, socket_address, service_name):
     irc_client.create_connection()
     irc_client.add_signal_handlers()
     event_loop = asyncio.get_event_loop()
+    asyncio.ensure_future(_check_subscription(irc_client))
     try:
         event_loop.run_forever()
     except KeyboardInterrupt:

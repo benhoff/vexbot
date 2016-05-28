@@ -1,17 +1,22 @@
-import pickle
 import zmq
+from vexmessage import create_vex_message, decode_vex_message
 
 
 class ZmqMessaging:
-    def __init__(self, service_name, pub_address=None, sub_address=None):
+    def __init__(self,
+                 service_name,
+                 pub_address=None,
+                 sub_address=None,
+                 socket_filter=None):
+
         self.pub_socket = None
         self.sub_socket = None
-        self._socket_identity = None
-        self._socket_filter = None
 
-        self._service_name = service_name.encode('ascii')
+        self._service_name = service_name
         self._pub_address = pub_address
         self._sub_address = sub_address
+        self._socket_filter = socket_filter
+
         self._messaging_started = False
         self._commands = {}
 
@@ -40,8 +45,6 @@ class ZmqMessaging:
 
         if self._sub_address:
             self.sub_socket.connect(self._sub_address)
-            if self._socket_identity is not None:
-                self.set_socket_identity(self._socket_identity)
 
         self._messaging_started = True
 
@@ -51,38 +54,33 @@ class ZmqMessaging:
         if self._sub_address:
             self.sub_socket.bind(self._sub_address)
 
-    def set_socket_identity(self, id_):
-        if self.pub_socket:
-            self.pub_socket.set_string(zmq.IDENTITY, id_)
-        else:
-            self._socket_identity = id_
-
     def set_socket_filter(self, filter_):
         if self.sub_socket:
             self.sub_socket.set_string(zmq.SUBSCRIBE, filter_)
         else:
             self._socket_filter = filter_
 
-    def send_message(self, *msg):
-        msg = list(msg)
-        msg = pickle.dumps(msg)
-        # use send_multipart instead
-        # use pickle to encode the msg
-        # self.pub_socket.send_pyobj(msg)
-        self.pub_socket.send_multipart((self._service_name, msg))
+    def send_message(self, *msg, target=''):
+        frame = create_vex_message(target, self._service_name, 'MSG', msg)
+        self.pub_socket.send_multipart(frame)
 
-
+    def send_status(self, status, target=''):
+        frame = create_vex_message(target, self._service_name, 'STATUS', msg)
+        self.pub_socket.send_multipart(frame)
 
     def register_command(self, cmd, function):
         self._commands[cmd] = function
 
-    def is_command(self, cmd):
+    def is_command(self, cmd, call_command=True):
         callback = self._commands.get(cmd, None)
 
-        if callback:
-            result = callback()
-            if result:
-                self.send_message(result)
+        if callback and call_command:
+            callback_result = callback()
+            if callback_result:
+                self.send_message(callback_result)
+
+            return True
+        elif callback:
             return True
 
         return False

@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.0.7',
+    version='0.1.0',
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',
@@ -36,6 +36,7 @@ setup(
     install_requires=[
         'pluginmanager',
         'pyzmq',
+        'vexmessage',
         ],
 
     extras_require={

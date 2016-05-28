@@ -86,7 +86,7 @@ class JavascriptWebscraper:
         # NOTE: make sure this is ok if using for anything other than youtube
         comments = all_comments.find_elements_by_tag_name('li')
         self._number_of_messages = len(comments)
-        self.messaging.send_message('CONNECTED')
+        self.messaging.send_status('CONNECTED')
 
         while True:
             sleep(1)
@@ -106,7 +106,7 @@ class JavascriptWebscraper:
                     message = find_elem(self.message_class_name).text
                     self.messaging.send_message('MSG', author, message)
 
-        self.messaging.send_message('DISCONNECTED')
+        self.messaging.send_status('DISCONNECTED')
 
 def _get_args():
     parser = argparse.ArgumentParser()

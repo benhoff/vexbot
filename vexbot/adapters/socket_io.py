@@ -51,7 +51,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
             except Exception as e:
                 self.log.info('Socket IO errors: {}'.format(e))
             sleep(3)
-            self.messaging.send_message('DISCONNECTED')
+            self.messaging.send_status('DISCONNECTED')
             key, _ = self._connect_to_server_helper()
             self.url = self._website_socket + key
 
@@ -88,7 +88,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
 
             self.send_packet_helper(5, data=data)
             self.log.info('Connected to channel with socket io!')
-            self.messaging.send_message('CONNECTED')
+            self.messaging.send_status('CONNECTED')
         elif key == 2:
             self.send_packet_helper(2)
         elif key == 5:

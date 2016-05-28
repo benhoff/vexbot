@@ -41,7 +41,7 @@ def main(client_secret_filepath, socket_address):
     next_token = livechat_response.get('nextPageToken')
     polling_interval = livechat_response.get('pollingIntervalMillis')
     polling_interval = _convert_to_seconds(polling_interval)
-    messaging.send_message('CONNECTED')
+    messaging.send_status('CONNECTED')
 
     while True:
         sleep(polling_interval)
@@ -60,7 +60,7 @@ def main(client_secret_filepath, socket_address):
             author = live_chat_message['authorDetails']['displayName']
             messaging.send_message('MSG', author, message)
 
-    messaging.send_message('DISCONNECTED')
+    messaging.send_status('DISCONNECTED')
 
 def _convert_to_seconds(milliseconds: str):
     return float(milliseconds)/1000.0

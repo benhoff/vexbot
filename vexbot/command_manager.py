@@ -24,7 +24,7 @@ class CommandManager:
     def __init__(self, robot):
         self.r = robot
         self._commands = ['start', 'restart', 'kill', 'killall',
-                          'list']
+                          'list', 'alive']
 
     def parse_commands(self, command):
         commands = command.split()
@@ -39,13 +39,20 @@ class CommandManager:
             self.r.subprocess_manager.killall()
             sys.exit()
         elif command == 'list':
-            lists = [x for x in self.r.subprocess_manager._subprocess.keys()]
+            lists = [x for
+                     x in
+                     self.r.subprocess_manager.registered_subprocesses()]
+
             if lists:
                 print(*lists)
                 print('vexbot: ', end=None)
         elif command == 'commands':
             print(*self._commands)
             print('vexbot: ', end=None)
+        elif command == 'alive':
+            values = self.r.subprocess_manager.registered_subprocesses()
+            for v in values:
+                self.r.messaging.send_message('MSG', 'ben','alive', target=v)
         elif command == 'restartbot':
             config = _get_config()
             settings_path = config.get('settings_path')

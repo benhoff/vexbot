@@ -1,11 +1,12 @@
+import pickle
+
 import zmq
 import zmq.asyncio
-
-from threading import Thread
 
 
 class Messaging:
     def __init__(self, settings, context=None):
+        self._service_name = b'robot'
         context = context or zmq.Context()
 
         self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
@@ -28,8 +29,16 @@ class Messaging:
         self._monitor_socket.setsockopt(zmq.SUBSCRIBE, b'')
         self._monitor_socket.connect(proxy_address)
 
+        self._proxy.start()
         self._publish_socket = context.socket(zmq.PUB)
-        # self._publish_socket.setsockopt(zmq.IDENTITY, name)
         self._publish_socket.connect(publish_address)
 
-        self._proxy.start()
+    def send_message(self, *msg, target=None):
+        if target is None:
+            target = self._service_name
+        else:
+            target = target.encode('ascii')
+
+        msg = pickle.dumps(msg)
+        frame = (target, msg)
+        self._publish_socket.send_multipart(frame)

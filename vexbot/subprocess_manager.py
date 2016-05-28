@@ -15,6 +15,9 @@ class SubprocessManager:
         for process in self._subprocess.values():
             process.terminate()
 
+    def registered_subprocesses(self):
+        return self._registered.keys()
+
     def register(self, keys, values, settings=None):
         if settings is None:
             settings = [None for _ in range(len(keys))]
@@ -43,7 +46,8 @@ class SubprocessManager:
                 args = [sys.executable, data[0]]
                 if data[1]:
                     args.extend(data[1])
-                process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
+                # process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
+                process = Popen(args)
                 self._subprocess[key] = process
 
     def restart(self, values):

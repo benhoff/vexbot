@@ -38,10 +38,10 @@ class ReadOnlyXMPPBot(ClientXMPP):
         self.add_event_handler('disconnected', self._disconnected)
 
     def _disconnected(self, *args):
-        self.messaging.send_message('DISCONNECTED')
+        self.messaging.send_status('DISCONNECTED')
 
     def _connected(self, *args):
-        self.messaging.send_message('CONNECTED')
+        self.messaging.send_status('CONNECTED')
 
     def _register_plugin_helper(self):
         """
