@@ -46,10 +46,12 @@ class Robot:
             frame = self.messaging._monitor_socket.recv_multipart()
             try:
                 frame = [frame[0].decode('ascii'), *pickle.loads(frame[1])]
-            except (pickle.UnpicklingError, EOFError):
+            except (pickle.UnpicklingError, EOFError, UnicodeDecodeError):
                 frame = None
             if frame:
                 frame_len = len(frame)
+                # Right now this is hardcoded into being only
+                # the shell adapter
                 if frame[1] == 'CMD':
                     self.command_manager.parse_commands(frame[2])
 

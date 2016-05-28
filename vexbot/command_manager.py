@@ -4,9 +4,9 @@ from subprocess import Popen
 from vexbot.util import _get_config
 
 
-# need to create a directory for vexbot
-# need a way to input the code
-# need to store code permenantly
+# need a way to input the code |solved for shell input case|
+# need to store code permenantly |need to metadata to this|
+# need to load code, w/ metadata
 
 ## compile function allows us to compile 'single' and 'exec'
 

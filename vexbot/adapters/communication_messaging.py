@@ -80,7 +80,9 @@ class ZmqMessaging:
         callback = self._commands.get(cmd, None)
 
         if callback:
-            callback()
+            result = callback()
+            if result:
+                self.send_message(result)
             return True
 
         return False

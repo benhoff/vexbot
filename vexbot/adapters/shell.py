@@ -1,8 +1,11 @@
 import os
 import sys
-import tempfile
 import cmd
+import random
+import string
+import tempfile
 import argparse
+import inspect
 
 from subprocess import call
 
@@ -20,7 +23,8 @@ class Shell(cmd.Cmd):
                  subscribe_address=None):
 
         super().__init__()
-        self.messaging = ZmqMessaging('shell',
+        # FIXME
+        self.messaging = ZmqMessaging('command_line',
                                       publish_address,
                                       subscribe_address)
 
@@ -29,7 +33,7 @@ class Shell(cmd.Cmd):
 
         # TODO: allow the speficiation of a file suffix
         self.messaging.register_command('call editor',
-                                        _call_editor)
+                                        self._call_editor)
 
         # self.messaging.set_socket_identity('shell')
         self.messaging.set_socket_filter('')
@@ -62,16 +66,22 @@ class Shell(cmd.Cmd):
                 self._create_command_function(command))
 
 
-def _this_is_a_func():
-    vexdir = create_vexdir()
-    """ def my_func():
-            print('4')
-    """
-    code_output = _call_editor(vexdir)
-    exec(code_output)
+    def _call_editor(self):
+        # TODO: Move into communication messaging, after creating auth
+        vexdir = create_vexdir()
+        code_output = _call_editor(vexdir)
+        try:
+            code = compile(code_output, '<string>', 'exec')
+        except Exception as e:
+            print(e)
 
-    # is this how you do it?
-    code_output.my_func()
+        local = {}
+        exec(code_output, globals(), local)
+        # need to add to commands?
+        for k, v in local.items():
+            if inspect.isfunction(v):
+                self.messaging.register_command(k, v)
+
 
 def _call_editor(directory=None):
     editor = os.environ.get('EDITOR', 'vim')
@@ -90,20 +100,18 @@ def _call_editor(directory=None):
     else:
         file = tempfile.NamedTemporaryFile(prefix=prefix, suffix='.py')
         filename = file.name
+    current_dir = os.getcwd()
+    os.chdir(directory)
     file.write(initial_message)
     file.flush()
     call([editor, filename])
-
-    file.seek(0)
+    file.close()
+    file = open(filename)
     message = file.read()
     file.close()
-    try:
-        code = compile(message, tf, 'exec')
-        # code = compile(message, tf)
-    except Exception as e:
-        print(e)
+    os.chdir(current_dir)
 
-    return code
+    return message
 
 
 def _get_kwargs():
