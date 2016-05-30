@@ -74,7 +74,7 @@ def create_irc_bot(nick,
     config['password'] = password
     config['host'] = host
     config['port'] = port
-    config['realname'] = realname
+    config['username'] = realname
     config['autojoins'] = channel
 
     bot = irc3.IrcBot.from_config(config)
