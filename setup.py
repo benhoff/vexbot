@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.1.0',
+    version='0.1.1',
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',
