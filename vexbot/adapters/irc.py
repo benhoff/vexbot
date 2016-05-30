@@ -62,7 +62,6 @@ def create_irc_bot(nick,
                   includes=['irc3.plugins.core',
                             'irc3.plugins.command',
                             'irc3.plugins.human',
-                            'irc3.plugins.log',
                             __name__])
 
     if realname is None:
@@ -76,6 +75,7 @@ def create_irc_bot(nick,
     config['port'] = port
     config['username'] = realname
     config['autojoins'] = channel
+    config['level'] = 30
 
     bot = irc3.IrcBot.from_config(config)
 
