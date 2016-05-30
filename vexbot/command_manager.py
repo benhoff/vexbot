@@ -8,11 +8,11 @@ from vexbot.util import _get_config
 # need to store code permenantly |need to metadata to this|
 # need to load code, w/ metadata
 
-## compile function allows us to compile 'single' and 'exec'
+# compile function allows us to compile 'single' and 'exec'
 
 # Create error catching
 # feeback loop
-##  Need to implement pub-sub filtering |CHECK THE BOX|
+#  Need to implement pub-sub filtering |CHECK THE BOX|
 
 # need to store the code in a file
 # need to load the code somehow
@@ -52,7 +52,7 @@ class CommandManager:
         elif command == 'alive':
             values = self.r.subprocess_manager.registered_subprocesses()
             for v in values:
-                self.r.messaging.send_message('MSG', 'ben','alive', target=v)
+                self.r.messaging.send_message('MSG', 'ben', 'alive', target=v)
         elif command == 'restartbot':
             config = _get_config()
             settings_path = config.get('settings_path')

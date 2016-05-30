@@ -1,5 +1,5 @@
 import zmq
-from vexmessage import create_vex_message, decode_vex_message
+from vexmessage import create_vex_message
 
 
 class ZmqMessaging:
@@ -38,15 +38,14 @@ class ZmqMessaging:
                 self.pub_socket.connect(self._pub_address)
             except zmq.error.ZMQError:
                 err = """
-                      Incorrect value passed in for socket address in {}, fix it
-                      in your settings.yml or default_settings.yml
+                      Incorrect value passed in for socket address in {}, fix
+                      it in your settings.yml or default_settings.yml
                       """.format(self._service_name)
 
                 print(err)
 
             if self._socket_filter is not None:
                 self.set_socket_filter(self._socket_filter)
-
 
         if self._sub_address:
             self.sub_socket.connect(self._sub_address)
@@ -70,13 +69,16 @@ class ZmqMessaging:
         self.pub_socket.send_multipart(frame)
 
     def send_status(self, *status, target=''):
-        frame = create_vex_message(target, self._service_name, 'STATUS', status)
+        frame = create_vex_message(target,
+                                   self._service_name,
+                                   'STATUS',
+                                   status)
+
         self.pub_socket.send_multipart(frame)
 
     def send_command(self, *command, target=''):
         frame = create_vex_message(target, self._service_name, 'CMD', command)
         self.pub_socket.send_multipart(frame)
-
 
     def register_command(self, cmd, function):
         self._commands[cmd] = function

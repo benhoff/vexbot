@@ -1,10 +1,5 @@
-import sys
-import types
 import logging
-import pickle
 
-import zmq
-import zmq.devices
 import pluginmanager
 
 from vexmessage import decode_vex_message

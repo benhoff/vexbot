@@ -1,7 +1,7 @@
 import sys
 import atexit
 import signal
-from subprocess import Popen, DEVNULL, STDOUT
+from subprocess import Popen, DEVNULL
 
 
 class SubprocessManager:
@@ -40,7 +40,7 @@ class SubprocessManager:
         This allows us to update the settings or value
         """
         if setting is None:
-            settings = self._registered[key][1]
+            setting = self._registered[key][1]
         if value is None:
             value = self._registered[key][0]
         self._registered[key] = (value, setting)
@@ -56,7 +56,7 @@ class SubprocessManager:
                 args = [sys.executable, data[0]]
                 if data[1]:
                     args.extend(data[1])
-                process = Popen(args, stdout=DEVNULL, stderr=STDOUT)
+                process = Popen(args, stdout=DEVNULL)
                 self._subprocess[key] = process
 
     def restart(self, values):

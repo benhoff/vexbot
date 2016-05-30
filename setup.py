@@ -44,7 +44,7 @@ setup(
         'speechtotext': ['speechtotext'],
         'gui': ['chatimusmaximus'],
         'javascript_webscrapper': ['selenium'],
-        'irc': ['irc'],
+        'irc': ['irc3'],
         'socket_io': ['requests', 'websocket-client'],
         'xmpp': ['sleekxmpp', 'dnspython3'],
         'youtube': ['google-api-python-client'],

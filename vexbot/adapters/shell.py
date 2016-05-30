@@ -1,5 +1,4 @@
 import os
-import sys
 import cmd
 import random
 import string
@@ -65,7 +64,6 @@ class Shell(cmd.Cmd):
                 'do_{}'.format(command),
                 self._create_command_function(command))
 
-
     def _call_editor(self):
         # TODO: Move into communication messaging, after creating auth
         vexdir = create_vexdir()
@@ -76,7 +74,7 @@ class Shell(cmd.Cmd):
             print(e)
 
         local = {}
-        exec(code_output, globals(), local)
+        exec(code, globals(), local)
         # need to add to commands?
         for k, v in local.items():
             if inspect.isfunction(v):
@@ -91,14 +89,15 @@ def _call_editor(directory=None):
 
     if directory is not None:
         # create a random filename
-        filename = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        filename = ''.join(random.choice(string.ascii_uppercase +
+                                         string.digits) for _ in range(8))
 
         filename = filename + '.py'
         # TODO: loop back if isfile is True
         filepath = os.path.join(directory, filename)
         file = open(filepath, 'w+b')
     else:
-        file = tempfile.NamedTemporaryFile(prefix=prefix, suffix='.py')
+        file = tempfile.NamedTemporaryFile(prefix=directory, suffix='.py')
         filename = file.name
     current_dir = os.getcwd()
     os.chdir(directory)

@@ -4,7 +4,6 @@ from os import path
 from subprocess import Popen
 import zmq
 from vexbot.argenvconfig import ArgEnvConfig
-from vexbot.messaging import Messaging
 
 
 def create_vexdir():

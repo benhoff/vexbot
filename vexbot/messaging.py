@@ -1,4 +1,5 @@
 import zmq
+import zmq.devices
 
 from vexmessage import create_vex_message
 

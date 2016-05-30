@@ -1,6 +1,7 @@
 import argparse as _argparse
 import yaml
 
+
 class ArgEnvConfig:
     def __init__(self):
         self._arg = _argparse.ArgumentParser()
