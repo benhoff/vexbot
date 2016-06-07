@@ -53,6 +53,8 @@ class CommandManager:
             values = self.r.subprocess_manager.registered_subprocesses()
             for v in values:
                 self.r.messaging.send_message('MSG', 'ben', 'alive', target=v)
+        elif command == 'record':
+            self.r.messaging.send_command(('record',))
         elif command == 'restartbot':
             config = _get_config()
             settings_path = config.get('settings_path')

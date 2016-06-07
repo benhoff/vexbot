@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.1.1',
+    version='0.1.2',
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',
@@ -28,7 +28,7 @@ setup(
                                       'irc = vexbot.adapters.irc',
                                       'xmpp = vexbot.adapters.xmpp',
                                       'socket_io = vexbot.adapters.socket_io',
-                                      'youtube_api = vexbot.adapters.youtube_api'],
+                                      'youtube = vexbot.adapters.youtube_api'],
 
                   'console_scripts': ['vexbot=vexbot.__main__:main']},
 

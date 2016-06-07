@@ -36,3 +36,7 @@ class Messaging:
     def send_message(self, *msg, target=''):
         frame = create_vex_message(target, 'robot', 'MSG', *msg)
         self._publish_socket.send_multipart(frame)
+
+    def send_command(self, *cmd, target=''):
+        frame = create_vex_message(target, 'robot', 'CMD', *cmd)
+        self._publish_socket.send_multipart(frame)
