@@ -38,6 +38,9 @@ class CommandManager:
         elif command == 'killall':
             self.r.subprocess_manager.killall()
             sys.exit()
+        elif command == 'help':
+            print(self._commands)
+            print('vexbot: ', end=None)
         elif command == 'list':
             lists = [x for
                      x in

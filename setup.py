@@ -1,5 +1,15 @@
 import os
+import re
+
 from setuptools import find_packages, setup
+
+VERSIONFILE = 'vexbot/_version.py'
+verstrline = open(VERSIONFILE, 'rt').read()
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in {}".format(VERSIONFILE))
 
 
 # directory = os.path.abspath(os.path.dirname(__file__))
@@ -10,7 +20,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 
 setup(
     name="vexbot",
-    version='0.1.2',
+    version=verstr,
     description='Python personal assistant',
     # long_description=long_description,
     url='https://github.com/benhoff/vexbot',

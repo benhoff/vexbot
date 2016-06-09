@@ -17,6 +17,11 @@ def main():
         atexit.register(_kill_vexbot(process))
 
     shell_settings = settings['shell']
+    if process is None:
+        already_running = True
+    else:
+        already_running = False
+    shell_settings['--already_running'] = already_running
     for key in set(shell_settings.keys()):
         value = shell_settings.pop(key)
         shell_settings[key[2:]] = value

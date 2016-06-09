@@ -9,7 +9,9 @@ import inspect
 from subprocess import call
 
 import zmq
+from vexmessage import decode_vex_message
 
+from vexbot import __version__
 from vexbot.util import start_vexbot, create_vexdir
 from vexbot.adapters.communication_messaging import ZmqMessaging
 
@@ -19,13 +21,20 @@ class Shell(cmd.Cmd):
                  context=None,
                  prompt_name='vexbot',
                  publish_address=None,
-                 subscribe_address=None):
+                 subscribe_address=None,
+                 **kwargs):
 
         super().__init__()
         # FIXME
         self.messaging = ZmqMessaging('command_line',
                                       publish_address,
                                       subscribe_address)
+
+        self.stdout.write('Vexbot {}\n'.format(__version__))
+        self.stdout.write('Type \"help\" for available commands\n')
+        if kwargs.get('already_running', False):
+            # TODO: add in version
+            self.stdout.write('vexbot already running\n')
 
         self.messaging.register_command('start vexbot',
                                         start_vexbot)
@@ -39,13 +48,15 @@ class Shell(cmd.Cmd):
         self.messaging.start_messaging()
 
         self.prompt = prompt_name + ': '
+        self.misc_header = "Commands"
 
     def default(self, arg):
         if not self.messaging.is_command(arg):
             self.messaging.send_command(arg)
             if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
-                frame = self.messaging.sub_socket.recv_pyobj()
-                print(frame)
+                frame = self.messaging.sub_socket.recv_multipart()
+                msg = decode_vex_message(frame)
+                self.stdout.write(msg)
 
     def _create_command_function(self, command):
         def resulting_function(arg):
@@ -53,11 +64,25 @@ class Shell(cmd.Cmd):
         return resulting_function
 
     def do_EOF(self, arg):
-        print()
+        self.stdout.write('\n')
         return True
 
     def get_names(self):
         return dir(self)
+
+    def do_help(self, arg):
+        if arg:
+            # TODO
+            pass
+        else:
+            self.stdout.write("{}\n".format(self.doc_leader))
+            # TODO
+            self.print_topics(self.misc_header,
+                              ['start', 'restart', 'kill', 'killall',
+                               'list', 'commands', 'alive', 'record',
+                               'restartbot'],
+                              15,
+                              80)
 
     def add_completion(self, command):
         setattr(self,
