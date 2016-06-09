@@ -5,6 +5,7 @@ from setuptools import find_packages, setup
 
 VERSIONFILE = 'vexbot/_version.py'
 verstrline = open(VERSIONFILE, 'rt').read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
 if mo:
     verstr = mo.group(1)
