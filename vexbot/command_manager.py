@@ -1,5 +1,6 @@
 import os
 import sys
+import string
 from subprocess import Popen
 from vexbot.util import _get_config
 
@@ -18,6 +19,8 @@ from vexbot.util import _get_config
 # need to load the code somehow
 # run the code
 
+INDENTCHARS = string.ascii_letters + string.digits + '_'
+
 class CommandManager:
     # Think about passing in an adapter? And hooking up a command manager to
     # adapter
@@ -26,9 +29,16 @@ class CommandManager:
         self._commands = ['start', 'restart', 'kill', 'killall',
                           'list', 'alive']
 
+        self.indentchars = INDENTCHARS
+
     def parse_commands(self, command):
-        commands = command.split()
-        command = commands.pop(0)
+        command = command.strip()
+        if not command:
+            return
+        i, n = 0, len(command)
+        while i < n and command[i] in self.indentchars: i = i + 1
+        command, arg = command[:i], command[i:].strip()
+        commands = arg.split()
         if command == 'start':
             self.r.subprocess_manager.start(commands)
         elif command == 'restart':
