@@ -2,7 +2,8 @@ from vexmessage import create_vex_message
 
 
 class CommandParser:
-    def __init__(self):
+    def __init__(self, messaging=None):
+        self.messaging = messaging
         self._commands = {}
 
     def register_command(self, cmd, function):
@@ -13,11 +14,15 @@ class CommandParser:
 
         if callback and call_command:
             callback_result = callback()
-            if callback_result:
-                self.send_message(callback_result)
+            if callback_result and self.messaging:
+                self.messaging.send_message(callback_result)
 
             return True
         elif callback:
             return True
 
         return False
+
+    def call_command(self, cmd):
+        callback = self._commands.get(cmd, None)
+        return callback

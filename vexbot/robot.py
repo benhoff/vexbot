@@ -53,7 +53,7 @@ class Robot:
             if msg:
                 # Right now this is hardcoded into being only
                 # the shell adapter
-                if msg.source == 'command_line':
+                if msg.source == 'command_line' and msg.type == 'CMD':
                     self.command_manager.parse_commands(msg.contents[0])
 
     def _update_plugins(self,

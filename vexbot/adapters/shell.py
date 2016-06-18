@@ -31,7 +31,7 @@ class Shell(cmd.Cmd):
                                       publish_address,
                                       subscribe_address)
 
-        self.command_parser = CommandParser()
+        self.command_parser = CommandParser(self.messaging)
         self.stdout.write('Vexbot {}\n'.format(__version__))
         self.stdout.write('Type \"help\" for available commands\n')
         if kwargs.get('already_running', False):
