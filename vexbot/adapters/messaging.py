@@ -1,5 +1,6 @@
 import zmq
 from vexmessage import create_vex_message
+from vexbot.adapters.command_parser import CommandParser
 
 
 class ZmqMessaging:
@@ -18,7 +19,6 @@ class ZmqMessaging:
         self._socket_filter = socket_filter
 
         self._messaging_started = False
-        self._commands = {}
         try:
             import setproctitle
             setproctitle.setproctitle(service_name)
@@ -42,6 +42,7 @@ class ZmqMessaging:
                       it in your settings.yml or default_settings.yml
                       """.format(self._service_name)
 
+                # TODO: use log module instead of print
                 print(err)
 
             if self._socket_filter is not None:
@@ -79,20 +80,3 @@ class ZmqMessaging:
     def send_command(self, *command, target=''):
         frame = create_vex_message(target, self._service_name, 'CMD', command)
         self.pub_socket.send_multipart(frame)
-
-    def register_command(self, cmd, function):
-        self._commands[cmd] = function
-
-    def is_command(self, cmd, call_command=True):
-        callback = self._commands.get(cmd, None)
-
-        if callback and call_command:
-            callback_result = callback()
-            if callback_result:
-                self.send_message(callback_result)
-
-            return True
-        elif callback:
-            return True
-
-        return False

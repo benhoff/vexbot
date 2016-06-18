@@ -13,7 +13,8 @@ from vexmessage import decode_vex_message
 
 from vexbot import __version__
 from vexbot.util import start_vexbot, create_vexdir
-from vexbot.adapters.communication_messaging import ZmqMessaging
+from vexbot.adapters.messaging import ZmqMessaging
+from vexbot.adapters.command_parser import CommandParser
 
 
 class Shell(cmd.Cmd):
@@ -30,18 +31,19 @@ class Shell(cmd.Cmd):
                                       publish_address,
                                       subscribe_address)
 
+        self.command_parser = CommandParser()
         self.stdout.write('Vexbot {}\n'.format(__version__))
         self.stdout.write('Type \"help\" for available commands\n')
         if kwargs.get('already_running', False):
             # TODO: add in version
             self.stdout.write('vexbot already running\n')
 
-        self.messaging.register_command('start vexbot',
-                                        start_vexbot)
+        self.command_parser.register_command('start vexbot',
+                                             start_vexbot)
 
         # TODO: allow the speficiation of a file suffix
-        self.messaging.register_command('call editor',
-                                        self._call_editor)
+        self.command_parser.register_command('call editor',
+                                             self._call_editor)
 
         # self.messaging.set_socket_identity('shell')
         self.messaging.set_socket_filter('')
@@ -51,7 +53,7 @@ class Shell(cmd.Cmd):
         self.misc_header = "Commands"
 
     def default(self, arg):
-        if not self.messaging.is_command(arg):
+        if not self.command_parser.is_command(arg, call_command=True):
             self.messaging.send_command(arg)
             if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
                 frame = self.messaging.sub_socket.recv_multipart()
@@ -103,7 +105,7 @@ class Shell(cmd.Cmd):
         # need to add to commands?
         for k, v in local.items():
             if inspect.isfunction(v):
-                self.messaging.register_command(k, v)
+                self.command_parser.register_command(k, v)
 
 
 def _call_editor(directory=None):

@@ -6,7 +6,7 @@ from time import sleep
 
 import zmq
 
-from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 
 class ReadOnlyXMPPBot(ClientXMPP):

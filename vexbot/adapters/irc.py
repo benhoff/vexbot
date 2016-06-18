@@ -7,7 +7,7 @@ import zmq
 from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
 
-from vexbot.adapters.communication_messaging import ZmqMessaging
+from vexbot.adapters.messaging import ZmqMessaging
 
 
 @irc3.plugin

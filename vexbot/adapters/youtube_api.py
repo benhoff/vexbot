@@ -13,7 +13,7 @@ from oauth2client.tools import run_flow, argparser
 
 from zmq import ZMQError
 
-from vexbot.adapters.communication_messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 
 def main(client_secret_filepath, socket_address):

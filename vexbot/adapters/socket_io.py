@@ -8,7 +8,7 @@ from time import sleep
 import websocket
 from zmq import ZMQError
 
-from vexbot.adapters.communication_messaging import ZmqMessaging
+from vexbot.adapters.messaging import ZmqMessaging
 
 
 class ReadOnlyWebSocket(websocket.WebSocketApp):
