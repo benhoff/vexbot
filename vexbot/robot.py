@@ -12,7 +12,6 @@ from vexbot.subprocess_manager import SubprocessManager
 
 class Robot:
     def __init__(self, configuration, bot_name="vex"):
-        self.command_manager = CommandManager(robot=self)
         # get the settings path and then load the settings from file
         settings_path = configuration.get('settings_path')
         settings = configuration.load_settings(settings_path)
@@ -36,6 +35,7 @@ class Robot:
 
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
+        self.command_manager = CommandManager(robot=self)
         try:
             import setproctitle
             setproctitle.setproctitle(bot_name)

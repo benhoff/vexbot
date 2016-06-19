@@ -7,6 +7,7 @@ import argparse
 import inspect
 
 from subprocess import call
+from threading import Thread
 
 import zmq
 from vexmessage import decode_vex_message
@@ -26,7 +27,6 @@ class Shell(cmd.Cmd):
                  **kwargs):
 
         super().__init__()
-        # FIXME
         self.messaging = ZmqMessaging('command_line',
                                       publish_address,
                                       subscribe_address)
@@ -51,14 +51,27 @@ class Shell(cmd.Cmd):
 
         self.prompt = prompt_name + ': '
         self.misc_header = "Commands"
+        self._exit_loop = False
 
     def default(self, arg):
         if not self.command_parser.is_command(arg, call_command=True):
             self.messaging.send_command(arg)
-            if self.messaging.sub_socket.getsockopt(zmq.IDENTITY):
-                frame = self.messaging.sub_socket.recv_multipart()
-                msg = decode_vex_message(frame)
-                self.stdout.write(msg)
+
+    def run(self):
+        frame = None
+        while True and not self._exit_loop:
+            try:
+                frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
+            except zmq.error.ZMQError:
+                pass
+
+            if frame:
+                message = decode_vex_message(frame)
+                self.stdout.write('\n')
+                self.stdout.write(''.join(message.contents))
+                self.stdout.write('\n')
+                self.stdout.write('vexbot: ')
+                frame = None
 
     def _create_command_function(self, command):
         def resulting_function(arg):
@@ -67,6 +80,7 @@ class Shell(cmd.Cmd):
 
     def do_EOF(self, arg):
         self.stdout.write('\n')
+        self._exit_loop = True
         return True
 
     def get_names(self):
@@ -153,7 +167,11 @@ def main(**kwargs):
     if not kwargs:
         kwargs = _get_kwargs()
     shell = Shell(**kwargs)
-    shell.cmdloop()
+    cmd_loop_thread = Thread(target=shell.cmdloop)
+    cmd_loop_thread.start()
+
+    shell.run()
+    cmd_loop_thread.join(1)
 
 if __name__ == '__main__':
     main()

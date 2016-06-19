@@ -22,14 +22,16 @@ from vexbot.util import _get_config
 INDENTCHARS = string.ascii_letters + string.digits + '_'
 
 class CommandManager:
-    # Think about passing in an adapter? And hooking up a command manager to
-    # adapter
     def __init__(self, robot):
         self.r = robot
-        self._commands = ['start', 'restart', 'kill', 'killall',
-                          'list', 'alive']
+        self._command_list = ['start', 'restart', 'kill', 'killall',
+                              'list', 'alive']
 
+        self._commands = {}
         self.indentchars = INDENTCHARS
+        self._commands['start'] = robot.subprocess_manager.start
+        self._commands['restart'] = robot.subprocess_manager.restart
+        self._commands['kill'] = robot.subprocess_manager.kill
 
     def parse_commands(self, command):
         command = command.strip()
@@ -39,13 +41,13 @@ class CommandManager:
         while i < n and command[i] in self.indentchars: i = i + 1
         command, arg = command[:i], command[i:].strip()
         commands = arg.split()
-        if command == 'start':
-            self.r.subprocess_manager.start(commands)
-        elif command == 'restart':
-            self.r.subprocess_manager.restart(commands)
-        elif command == 'kill':
-            self.r.subprocess_manager.kill(commands)
-        elif command == 'killall':
+
+        callback = self._commands.get(command, None)
+        if callback:
+            callback(commands)
+            return
+
+        if command == 'killall':
             self.r.subprocess_manager.killall()
             sys.exit()
         elif command == 'help':
