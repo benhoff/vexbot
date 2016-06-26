@@ -6,15 +6,6 @@ import zmq
 from vexbot.argenvconfig import ArgEnvConfig
 
 
-def create_vexdir():
-    home_direct = os.path.expanduser("~")
-    vexdir = os.path.join(home_direct, '.vexbot')
-    if not os.path.isdir(vexdir):
-        os.mkdir(vexdir)
-
-    return vexdir
-
-
 def _get_config():
     config_manager = ArgEnvConfig()
     config_manager.add_argument('--settings_path',
@@ -46,7 +37,7 @@ def start_vexbot():
     process = None
 
     if not _running(settings.get('monitor_address')):
-        root_directory = path.abspath(path.dirname(__file__))
+        root_directory = path.abspath(path.join(path.dirname(__file__), '..'))
         robot_filepath = path.join(root_directory, 'robot.py')
 
         # Start the subprocess

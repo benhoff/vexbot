@@ -2,7 +2,7 @@ import os
 import sys
 import string
 from subprocess import Popen
-from vexbot.util import _get_config
+from vexbot.commands.start_vexbot import _get_config
 
 
 # need a way to input the code |solved for shell input case|

@@ -13,10 +13,12 @@ import zmq
 from vexmessage import decode_vex_message
 
 from vexbot import __version__
-from vexbot.util import start_vexbot, create_vexdir
 from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.adapters.command_parser import CommandParser
-# from vexbot.adapters.commands.call_editor import call_editor
+
+from vexbot.commands.create_vexdir import create_vexdir
+from vexbot.commands.start_vexbot import start_vexbot
+# from vexbot.commands.call_editor import call_editor
 
 
 class Shell(cmd.Cmd):

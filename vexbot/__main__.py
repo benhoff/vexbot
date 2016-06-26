@@ -1,6 +1,6 @@
 import atexit
 
-from vexbot.util import start_vexbot
+from vexbot.commands.start_vexbot import start_vexbot
 from vexbot.adapters.shell import main as shell_main
 
 
