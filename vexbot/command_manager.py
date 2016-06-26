@@ -33,8 +33,8 @@ class CommandManager:
         self._commands['restart'] = robot.subprocess_manager.restart
         self._commands['kill'] = robot.subprocess_manager.kill
 
-    def parse_commands(self, command):
-        command = command.strip()
+    def parse_commands(self, msg):
+        command = msg.contents[0].strip()
         if not command:
             return
         i, n = 0, len(command)
@@ -51,23 +51,34 @@ class CommandManager:
             self.r.subprocess_manager.killall()
             sys.exit()
         elif command == 'help':
-            print(self._commands)
-            print('vexbot: ', end=None)
+            self.r.messaging.send_response(*self._commands,
+                                           target=msg.source,
+                                           original=command)
+
         elif command == 'list':
             lists = [x for
                      x in
                      self.r.subprocess_manager.registered_subprocesses()]
 
             if lists:
-                print(*lists)
-                print('vexbot: ', end=None)
+                self.r.messaging.send_response(*lists,
+                                               target=msg.source,
+                                               original=command)
+
         elif command == 'commands':
-            print(*self._commands)
-            print('vexbot: ', end=None)
+            self.r.messaging.send_response(*self._commands,
+                                           target=msg.source,
+                                           original=command)
+
         elif command == 'alive':
-            values = self.r.subprocess_manager.registered_subprocesses()
-            for v in values:
-                self.r.messaging.send_message('MSG', 'ben', 'alive', target=v)
+            values = list(self.r.subprocess_manager.registered_subprocesses())
+            if values:
+                try:
+                    values.remove(msg.source)
+                except ValueError:
+                    pass
+                for v in values:
+                    self.r.messaging.send_command('alive', target=v)
         elif command == 'record':
             self.r.messaging.send_command(('record',))
         elif command == 'restartbot':

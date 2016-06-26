@@ -1,12 +1,7 @@
-import os
 import cmd
-import random
-import string
-import tempfile
 import argparse
 import inspect
 
-from subprocess import call
 from threading import Thread
 
 import zmq
@@ -30,9 +25,10 @@ class Shell(cmd.Cmd):
                  **kwargs):
 
         super().__init__()
-        self.messaging = ZmqMessaging('command_line',
+        self.messaging = ZmqMessaging('shell',
                                       publish_address,
-                                      subscribe_address)
+                                      subscribe_address,
+                                      'shell')
 
         self.command_parser = CommandParser(self.messaging)
         self.stdout.write('Vexbot {}\n'.format(__version__))
@@ -43,32 +39,40 @@ class Shell(cmd.Cmd):
         self.command_parser.register_command('start vexbot',
                                              start_vexbot)
 
-        # self.messaging.set_socket_identity('shell')
-        self.messaging.set_socket_filter('')
         self.messaging.start_messaging()
 
         self.prompt = prompt_name + ': '
         self.misc_header = "Commands"
+        self._exit_loop = False
 
     def default(self, arg):
         if not self.command_parser.is_command(arg, call_command=True):
             self.messaging.send_command(arg)
 
     def run(self):
-        # TODO: move into messaging?
         frame = None
-        while True:
+        while True and not self._exit_loop:
             try:
+                # NOTE: not blocking here to check the _exit_loop condition
                 frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
             except zmq.error.ZMQError:
                 pass
 
             if frame:
                 message = decode_vex_message(frame)
-                self.stdout.write('\n')
-                self.stdout.write(''.join(message.contents))
-                self.stdout.write('\n')
-                self.stdout.write('vexbot: ')
+                if message.type == 'RSP':
+                    self.stdout.write("{}\n".format(self.doc_leader))
+                    self.print_topics(message.contents[0],
+                                      message.contents[1:],
+                                      15,
+                                      70)
+
+                    self.stdout.write("vexbot: ")
+                    self.stdout.flush()
+
+                else:
+                    # FIXME
+                    print(message.type, message.contents)
                 frame = None
 
     def _create_command_function(self, command):
@@ -78,6 +82,8 @@ class Shell(cmd.Cmd):
 
     def do_EOF(self, arg):
         self.stdout.write('\n')
+        # NOTE: This ensures we exit out of the `run` method on EOF
+        self._exit_loop = True
         return True
 
     def get_names(self):
@@ -89,7 +95,7 @@ class Shell(cmd.Cmd):
             pass
         else:
             self.stdout.write("{}\n".format(self.doc_leader))
-            # TODO
+            # TODO: get these from robot?
             self.print_topics(self.misc_header,
                               ['start', 'restart', 'kill', 'killall',
                                'list', 'commands', 'alive', 'record',

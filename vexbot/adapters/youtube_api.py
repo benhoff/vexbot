@@ -16,10 +16,13 @@ from zmq import ZMQError
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 
-def main(client_secret_filepath, socket_address):
+def main(client_secret_filepath, publish_address, subscribe_address):
     try:
-        messaging = ZmqMessaging('youtube', socket_address)
-        messaging.set_socket_filter('')
+        messaging = ZmqMessaging('youtube',
+                                 publish_address,
+                                 subscribe_address,
+                                 'youtube')
+
         messaging.start_messaging()
     except ZMQError:
         return
@@ -69,7 +72,8 @@ def _convert_to_seconds(milliseconds: str):
 def _get_kwargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--client_secret_filepath')
-    parser.add_argument('--socket_address')
+    parser.add_argument('--publish_address')
+    parser.add_argument('--subscribe_address')
     args = parser.parse_args()
     kwargs = vars(args)
 

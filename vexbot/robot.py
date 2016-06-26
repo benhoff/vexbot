@@ -44,7 +44,7 @@ class Robot:
 
     def run(self):
         while True:
-            frame = self.messaging._monitor_socket.recv_multipart()
+            frame = self.messaging.subscription_socket.recv_multipart()
             msg = None
             try:
                 msg = decode_vex_message(frame)
@@ -53,8 +53,12 @@ class Robot:
             if msg:
                 # Right now this is hardcoded into being only
                 # the shell adapter
-                if msg.source == 'command_line' and msg.type == 'CMD':
-                    self.command_manager.parse_commands(msg.contents[0])
+                # change this to some kind of auth code
+                if ((msg.source == 'shell' or
+                     msg.source == 'command_line') and
+                    msg.type == 'CMD'):
+
+                    self.command_manager.parse_commands(msg)
 
     def _update_plugins(self,
                         settings,

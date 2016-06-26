@@ -62,7 +62,7 @@ class ZmqMessaging:
 
     def set_socket_filter(self, filter_):
         if self.sub_socket:
-            self.sub_socket.set_string(zmq.SUBSCRIBE, filter_)
+            self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
         else:
             self._socket_filter = filter_
 

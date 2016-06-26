@@ -94,15 +94,25 @@ async def _check_subscription(bot):
             print(msg)
 
 
-def main(nick, password, host, channel, socket_address, service_name):
+def main(nick,
+         password,
+         host,
+         channel,
+         publish_address,
+         subscribe_address,
+         service_name):
+
     irc_client = create_irc_bot(nick,
                                 password,
                                 host,
                                 channel=channel)
 
     try:
-        messaging = ZmqMessaging(service_name, socket_address)
-        messaging.set_socket_filter('irc')
+        messaging = ZmqMessaging(service_name,
+                                 publish_address,
+                                 subscribe_address,
+                                 socket_filter='irc')
+
         messaging.start_messaging()
     except ZMQError:
         return
@@ -127,7 +137,8 @@ def _get_args():
     parser.add_argument('--password')
     parser.add_argument('--host')
     parser.add_argument('--channel')
-    parser.add_argument('--socket_address')
+    parser.add_argument('--publish_address')
+    parser.add_argument('--subscribe_address')
     parser.add_argument('--service_name')
 
     return parser.parse_args()

@@ -18,12 +18,17 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                  streamer_name,
                  namespace,
                  website_url,
-                 socket_address,
+                 publish_address,
+                 subscribe_address,
                  service_name):
 
         self.log = logging.getLogger(__name__)
         self.log.setLevel(0)
-        self.messaging = ZmqMessaging(service_name, socket_address)
+        self.messaging = ZmqMessaging(service_name,
+                                      publish_address,
+                                      subscribe_address,
+                                      'socket_io')
+
         self.messaging.start_messaging()
         self.messaging.set_socket_filter('')
         self._streamer_name = streamer_name
@@ -130,7 +135,8 @@ def _get_args():
     parser.add_argument('--namespace')
     parser.add_argument('--website_url')
     parser.add_argument('--service_name')
-    parser.add_argument('--socket_address')
+    parser.add_argument('--publish_address')
+    parser.add_argument('--subscribe_address')
 
     return parser.parse_args()
 

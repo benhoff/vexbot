@@ -1,5 +1,8 @@
+version: "0.0.2"
 kill_on_exit: false
+# The address which to subscribe to using SUB sockets
 subscribe_address: ''
+# The address which to publish to using PUB scokets
 publish_address: ''
 monitor_address: ''
 
@@ -25,7 +28,8 @@ irc:
     # I believe this has to be your twitch acct name
     --nick: ""
     --host: 'irc.twitch.tv'
-    --socket_address: ""
+    --publish_address: ""
+    --subscribe_address: ""
     --service_name: ''
 
 xmpp:
@@ -40,7 +44,8 @@ xmpp:
     --room: ""
     --domain: 'livecoding.tv'
     --resource: 'CHATIMUSMAXIMUS'
-    --socket_address: ""
+    --publish_address: ""
+    --subscribe_address: ""
 
 # socket_io is hardcoded for watchpeople code
 # feel free to yell at me about that on github
@@ -49,11 +54,13 @@ socket_io:
     --streamer_name: ""
     --namespace: '/chat'
     --website_url: 'http://www.watchpeoplecode.com/socket.io/1/'
-    --socket_address: ""
+    --publish_address: ""
+    --subscribe_address: ""
 
 youtube_api:
     --service_name: ''
-    --socket_address: ""
+    --publish_address: ""
+    --subscribe_address: ""
     # can either be 'javascript' or 'api'
     --connection_type: 'api'
     

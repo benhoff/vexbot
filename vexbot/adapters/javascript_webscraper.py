@@ -16,7 +16,8 @@ class JavascriptWebscraper:
                  comment_element_id=None,
                  author_class_name=None,
                  message_class_name=None,
-                 socket_address='',
+                 publish_address='',
+                 subscribe_address='',
                  service_name=''):
 
         """
@@ -29,8 +30,11 @@ class JavascriptWebscraper:
         `message_class_name` is the css class which holds the comment test
         ie., 'comment-text' for youtube
         """
-        self.messaging = ZmqMessaging(service_name, socket_address)
-        messaging.set_socket_filter('')
+        self.messaging = ZmqMessaging(service_name,
+                                      publish_address,
+                                      subscribe_address,
+                                      'javascriptwebscraper')
+
         self.messaging.start_messaging()
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.NOTSET)
@@ -108,22 +112,23 @@ class JavascriptWebscraper:
 
         self.messaging.send_status('DISCONNECTED')
 
-def _get_args():
+def _get_kwargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--url')
     parser.add_argument('--comment_element_id')
     parser.add_argument('--author_class_name')
     parser.add_argument('--message_class_name')
-    parser.add_argument('--socket_address')
     parser.add_argument('--service_name')
+    parser.add_argument('--publish_address')
+    parser.add_argument('--subscribe_address')
 
-    return parser.parse_args()
+    return vars(parser.parse_args())
 
 
 if __name__ == '__main__':
     # python magic to get a list of args
     # vars changes namespace to dict, `values()` gets the values out of dict
-    kwargs = vars(_get_args())
+    kwargs = _get_kwargs()
     already_running = False
     try:
         webscraper = JavascriptWebscraper(**kwargs)

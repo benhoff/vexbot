@@ -19,24 +19,33 @@ class Messaging:
         publish_address = settings.get('publish_address',
                                        'tcp://127.0.0.1:4001')
 
-        self._proxy.bind_in(subscribe_address)
-        self._proxy.bind_out(publish_address)
-
+        self._proxy.bind_in(publish_address)
+        self._proxy.bind_out(subscribe_address)
         self._proxy.bind_mon(proxy_address)
 
-        self._monitor_socket = context.socket(zmq.SUB)
-        # self._monitor_socket.setsockopt(zmq.SUBSCRIBE, name)
-        self._monitor_socket.setsockopt(zmq.SUBSCRIBE, b'')
-        self._monitor_socket.connect(proxy_address)
+        self.subscription_socket = context.socket(zmq.SUB)
+        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        self.subscription_socket.connect(subscribe_address)
 
         self._proxy.start()
-        self._publish_socket = context.socket(zmq.PUB)
-        self._publish_socket.connect(publish_address)
+        self.publish_socket = context.socket(zmq.PUB)
+        self.publish_socket.connect(publish_address)
+
+    def _create_frame(self, type, *contents, target=''):
+        return create_vex_message(target, 'robot', type, contents)
 
     def send_message(self, *msg, target=''):
-        frame = create_vex_message(target, 'robot', 'MSG', *msg)
-        self._publish_socket.send_multipart(frame)
+        frame = self._create_frame('MSG', *msg, target=target)
+        self.publish_socket.send_multipart(frame)
 
     def send_command(self, *cmd, target=''):
-        frame = create_vex_message(target, 'robot', 'CMD', *cmd)
-        self._publish_socket.send_multipart(frame)
+        frame = self._create_frame('CMD', *cmd, target=target)
+        self.publish_socket.send_multipart(frame)
+
+    def send_response(self, *rsp, target, original):
+        # FIXME: fix hack to insert original in first index
+        frame = self._create_frame('RSP',
+                                   *(original, *rsp),
+                                   target=target)
+
+        self.publish_socket.send_multipart(frame)

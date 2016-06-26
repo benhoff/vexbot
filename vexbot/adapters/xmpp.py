@@ -14,15 +14,19 @@ class ReadOnlyXMPPBot(ClientXMPP):
                  jid,
                  password,
                  room,
-                 socket_address,
+                 publish_address,
+                 subscribe_address,
                  service_name,
                  bot_nick='EchoBot',
                  **kwargs):
 
         # Initialize the parent class
         super().__init__(jid, password)
-        self.messaging = ZmqMessaging(service_name, socket_address)
-        self.messaging.set_socket_filter('')
+        self.messaging = ZmqMessaging(service_name,
+                                      publish_address,
+                                      subscribe_address,
+                                      'xmpp')
+
         self.messaging.start_messaging()
 
         self.room = room
@@ -75,7 +79,8 @@ def _get_args():
     parser.add_argument('--resource', help='resource')
     parser.add_argument('--password', help='password')
     parser.add_argument('--service_name')
-    parser.add_argument('--socket_address')
+    parser.add_argument('--publish_address')
+    parser.add_argument('--subscribe_address')
     parser.add_argument('--bot_nick')
 
     return parser.parse_args()
