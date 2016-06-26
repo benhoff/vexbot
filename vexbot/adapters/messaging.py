@@ -26,8 +26,6 @@ class ZmqMessaging:
         except ImportError:
             pass
 
-        self._this_thing = []
-
     def start_messaging(self):
         if self._messaging_started:
             self.update_messaging()
@@ -55,17 +53,6 @@ class ZmqMessaging:
             self.sub_socket.connect(self._sub_address)
 
         self._messaging_started = True
-
-    def register_command_interface(self, this_thing):
-        self._this_thing.append(this_thing)
-
-    def recv_messages(self):
-        while True:
-            frame = self.sub_socket.recv_multipart()
-            message = decode_vex_message(frame)
-            # do things
-            for thing in self._this_thing:
-                thing(message)
 
     def update_messaging(self):
         if self._pub_address:

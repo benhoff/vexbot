@@ -49,15 +49,15 @@ class Shell(cmd.Cmd):
 
         self.prompt = prompt_name + ': '
         self.misc_header = "Commands"
-        self._exit_loop = False
 
     def default(self, arg):
         if not self.command_parser.is_command(arg, call_command=True):
             self.messaging.send_command(arg)
 
     def run(self):
+        # TODO: move into messaging?
         frame = None
-        while True and not self._exit_loop:
+        while True:
             try:
                 frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
             except zmq.error.ZMQError:
@@ -78,7 +78,6 @@ class Shell(cmd.Cmd):
 
     def do_EOF(self, arg):
         self.stdout.write('\n')
-        self._exit_loop = True
         return True
 
     def get_names(self):
