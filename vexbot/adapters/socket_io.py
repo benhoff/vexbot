@@ -30,7 +30,6 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                                       'socket_io')
 
         self.messaging.start_messaging()
-        self.messaging.set_socket_filter('')
         self._streamer_name = streamer_name
         self.namespace = namespace
         self._website_url = website_url
