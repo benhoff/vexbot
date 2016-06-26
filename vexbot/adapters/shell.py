@@ -16,6 +16,7 @@ from vexbot import __version__
 from vexbot.util import start_vexbot, create_vexdir
 from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.adapters.command_parser import CommandParser
+# from vexbot.adapters.commands.call_editor import call_editor
 
 
 class Shell(cmd.Cmd):
@@ -35,15 +36,10 @@ class Shell(cmd.Cmd):
         self.stdout.write('Vexbot {}\n'.format(__version__))
         self.stdout.write('Type \"help\" for available commands\n')
         if kwargs.get('already_running', False):
-            # TODO: add in version
             self.stdout.write('vexbot already running\n')
 
         self.command_parser.register_command('start vexbot',
                                              start_vexbot)
-
-        # TODO: allow the speficiation of a file suffix
-        self.command_parser.register_command('call editor',
-                                             self._call_editor)
 
         # self.messaging.set_socket_identity('shell')
         self.messaging.set_socket_filter('')
@@ -105,10 +101,11 @@ class Shell(cmd.Cmd):
                 'do_{}'.format(command),
                 self._create_command_function(command))
 
+    """
     def _call_editor(self):
-        # TODO: Move into communication messaging, after creating auth
+        # TODO: move into command function
         vexdir = create_vexdir()
-        code_output = _call_editor(vexdir)
+        code_output = call_editor(vexdir)
         try:
             code = compile(code_output, '<string>', 'exec')
         except Exception as e:
@@ -120,38 +117,7 @@ class Shell(cmd.Cmd):
         for k, v in local.items():
             if inspect.isfunction(v):
                 self.command_parser.register_command(k, v)
-
-
-def _call_editor(directory=None):
-    editor = os.environ.get('EDITOR', 'vim')
-    initial_message = b""
-    file = None
-    filename = None
-
-    if directory is not None:
-        # create a random filename
-        filename = ''.join(random.choice(string.ascii_uppercase +
-                                         string.digits) for _ in range(8))
-
-        filename = filename + '.py'
-        # TODO: loop back if isfile is True
-        filepath = os.path.join(directory, filename)
-        file = open(filepath, 'w+b')
-    else:
-        file = tempfile.NamedTemporaryFile(prefix=directory, suffix='.py')
-        filename = file.name
-    current_dir = os.getcwd()
-    os.chdir(directory)
-    file.write(initial_message)
-    file.flush()
-    call([editor, filename])
-    file.close()
-    file = open(filename)
-    message = file.read()
-    file.close()
-    os.chdir(current_dir)
-
-    return message
+    """
 
 
 def _get_kwargs():
@@ -168,10 +134,10 @@ def main(**kwargs):
         kwargs = _get_kwargs()
     shell = Shell(**kwargs)
     cmd_loop_thread = Thread(target=shell.cmdloop)
+    cmd_loop_thread.daemon = True
     cmd_loop_thread.start()
 
     shell.run()
-    cmd_loop_thread.join(1)
 
 if __name__ == '__main__':
     main()

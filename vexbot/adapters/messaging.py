@@ -1,6 +1,5 @@
-from threading import Thread
-
 import zmq
+
 from vexmessage import create_vex_message, decode_vex_message
 from vexbot.adapters.command_parser import CommandParser
 
@@ -27,7 +26,6 @@ class ZmqMessaging:
         except ImportError:
             pass
 
-        self._threading = Thread(target=self.recv_messages)
         self._this_thing = []
 
     def start_messaging(self):
@@ -57,7 +55,6 @@ class ZmqMessaging:
             self.sub_socket.connect(self._sub_address)
 
         self._messaging_started = True
-        self._threading.start()
 
     def register_command_interface(self, this_thing):
         self._this_thing.append(this_thing)
