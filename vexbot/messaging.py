@@ -44,8 +44,11 @@ class Messaging:
 
     def send_response(self, *rsp, target, original):
         # FIXME: fix hack to insert original in first index
+        if not isinstance(original, (tuple, list)):
+            original = (original,)
+
         frame = self._create_frame('RSP',
-                                   *(original, *rsp),
+                                   *(original, rsp),
                                    target=target)
 
         self.publish_socket.send_multipart(frame)

@@ -31,6 +31,9 @@ def _running(address_to_check):
 
 
 def start_vexbot():
+    """
+    starts up an instance of vexbot if one isn't running currently
+    """
     config = _get_config()
     settings_path = config.get('settings_path')
     settings = config.load_settings(settings_path)

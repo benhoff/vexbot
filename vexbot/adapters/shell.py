@@ -11,8 +11,8 @@ from vexbot import __version__
 from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.adapters.command_parser import CommandParser
 
-from vexbot.commands.create_vexdir import create_vexdir
 from vexbot.commands.start_vexbot import start_vexbot
+# from vexbot.commands.create_vexdir import create_vexdir
 # from vexbot.commands.call_editor import call_editor
 
 
@@ -32,9 +32,10 @@ class Shell(cmd.Cmd):
 
         self.command_parser = CommandParser(self.messaging)
         self.stdout.write('Vexbot {}\n'.format(__version__))
-        self.stdout.write('Type \"help\" for available commands\n')
+        self.stdout.write('Type \"help\" for native commands or \"commands\" for robot commands\n')
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
+        self.stdout.write('\n')
 
         self.command_parser.register_command('start vexbot',
                                              start_vexbot)
@@ -61,18 +62,27 @@ class Shell(cmd.Cmd):
             if frame:
                 message = decode_vex_message(frame)
                 if message.type == 'RSP':
-                    self.stdout.write("{}\n".format(self.doc_leader))
-                    self.print_topics(message.contents[0],
-                                      message.contents[1:],
-                                      15,
-                                      70)
+                    self.stdout.write("\n{}\n".format(self.doc_leader))
+                    # FIXME
+                    if len(message.contents[0]) > 1:
+                        for title, s in zip(message.contents[0],
+                                            message.contents[1]):
+
+                            self.print_topics(title, (s,), 15, 70)
+                    else:
+                        self.print_topics(message.contents[0][0],
+                                          message.contents[1],
+                                          15,
+                                          70)
 
                     self.stdout.write("vexbot: ")
                     self.stdout.flush()
 
                 else:
                     # FIXME
-                    print(message.type, message.contents)
+                    print(message.type,
+                          message.contents,
+                          'fix me in shell adapter, run function')
                 frame = None
 
     def _create_command_function(self, command):
@@ -91,15 +101,18 @@ class Shell(cmd.Cmd):
 
     def do_help(self, arg):
         if arg:
-            # TODO
-            pass
+            if self.command_parser.is_command(arg):
+                doc = self.command_parser._commands[arg].__doc__
+                if doc:
+                    self.stdout.write("{}\n".format(str(doc)))
+            else:
+                self.messaging.send_command('help ' + arg)
+
         else:
             self.stdout.write("{}\n".format(self.doc_leader))
             # TODO: get these from robot?
             self.print_topics(self.misc_header,
-                              ['start', 'restart', 'kill', 'killall',
-                               'list', 'commands', 'alive', 'record',
-                               'restartbot'],
+                              ['start vexbot\nhelp [foo]',],
                               15,
                               80)
 
@@ -110,7 +123,6 @@ class Shell(cmd.Cmd):
 
     """
     def _call_editor(self):
-        # TODO: move into command function
         vexdir = create_vexdir()
         code_output = call_editor(vexdir)
         try:
@@ -130,6 +142,7 @@ class Shell(cmd.Cmd):
 def _get_kwargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--publish_address', default=None)
+    parser.add_argument('--subscribe_address', default=None)
     parser.add_argument('--prompt_name', default='vexbot')
 
     args = parser.parse_args()
