@@ -10,10 +10,6 @@ startup_plugins: []
 startup_adapters: []
 
 shell:
-    publish_address: ''
-    subscribe_address: ''
-
-shell:
     --publish_address: ''
     --subscribe_address: ''
 
