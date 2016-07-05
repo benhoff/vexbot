@@ -60,12 +60,7 @@ class CommandManager:
         subprocess = {}
 
         s_manager = robot.subprocess_manager
-        subprocess['start'] = _msg_list_wrapper(s_manager.start)
-        subprocess['restart'] = _msg_list_wrapper(s_manager.restart)
-        subprocess['kill'] = _msg_list_wrapper(s_manager.kill)
-        subprocess['running'] = _no_arg_wrapper(s_manager.running_subprocesses)
         reg = robot.subprocess_manager.registered_subprocesses
-        subprocess['subprocesses'] = _no_arg_wrapper(reg)
         subprocess['settings'] = _msg_list_wrapper(s_manager.settings)
 
         self._commands['subprocess'] = subprocess
@@ -76,6 +71,11 @@ class CommandManager:
         self._commands['alive'] = self._alive
         self._commands['help'] = _msg_list_wrapper(self._help)
 
+        self._commands['start'] = _msg_list_wrapper(s_manager.start)
+        self._commands['subprocesses'] = _no_arg_wrapper(reg)
+        self._commands['restart'] = _msg_list_wrapper(s_manager.restart)
+        self._commands['kill'] = _msg_list_wrapper(s_manager.kill)
+        self._commands['running'] = _no_arg_wrapper(s_manager.running_subprocesses)
         self._messaging = robot.messaging
 
     def _cmd_commands(self, msg):

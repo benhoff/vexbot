@@ -56,7 +56,6 @@ class Shell(cmd.Cmd):
             try:
                 # NOTE: not blocking here to check the _exit_loop condition
                 frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
-                self.stdout.write(str(self._exit_loop))
             except zmq.error.ZMQError:
                 pass
 
