@@ -1,6 +1,3 @@
-from vexmessage import create_vex_message
-
-
 class CommandParser:
     def __init__(self, messaging=None):
         self.messaging = messaging

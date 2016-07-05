@@ -108,7 +108,7 @@ class JavascriptWebscraper:
                     author = find_elem(self.author_class_name).text
 
                     message = find_elem(self.message_class_name).text
-                    self.messaging.send_message(author, message)
+                    self.messaging.send_message(author=author, message=message)
 
         self.messaging.send_status('DISCONNECTED')
 

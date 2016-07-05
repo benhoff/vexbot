@@ -66,18 +66,19 @@ class ZmqMessaging:
         else:
             self._socket_filter = filter_
 
-    def send_message(self, *msg, target=''):
-        frame = create_vex_message(target, self._service_name, 'MSG', msg)
+    def send_message(self, target='', **msg):
+        frame = create_vex_message(target, self._service_name, 'MSG', **msg)
         self.pub_socket.send_multipart(frame)
 
-    def send_status(self, *status, target=''):
+    def send_status(self, status, target='', **kwargs):
         frame = create_vex_message(target,
                                    self._service_name,
                                    'STATUS',
-                                   status)
+                                   status=status,
+                                   **kwargs)
 
         self.pub_socket.send_multipart(frame)
 
-    def send_command(self, *command, target=''):
-        frame = create_vex_message(target, self._service_name, 'CMD', command)
+    def send_command(self, target='', **command):
+        frame = create_vex_message(target, self._service_name, 'CMD', **command)
         self.pub_socket.send_multipart(frame)

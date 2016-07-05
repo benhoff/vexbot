@@ -33,7 +33,12 @@ def _msg_list_wrapper(func):
 
 
 def _get_command_and_args(message):
-    command = message.contents[0].strip()
+    command = message.contents.get('command', None)
+
+    if command is None:
+        return None, None
+
+    command = command.strip()
     i, n = 0, len(command)
     while i < n and command[i] in INDENTCHARS: i = i + 1
     command, arg = command[:i], command[i:].strip()
@@ -50,7 +55,8 @@ def _get_callback_recursively(callback: dict, commands):
         else:
             break
 
-    return result, commands[:command_number]
+    command_number += 1
+    return result, commands[command_number:]
 
 
 class CommandManager:
@@ -82,6 +88,7 @@ class CommandManager:
         """
         returns a list of all available commands
         """
+        # FIXME: name
         def get_stuff(d: dict):
             commands = []
             if not isinstance(d, dict):
@@ -98,6 +105,11 @@ class CommandManager:
 
         return get_stuff(self._commands)
 
+    def _send_command_not_found(self, target, original):
+        self._messaging.send_response(target=target,
+                                      response='Command not found',
+                                      original=original)
+
     def parse_commands(self, msg):
         command, arg = _get_command_and_args(msg)
         commands = arg.split()
@@ -113,26 +125,23 @@ class CommandManager:
                                                                commands)
 
                 # callback can be None, handle that case and return from func
-                # FIXME
+                # FIXME: combine this call with the one several calls below
                 if callback is None:
-                    self._messaging.send_response('Command not found',
-                                                  target=msg.source,
-                                                  original=command)
-
+                    self._send_command_not_found(msg.source, command)
                     return
 
+            # FIXME: Currently not passing in commands
             results = callback(msg)
+            # FIXME
             if results:
-                self._messaging.send_response(*results,
-                                              target=msg.source,
-                                              original=command)
+                self._messaging.send_response(target=msg.source,
+                                              original=command,
+                                              response=results)
 
             return
 
         if not callback:
-            self._messaging.send_response('Command not found',
-                                          target=msg.source,
-                                          original=command)
+            self._send_command_not_found(msg.source, command)
 
     def _help(self, args):
         if not args:

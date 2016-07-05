@@ -48,7 +48,7 @@ class Shell(cmd.Cmd):
 
     def default(self, arg):
         if not self.command_parser.is_command(arg, call_command=True):
-            self.messaging.send_command(arg)
+            self.messaging.send_command(command=arg)
 
     def run(self):
         frame = None
@@ -63,15 +63,18 @@ class Shell(cmd.Cmd):
                 message = decode_vex_message(frame)
                 if message.type == 'RSP':
                     self.stdout.write("\n{}\n".format(self.doc_leader))
+                    header = message.contents.get('original', 'Response')
+                    contents = message.contents.get('response', None)
                     # FIXME
-                    if len(message.contents[0]) > 1:
-                        for title, s in zip(message.contents[0],
-                                            message.contents[1]):
+                    if (isinstance(header, (tuple, list)) and
+                        isinstance(contents, (tuple, list)) and
+                        contents):
 
-                            self.print_topics(title, (s,), 15, 70)
+                        for head, content in zip(header, contents):
+                            self.print_topics(head, (contents,), 15, 70)
                     else:
-                        self.print_topics(message.contents[0][0],
-                                          message.contents[1],
+                        self.print_topics(header,
+                                          contents,
                                           15,
                                           70)
 
@@ -106,7 +109,7 @@ class Shell(cmd.Cmd):
                 if doc:
                     self.stdout.write("{}\n".format(str(doc)))
             else:
-                self.messaging.send_command('help ' + arg)
+                self.messaging.send_command(command='help ' + arg)
 
         else:
             self.stdout.write("{}\n".format(self.doc_leader))
