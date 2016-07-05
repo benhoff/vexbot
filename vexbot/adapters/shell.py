@@ -32,7 +32,7 @@ class Shell(cmd.Cmd):
 
         self.command_parser = CommandParser(self.messaging)
         self.stdout.write('Vexbot {}\n'.format(__version__))
-        self.stdout.write('Type \"help\" for native commands or \"commands\" for robot commands\n')
+        self.stdout.write('Type \"help\" for command line help or \"commands\" for bot commands\n')
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
         self.stdout.write('\n')
@@ -56,6 +56,7 @@ class Shell(cmd.Cmd):
             try:
                 # NOTE: not blocking here to check the _exit_loop condition
                 frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
+                self.stdout.write(str(self._exit_loop))
             except zmq.error.ZMQError:
                 pass
 
@@ -153,11 +154,12 @@ def main(**kwargs):
     if not kwargs:
         kwargs = _get_kwargs()
     shell = Shell(**kwargs)
-    cmd_loop_thread = Thread(target=shell.cmdloop)
+    cmd_loop_thread = Thread(target=shell.run)
     cmd_loop_thread.daemon = True
     cmd_loop_thread.start()
 
-    shell.run()
+    shell.cmdloop()
+
 
 if __name__ == '__main__':
     main()
