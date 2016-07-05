@@ -57,9 +57,11 @@ class SubprocessManager:
 
     def settings(self, key):
         """
-        trys to get settings information. Passes silently when
+        trys to get the settings information for a given subprocess. Passes silently when
         there is no information
         """
+        if not key:
+            return
         result = []
         # FIXME
         try:
@@ -93,7 +95,11 @@ class SubprocessManager:
         restarts subprocesses managed by the subprocess manager
         """
         for value in values:
-            process = self._subprocess[value]
+            try:
+                process = self._subprocess[value]
+            except KeyError:
+                continue
+
             process.kill()
             self.start(value)
 
@@ -111,7 +117,7 @@ class SubprocessManager:
 
     def killall(self):
         """
-        Kills every registerd subprocess, including the vexbot process
+        Kills every registered subprocess
         """
         for subprocess in self._subprocess.values():
             subprocess.kill()
