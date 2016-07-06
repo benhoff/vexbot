@@ -28,8 +28,11 @@ Base your configuration on the [default settings](https://github.com/benhoff/vex
 
 ## Running
 if everything is in your path correctly, open a console and run
+
 `vexbot --settings_path /path/to/your/settings/here`
+
 as a short hand
+
 `vexbot --s /path/to/your/settings/here`
+
 or you can set the environmental variable `VEXBOT_SETTINGS` to be the absolute path to your settings file
-If you clone the source directory you can drop the setting file in the source code directory as `settings.yml` and the bot will take care of itself without the need of command line arguments. Or, make the changes directly in the `default_settings.yml`
