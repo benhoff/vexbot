@@ -46,10 +46,13 @@ def _get_command_and_args(message):
 
 
 def _get_callback_recursively(callback: dict, commands):
+    if not commands:
+        return None, None
+
     for command_number, command in enumerate(commands):
         result = callback.get(command, None)
         if result is None:
-            break
+            return None, None
         elif isinstance(result, dict):
             callback = result
         else:

@@ -73,6 +73,8 @@ class Shell(cmd.Cmd):
                         for head, content in zip(header, contents):
                             self.print_topics(head, (contents,), 15, 70)
                     else:
+                        if isinstance(contents, str):
+                            contents = (contents,)
                         self.print_topics(header,
                                           contents,
                                           15,
