@@ -1,9 +1,11 @@
 import argparse as _argparse
-import yaml
+import yaml as _yaml
+from os import getenv as _getenv
 
 
 class ArgEnvConfig:
     def __init__(self):
+        self._environ = {}
         self._arg = _argparse.ArgumentParser()
 
     def initialize_argparse(self,
@@ -33,8 +35,17 @@ class ArgEnvConfig:
                                              add_help,
                                              allow_abbrev)
 
+
     def add_argument(self, *args, **kwargs):
-        self._arg.add_argument(*args, **kwargs)
+        try:
+            environ = kwargs.pop('environ')
+        except KeyError:
+            environ = None
+
+        argument = self._arg.add_argument(*args, **kwargs)
+
+        if environ:
+            self._environ[argument.dest] = environ
 
     def add_environment_variable(self, *args, **kwargs):
         pass
@@ -44,13 +55,20 @@ class ArgEnvConfig:
 
     def get(self, value):
         args = self._arg.parse_args()
-        return getattr(args, value)
+        result = getattr(args, value)
+        if result is None:
+            key = self._environ.get(value)
+            if key:
+                result = _getenv(key)
+            else:
+                result = None
+        return result
 
     def get_args(self):
         return self._arg.parse_args()
 
     def load_settings(self, filepath):
         with open(filepath) as f:
-            settings = yaml.load(f)
+            settings = _yaml.load(f)
         return settings
-        settings = yaml.load(filepath)
+        settings = _yaml.load(filepath)

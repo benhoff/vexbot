@@ -9,7 +9,7 @@ from vexbot.argenvconfig import ArgEnvConfig
 def _get_config():
     config_manager = ArgEnvConfig()
     config_manager.add_argument('--settings_path',
-                                default='settings.yml',
+                                environ='VEXBOT_SETTINGS',
                                 action='store')
 
     return config_manager

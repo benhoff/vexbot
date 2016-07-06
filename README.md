@@ -12,7 +12,7 @@ So activate your virual environment and run
 `pip3 install vexbot`
 
 ## Configuring
-Base your configuration on the [default settings](https://github.com/benhoff/vexbot/blob/master/vexbot/default_settings.yml). I haven't user proofed the configuration handeling so if you're getting errors, that's a good place to start.
+Base your configuration on the [default settings](https://github.com/benhoff/vexbot/blob/master/vexbot/default_settings.yml). The configuration handeling hasn't been user proofed the configuration handeling so if you're getting errors, that's a good place to start.
 
 ### Configuring Addresses
  Vexbot uses messaging and subprocesses for different services. This has some advantages/disadvantages of this approach, but the reason it's staying is it allows the developer some decreased congnitive load while developing this project.
@@ -31,4 +31,5 @@ if everything is in your path correctly, open a console and run
 `vexbot --settings_path /path/to/your/settings/here`
 as a short hand
 `vexbot --s /path/to/your/settings/here`
+or you can set the environmental variable `VEXBOT_SETTINGS` to be the absolute path to your settings file
 If you clone the source directory you can drop the setting file in the source code directory as `settings.yml` and the bot will take care of itself without the need of command line arguments. Or, make the changes directly in the `default_settings.yml`
