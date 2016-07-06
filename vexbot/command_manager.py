@@ -166,7 +166,7 @@ class CommandManager:
         can also use the `running` command to see what's running locally
         """
         # FIXME
-        values = list(self._commands['subprocess']['subprocesses']())
+        values = list(self._commands['subprocesses']())
         if values:
             try:
                 values.remove(msg.source)
