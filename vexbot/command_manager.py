@@ -173,4 +173,4 @@ class CommandManager:
             except ValueError:
                 pass
             for v in values:
-                self._messaging.send_command('alive', target=v)
+                self._messaging.send_command(target=v, command='alive')
