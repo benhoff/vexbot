@@ -1,6 +1,7 @@
 import cmd
 import argparse
 import inspect
+from time import sleep
 
 from threading import Thread
 
@@ -58,6 +59,8 @@ class Shell(cmd.Cmd):
                 frame = self.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
             except zmq.error.ZMQError:
                 pass
+
+            sleep(.5)
 
             if frame:
                 message = decode_vex_message(frame)
