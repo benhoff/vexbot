@@ -8,7 +8,9 @@ Requires python 3.5
 
 ## Installation
 recommend running out of a virutalenv
-So activate your virual environment and run
+
+So activate your virual environment and run:
+
 `pip3 install vexbot`
 
 ## Configuring
