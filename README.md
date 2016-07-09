@@ -1,6 +1,8 @@
 # vexbot
 Pluggable bot
 
+[![Build Status](https://travis-ci.org/benhoff/vexbot.svg?branch=master)](https://travis-ci.org/benhoff/vexbot)[![Code Climate](https://codeclimate.com/github/benhoff/vexbot/badges/gpa.svg)](https://codeclimate.com/github/benhoff/vexbot)[![Coverage Status](https://coveralls.io/repos/github/benhoff/vexbot/badge.svg?branch=master)](https://coveralls.io/github/benhoff/vexbot?branch=master)
+
 Under heavy development. 
 Not ready for general use outside of driving [chatimusmaximus](https://github.com/benhoof/chatimusmaximus)
 
