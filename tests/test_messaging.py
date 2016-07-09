@@ -1,16 +1,15 @@
 import unittest
 from time import sleep
-import random
 
 import zmq
-from vexmessage import create_vex_message, decode_vex_message
+from vexmessage import decode_vex_message
 from vexbot.messaging import Messaging
 
 
 class TestMessaging(unittest.TestCase):
     def setUp(self):
-        self.subscribe_address = 'tcp://127.0.0.1:{}'.format(random.randrange(4000, 5000))
-        self.publish_address = 'tcp://127.0.0.1:{}'.format(random.randrange(4000, 5000))
+        self.subscribe_address = 'tcp://127.0.0.1:4006'
+        self.publish_address = 'tcp://127.0.0.1:4007'
         self.settings = {'subscribe_address': self.subscribe_address,
                          'publish_address': self.publish_address}
 
@@ -45,4 +44,3 @@ class TestMessaging(unittest.TestCase):
         self.assertEqual(message.source, 'robot')
         self.assertEqual(message.contents['test'], 'blue')
         self.assertEqual(message.type, 'MSG')
-

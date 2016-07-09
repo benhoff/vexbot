@@ -1,6 +1,8 @@
 import sys
 import asyncio
 import argparse
+import atexit
+import signal
 
 import irc3
 import zmq
@@ -8,7 +10,7 @@ from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
 from vexmessage import decode_vex_message
 
-from vexbot.command_managers import CommandManager
+from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
 
@@ -95,9 +97,7 @@ async def _check_subscription(bot):
         if msg:
             msg = decode_vex_message(msg)
             if msg.type == 'CMD':
-                command = msg.contents.get('command')
-                if command:
-                    bot.command_parser.parse_commands(msg)
+                bot.command_parser.parse_commands(msg)
 
             msg = None
 
@@ -109,6 +109,18 @@ def _default(*args, **kwargs):
 def _call_func_with_arg(func, arg):
     def inner(*args):
         return func(arg)
+    return inner
+
+
+def _send_disconnected(messaging):
+    def inner():
+        messaging.send_status('DISCONNECTED')
+    return inner
+
+
+def _handle_close(messaging):
+    def inner(signum=None, frame=None):
+        _send_disconnected(messaging)()
     return inner
 
 
@@ -136,14 +148,8 @@ def main(nick,
         return
     # Duck type messaging onto irc_client, FTW
     irc_client.messaging = messaging
-    command_parser = CommandManager(messaging)
+    command_parser = AdapterCommandManager(messaging)
     irc_client.command_parser = command_parser
-
-    alive = _call_func_with_arg(irc_client.messaging.send_status,
-                                'CONNECTED')
-
-    command_parser.register_command('alive',
-                                    alive)
 
     """
     command_parser.register_command('server config', _default)
@@ -160,6 +166,11 @@ def main(nick,
     irc_client.add_signal_handlers()
     event_loop = asyncio.get_event_loop()
     asyncio.ensure_future(_check_subscription(irc_client))
+    atexit.register(_send_disconnected(messaging))
+
+    handle_close = _handle_close(messaging)
+    signal.signal(signal.SIGINT, handle_close)
+    signal.signal(signal.SIGTERM, handle_close)
     try:
         event_loop.run_forever()
     except KeyboardInterrupt:

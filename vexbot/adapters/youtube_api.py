@@ -2,7 +2,10 @@ import sys
 import os
 import argparse
 import tempfile
+import atexit
+import signal
 from time import sleep
+from threading import Thread
 
 import httplib2
 
@@ -12,8 +15,31 @@ from oauth2client.file import Storage
 from oauth2client.tools import run_flow, argparser
 
 from zmq import ZMQError
+from vexmessage import decode_vex_message
 
+from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
+
+
+def _run(messaging):
+    command_manager = AdapterCommandManager(messaging)
+    while True:
+        frame = messaging.sub_socket.recv_multipart()
+        message = decode_vex_message(frame)
+        if message.type == 'CMD':
+            command_manager.parse_commands(message)
+
+
+def _handle_close(messaging):
+    def inner(*args):
+        _send_disconnect(messaging)()
+    return inner
+
+
+def _send_disconnect(messaging):
+    def inner():
+        messaging.send_status('DISCONNECTED')
+    return inner
 
 
 def main(client_secret_filepath, publish_address, subscribe_address):
@@ -26,6 +52,14 @@ def main(client_secret_filepath, publish_address, subscribe_address):
         messaging.start_messaging()
     except ZMQError:
         return
+
+    thread = Thread(target=_run, args=(messaging, ))
+    thread.daemon = True
+    thread.start()
+    handle_close = _handle_close(messaging)
+    signal.signal(signal.SIGINT, handle_close)
+    signal.signal(signal.SIGTERM, handle_close)
+    atexit.register(_send_disconnect(messaging))
 
     scope = ['https://www.googleapis.com/auth/youtube',
              'https://www.googleapis.com/auth/youtube.force-ssl',

@@ -35,7 +35,7 @@ setup(
         'Operating System :: OS Independent'],
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
-    entry_points={'vexbot.adapters': ['shell=vexbot.adapters.shell',
+    entry_points={'vexbot.adapters': ['shell = vexbot.adapters.shell',
                                       'irc = vexbot.adapters.irc',
                                       'xmpp = vexbot.adapters.xmpp',
                                       'socket_io = vexbot.adapters.socket_io',

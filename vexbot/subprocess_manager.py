@@ -114,6 +114,15 @@ class SubprocessManager:
             process.kill()
             self._subprocess.pop(value)
 
+    def terminate(self, values):
+        for value in values:
+            try:
+                process = self._subprocess[value]
+            except KeyError:
+                continue
+            process.terminate()
+            self._subprocess.pop(value)
+
     def killall(self):
         """
         Kills every registered subprocess

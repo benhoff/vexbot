@@ -3,11 +3,16 @@ import json
 import requests
 import html
 import logging
+import signal
+import atexit
 from time import sleep
+from threading import Thread
 
 import websocket
 from zmq import ZMQError
+from vexmessage import decode_vex_message
 
+from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
 
@@ -36,6 +41,9 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
         self.log.info('Getting Socket IO key!')
         self.key, heartbeat = self._connect_to_server_helper()
         self.log.info('Socket IO key got!')
+        self.command_manager = AdapterCommandManager(self.messaging)
+        self._thread = Thread(target=self.handle_subscription)
+        self._thread.start()
 
         # alters URL to be more websocket...ie
         self._website_socket = self._website_url.replace('http', 'ws')
@@ -46,6 +54,13 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                          on_message=self.on_message,
                          on_error=self.on_error)
 
+    def handle_subscription(self):
+        while True:
+            frame = self.messaging.sub_socket.recv_multipart()
+            message = decode_vex_message(frame)
+            if message.type == 'CMD':
+                self.command_manager.parse_commands(message)
+
     def repeat_run_forever(self):
         while True:
             try:
@@ -54,8 +69,8 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                 break
             except Exception as e:
                 self.log.info('Socket IO errors: {}'.format(e))
-            sleep(3)
             self.messaging.send_status('DISCONNECTED')
+            sleep(3)
             key, _ = self._connect_to_server_helper()
             self.url = self._website_socket + key
 
@@ -140,6 +155,18 @@ def _get_args():
     return parser.parse_args()
 
 
+def _handle_close(messaging):
+    def inner(*args):
+        messaging.send_status('DISCONNECTED')
+    return inner
+
+
+def _send_disconnect(messaging):
+    def inner():
+        _handle_close(messaging)()
+    return inner
+
+
 if __name__ == '__main__':
 
     args = vars(_get_args())
@@ -150,4 +177,9 @@ if __name__ == '__main__':
         already_running = True
 
     if not already_running:
+        messaging = client.messaging
+        atexit.register(_send_disconnect(messaging))
+        handle_close = _handle_close(messaging)
+        signal.signal(signal.SIGINT, handle_close)
+        signal.signal(signal.SIGTERM, handle_close)
         client.repeat_run_forever()

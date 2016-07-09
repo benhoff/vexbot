@@ -228,6 +228,7 @@ class BotCommandManager(CommandManager):
         self._commands['subprocesses'] = s_manager.registered_subprocesses
         self._commands['restart'] = _msg_list_wrapper(s_manager.restart)
         self._commands['kill'] = _msg_list_wrapper(s_manager.kill)
+        self._commands['terminate'] = _msg_list_wrapper(s_manager.terminate)
         self._commands['running'] = s_manager.running_subprocesses
 
     def _alive(self, msg):
@@ -245,3 +246,12 @@ class BotCommandManager(CommandManager):
                 pass
             for v in values:
                 self._messaging.send_command(target=v, command='alive')
+
+
+class AdapterCommandManager(CommandManager):
+    def __init__(self, messaging):
+        super().__init__(messaging)
+        self._commands['alive'] = self._alive
+
+    def _alive(self, *args):
+        self._messaging.send_status('CONNECTED')
