@@ -1,7 +1,6 @@
 import zmq
 
-from vexmessage import create_vex_message, decode_vex_message
-from vexbot.adapters.command_parser import CommandParser
+from vexmessage import create_vex_message
 
 
 class ZmqMessaging:
@@ -80,5 +79,9 @@ class ZmqMessaging:
         self.pub_socket.send_multipart(frame)
 
     def send_command(self, target='', **command):
-        frame = create_vex_message(target, self._service_name, 'CMD', **command)
+        frame = create_vex_message(target,
+                                   self._service_name,
+                                   'CMD',
+                                   **command)
+
         self.pub_socket.send_multipart(frame)

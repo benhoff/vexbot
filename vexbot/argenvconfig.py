@@ -35,7 +35,6 @@ class ArgEnvConfig:
                                              add_help,
                                              allow_abbrev)
 
-
     def add_argument(self, *args, **kwargs):
         try:
             environ = kwargs.pop('environ')

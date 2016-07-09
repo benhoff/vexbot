@@ -13,7 +13,7 @@ class SubprocessManager:
         atexit.register(self._close_subprocesses)
         signal.signal(signal.SIGINT, self._handle_close_signal)
         signal.signal(signal.SIGTERM, self._handle_close_signal)
-        self.blacklist = ['shell',]
+        self.blacklist = ['shell', ]
 
     def _handle_close_signal(self, signum=None, frame=None):
         self._close_subprocesses()
@@ -57,12 +57,11 @@ class SubprocessManager:
 
     def settings(self, key):
         """
-        trys to get the settings information for a given subprocess. Passes silently when
-        there is no information
+        trys to get the settings information for a given subprocess. Passes
+        silently when there is no information
         """
         if not key:
             return
-        result = []
         # FIXME
         try:
             v = self._registered.get(key, None)
@@ -71,7 +70,6 @@ class SubprocessManager:
             v = self._registered.get(key[0])
         if v:
             return v[1]
-
 
     def start(self, keys):
         """

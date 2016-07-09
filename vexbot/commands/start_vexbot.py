@@ -1,5 +1,4 @@
 import sys
-import os
 from os import path
 from subprocess import Popen
 import zmq

@@ -1,4 +1,8 @@
 import os
+import random
+import string
+import tempfile
+from subprocess import call
 
 
 def call_editor(directory=None):

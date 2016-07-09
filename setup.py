@@ -59,6 +59,7 @@ setup(
         'socket_io': ['requests', 'websocket-client'],
         'xmpp': ['sleekxmpp', 'dnspython3'],
         'youtube': ['google-api-python-client'],
+        'microphone': ['microphone'],
         'process_name': ['setproctitle'],
     }
 )
