@@ -1,0 +1,23 @@
+language: python
+
+notifications:
+  email: false
+
+python:
+  - "3.5"
+
+# command to install dependencies
+install:
+  - pip install flake8
+  - pip install coverage
+  - pip install python-coveralls
+
+# command to run tests
+script: 
+  - coverage run -m unittest discover
+  - flake8 vexbot
+  - flake8 tests
+  
+after_success:
+  - coverage report
+  - coveralls
