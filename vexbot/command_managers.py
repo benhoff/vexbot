@@ -142,11 +142,10 @@ class CommandManager:
             except TypeError:
                 results = callback()
 
-        # FIXME
-        if results:
-            self._messaging.send_response(target=msg.source,
-                                          original=command,
-                                          response=results)
+            if results:
+                self._messaging.send_response(target=msg.source,
+                                              original=command,
+                                              response=results)
 
     def message_wrapper(self, func: _collections.Callable):
         """
