@@ -136,10 +136,11 @@ class CommandManager:
         callback, command, args = self._get_callback_recursively(command, arg)
         msg.contents['parsed_args'] = args
 
-        try:
-            results = callback(msg)
-        except TypeError:
-            results = callback()
+        if callback:
+            try:
+                results = callback(msg)
+            except TypeError:
+                results = callback()
 
         # FIXME
         if results:

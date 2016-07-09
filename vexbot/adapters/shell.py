@@ -34,8 +34,8 @@ class Shell(cmd.Cmd):
         # FIXME
         self.command_manager._commands.pop('commands')
         self.stdout.write('Vexbot {}\n'.format(__version__))
-        self.stdout.write("""Type \"help\" for command line help or \"commands\"
-                for bot commands\n""")
+        self.stdout.write("Type \"help\" for command line help or \"commands\""\
+                " for bot commands\n")
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
         self.stdout.write('\n')
