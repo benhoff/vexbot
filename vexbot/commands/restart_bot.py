@@ -13,7 +13,8 @@ def restart_bot():
     settings_path = config.get('settings_path')
     directory = os.path.abspath(os.path.dirname(__file__))
     robot = os.path.abspath(os.path.join(directory, '..', 'robot.py'))
-    s = "import time\nimport sys\nfrom subprocess import Popen\ntime.sleep(1)\nPopen((sys.executable, '{}', '--settings_path', '{}'))"
+    s = "import time\nimport sys\nfrom subprocess import Popen\ntime.sleep(1" \
+        ")\nPopen((sys.executable, '{}', '--settings_path', '{}'))"
 
     s = s.format(robot, settings_path)
     args = (sys.executable,

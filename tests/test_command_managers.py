@@ -8,9 +8,6 @@ class TestCommandManager(unittest.TestCase):
         messaging = None
         self.command_manager = CommandManager(messaging)
 
-    def test_get_callback_recursively(self):
-        pass
-
     def test_get_callback_recursively_command_none(self):
         """
         since the command is recursive, can expect to pass in `None` as an
@@ -19,6 +16,7 @@ class TestCommandManager(unittest.TestCase):
         result = self.command_manager._get_callback_recursively(None)
         self.assertIsNone(result[0])
         self.assertIsNone(result[1])
+        self.assertIsNone(result[2])
 
     def test_get_callback_recursively_callback_none(self):
         """
@@ -27,17 +25,33 @@ class TestCommandManager(unittest.TestCase):
         set a command 'test' with a value of 'blue' and check to see that if we
         pass in that command, we get that value back
         """
-        self.command_manager._commands['test'] = 'blue'
+        def _test():
+            pass
 
-        callback = self.command_manager._get_callback_recursively('test')
-        self.assertEqual(callback, 'blue')
+        self.command_manager._commands['test'] = _test
+
+        callback, command, args = self.command_manager._get_callback_recursively('test')
+        self.assertEqual(callback, _test)
+        self.assertEqual(command, 'test')
 
     def test_get_callback_recursively_callback_is_dict(self):
         """
         since this is a recursive command, want to make sure that that works
         """
-        passed_in_dict = {}
-        passed_in_dict['test'] = 'blue'
+        self.command_manager.register_command('test', 'blue')
 
-        callback = self.command_manager._get_callback_recursively('test', passed_in_dict)
-        self.assertEqual(callback, 'blue')
+        with self.assertRaises(TypeError):
+            callback = self.command_manager._get_callback_recursively('test', ['trigger',])
+        # self.assertEqual(callback, 'blue')
+
+    def test_get_callback_args(self):
+        def _test():
+            pass
+        self.command_manager.register_command('subprocess', {'settings': _test})
+        command = 'subprocess'
+        args = ['settings', 'irc']
+        callback, command_string, args = self.command_manager._get_callback_recursively(command, args)
+        self.assertEqual(args[0], 'irc')
+
+if __name__ == '__main__':
+    unittest.main()

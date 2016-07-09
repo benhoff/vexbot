@@ -6,7 +6,9 @@ import irc3
 import zmq
 from zmq import ZMQError
 from irc3.plugins.autojoins import AutoJoins
+from vexmessage import decode_vex_message
 
+from vexbot.command_managers import CommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
 
@@ -91,7 +93,23 @@ async def _check_subscription(bot):
         except zmq.error.Again:
             pass
         if msg:
-            print(msg)
+            msg = decode_vex_message(msg)
+            if msg.type == 'CMD':
+                command = msg.contents.get('command')
+                if command:
+                    bot.command_parser.parse_commands(msg)
+
+            msg = None
+
+
+def _default(*args, **kwargs):
+    pass
+
+
+def _call_func_with_arg(func, arg):
+    def inner(*args):
+        return func(arg)
+    return inner
 
 
 def main(nick,
@@ -118,6 +136,25 @@ def main(nick,
         return
     # Duck type messaging onto irc_client, FTW
     irc_client.messaging = messaging
+    command_parser = CommandManager(messaging)
+    irc_client.command_parser = command_parser
+
+    alive = _call_func_with_arg(irc_client.messaging.send_status,
+                                'CONNECTED')
+
+    command_parser.register_command('alive',
+                                    alive)
+
+    """
+    command_parser.register_command('server config', _default)
+    command_parser.register_command('ip', _default)
+    command_parser.register_command('join', _default)
+    command_parser.register_command('kick', _default)
+    command_parser.register_command('part', _default)
+    command_parser.register_command('invite', _default)
+    command_parser.register_command('topic', _default)
+    command_parser.register_command('away', _default)
+    """
 
     irc_client.create_connection()
     irc_client.add_signal_handlers()

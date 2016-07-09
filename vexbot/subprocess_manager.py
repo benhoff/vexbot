@@ -109,9 +109,10 @@ class SubprocessManager:
         for value in values:
             try:
                 process = self._subprocess[value]
-                process.kill()
             except KeyError:
-                pass
+                continue
+            process.kill()
+            self._subprocess.pop(value)
 
     def killall(self):
         """
@@ -119,6 +120,8 @@ class SubprocessManager:
         """
         for subprocess in self._subprocess.values():
             subprocess.kill()
+
+        self._subprocess = {}
 
     def running_subprocesses(self):
         """

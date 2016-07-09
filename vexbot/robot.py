@@ -6,7 +6,7 @@ from vexmessage import decode_vex_message
 
 from vexbot.messaging import Messaging
 from vexbot.argenvconfig import ArgEnvConfig
-from vexbot.command_manager import CommandManager
+from vexbot.command_managers import BotCommandManager
 from vexbot.subprocess_manager import SubprocessManager
 
 
@@ -35,7 +35,7 @@ class Robot:
 
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
-        self.command_manager = CommandManager(robot=self)
+        self.command_manager = BotCommandManager(robot=self)
         try:
             import setproctitle
             setproctitle.setproctitle(bot_name)
@@ -55,8 +55,7 @@ class Robot:
                 # the shell adapter
                 # change this to some kind of auth code
                 if ((msg.source == 'shell' or
-                     msg.source == 'command_line') and
-                    msg.type == 'CMD'):
+                     msg.source == 'command_line') and msg.type == 'CMD'):
 
                     self.command_manager.parse_commands(msg)
 

@@ -1,6 +1,5 @@
 import cmd
 import argparse
-import inspect
 from time import sleep
 
 from threading import Thread
@@ -10,9 +9,9 @@ from vexmessage import decode_vex_message
 
 from vexbot import __version__
 from vexbot.adapters.messaging import ZmqMessaging
-from vexbot.adapters.command_parser import CommandParser
+from vexbot.command_managers import CommandManager
 
-from vexbot.commands.start_vexbot import start_vexbot
+from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 # from vexbot.commands.create_vexdir import create_vexdir
 # from vexbot.commands.call_editor import call_editor
 
@@ -31,15 +30,18 @@ class Shell(cmd.Cmd):
                                       subscribe_address,
                                       'shell')
 
-        self.command_parser = CommandParser(self.messaging)
+        self.command_manager = CommandManager(self.messaging)
+        # FIXME
+        self.command_manager._commands.pop('commands')
         self.stdout.write('Vexbot {}\n'.format(__version__))
-        self.stdout.write('Type \"help\" for command line help or \"commands\" for bot commands\n')
+        self.stdout.write("""Type \"help\" for command line help or \"commands\"
+                for bot commands\n""")
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
         self.stdout.write('\n')
 
-        self.command_parser.register_command('start vexbot',
-                                             start_vexbot)
+        self.command_manager.register_command('start_vexbot',
+                                              _start_vexbot)
 
         self.messaging.start_messaging()
 
@@ -48,7 +50,7 @@ class Shell(cmd.Cmd):
         self._exit_loop = False
 
     def default(self, arg):
-        if not self.command_parser.is_command(arg, call_command=True):
+        if not self.command_manager.is_command(arg, call_command=True):
             self.messaging.send_command(command=arg)
 
     def run(self):
@@ -69,9 +71,9 @@ class Shell(cmd.Cmd):
                     header = message.contents.get('original', 'Response')
                     contents = message.contents.get('response', None)
                     # FIXME
-                    if (isinstance(header, (tuple, list)) and
-                        isinstance(contents, (tuple, list)) and
-                        contents):
+                    if (isinstance(header, (tuple, list))
+                            and isinstance(contents, (tuple, list))
+                            and contents):
 
                         for head, content in zip(header, contents):
                             self.print_topics(head, (contents,), 15, 70)
@@ -109,8 +111,8 @@ class Shell(cmd.Cmd):
 
     def do_help(self, arg):
         if arg:
-            if self.command_parser.is_command(arg):
-                doc = self.command_parser._commands[arg].__doc__
+            if self.command_manager.is_command(arg):
+                doc = self.command_manager._commands[arg].__doc__
                 if doc:
                     self.stdout.write("{}\n".format(str(doc)))
             else:
@@ -120,7 +122,7 @@ class Shell(cmd.Cmd):
             self.stdout.write("{}\n".format(self.doc_leader))
             # TODO: get these from robot?
             self.print_topics(self.misc_header,
-                              ['start vexbot\nhelp [foo]',],
+                              ['start vexbot\nhelp [foo]', ],
                               15,
                               80)
 
@@ -143,7 +145,7 @@ class Shell(cmd.Cmd):
         # need to add to commands?
         for k, v in local.items():
             if inspect.isfunction(v):
-                self.command_parser.register_command(k, v)
+                self.command_manager.register_command(k, v)
     """
 
 

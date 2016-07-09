@@ -61,5 +61,6 @@ setup(
         'youtube': ['google-api-python-client'],
         'microphone': ['microphone'],
         'process_name': ['setproctitle'],
+        'database': ['vexstorage'],
     }
 )

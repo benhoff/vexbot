@@ -1,28 +1,23 @@
-import string
+import string as _string
+import collections as _collections
 
-from vexbot.commands.restart_bot import restart_bot
+from vexmessage import Message as VexMessage
+
+from vexbot.commands.restart_bot import restart_bot as _restart_bot
 
 
-INDENTCHARS = string.ascii_letters + string.digits + '_'
+_INDENTCHARS = _string.ascii_letters + _string.digits + '_'
 
 
-def _no_arg_wrapper(func):
+def _msg_list_wrapper(func: _collections.Callable):
     """
-    wraps methods that don't take args so that the method
-    can be called without error
+    wraps methods that don't take the `msg` type and instead take a list of
+    args
     """
-    def inner(*args):
-        return func()
-
-    inner.__doc__ = func.__doc__
-    return inner
-
-
-def _msg_list_wrapper(func):
-    """
-    wraps methods that don't take the `msg` type.
-    """
-    def inner(msg):
+    def inner(msg: VexMessage):
+        parsed = msg.contents.get('parsed_args')
+        if parsed:
+            return func(parsed)
         _, arg = _get_command_and_args(msg)
         commands = arg.split()
 
@@ -32,119 +27,172 @@ def _msg_list_wrapper(func):
     return inner
 
 
-def _get_command_and_args(message):
-    command = message.contents.get('command', None)
+def _get_command_and_args(message: (str, VexMessage)) -> (str, str):
+    if isinstance(message, VexMessage):
+        command = message.contents.get('command', None)
+    else:
+        command = message
 
     if command is None:
         return None, None
 
     command = command.strip()
     i, n = 0, len(command)
-    while i < n and command[i] in INDENTCHARS: i = i + 1
+    while i < n and command[i] in _INDENTCHARS:
+        i = i + 1
     command, arg = command[:i], command[i:].strip()
     return command, arg
 
 
-def _get_callback_recursively(callback: dict, commands):
-    if not commands:
-        return None, None
-
-    for command_number, command in enumerate(commands):
-        result = callback.get(command, None)
-        if result is None:
-            return None, None
-        elif isinstance(result, dict):
-            callback = result
-        else:
-            break
-
-    command_number += 1
-    return result, commands[command_number:]
-
-
 class CommandManager:
-    def __init__(self, robot):
+    def __init__(self, messaging):
+        # NOTE: commands is a dict of dicts and there is nested parsing
         self._commands = {}
-        self.indentchars = INDENTCHARS
-        subprocess = {}
-
-        s_manager = robot.subprocess_manager
-        reg = robot.subprocess_manager.registered_subprocesses
-        subprocess['settings'] = _msg_list_wrapper(s_manager.settings)
-
-        self._commands['subprocess'] = subprocess
-
-        self._commands['killall'] = _no_arg_wrapper(s_manager.killall)
-        self._commands['restart_bot'] = _no_arg_wrapper(restart_bot)
-        self._commands['commands'] = self._cmd_commands
-        self._commands['alive'] = self._alive
+        self._messaging = messaging
         self._commands['help'] = _msg_list_wrapper(self._help)
+        self._commands['commands'] = self._cmd_commands
 
-        self._commands['start'] = _msg_list_wrapper(s_manager.start)
-        self._commands['subprocesses'] = _no_arg_wrapper(reg)
-        self._commands['restart'] = _msg_list_wrapper(s_manager.restart)
-        self._commands['kill'] = _msg_list_wrapper(s_manager.kill)
-        self._commands['running'] = _no_arg_wrapper(s_manager.running_subprocesses)
-        self._messaging = robot.messaging
+    def register_command(self,
+                         command: str,
+                         function_or_dict: (_collections.Callable, dict)):
+        """
+        `func_or_nested` can either be a function or a dictionary
+        """
+        self._commands[command] = function_or_dict
 
-    def _cmd_commands(self, msg):
+    def is_command(self, command: str, call_command: bool=False) -> bool:
+        command, arg = _get_command_and_args(command)
+        callback, command, args = self._get_callback_recursively(command, arg)
+        if callback and call_command:
+            try:
+                callback(args)
+            except TypeError:
+                callback()
+            return True
+        else:
+            return bool(callback)
+
+    def _get_callback_recursively(self,
+                                  command: str,
+                                  args: (list,
+                                         str)=None) -> (_collections.Callable,
+                                                        str,
+                                                        list):
+        """
+        returns callback, command string, and args
+        """
+
+        if not command:
+            return None, None, None
+        if isinstance(args, str):
+            args = args.split()
+        elif args is None:
+            args = []
+
+        callback = self._commands.get(command)
+
+        if isinstance(callback, _collections.Callable):
+            return callback, command, args
+        elif isinstance(callback, dict):
+            dict_ = callback
+        elif callback is None:
+            return None, None, None
+        else:
+            s = '{} is not a callable function or a dict'
+            raise TypeError(s.format(command))
+
+        if not args:
+            return None, None, None
+        commands = []
+        commands.append(command)
+
+        # NOTE: Can't iterate None
+        for command_number, command in enumerate(args):
+            callback = dict_.get(command)
+            if callback is None:
+                return None, None, None
+
+            commands.append(command)
+            # dynamically reassigns the `dict_` value to travese nested dicts
+            if isinstance(callback, dict):
+                dict_ = callback
+            elif isinstance(callback, _collections.Callable):
+                break
+            else:
+                s = '{} is not a callable function or a dict'
+                raise TypeError(s.format(callback.__name__))
+
+        command_number += 1
+
+        command_str = ' '.join(commands)
+        return callback, command_str, args[command_number:]
+
+    def parse_commands(self, msg: VexMessage):
+        command, arg = _get_command_and_args(msg)
+
+        if not command:
+            return
+
+        callback, command, args = self._get_callback_recursively(command, arg)
+        msg.contents['parsed_args'] = args
+
+        try:
+            results = callback(msg)
+        except TypeError:
+            results = callback()
+
+        # FIXME
+        if results:
+            self._messaging.send_response(target=msg.source,
+                                          original=command,
+                                          response=results)
+
+    def message_wrapper(self, func: _collections.Callable):
+        """
+        wraps a function and passes the messaging object as the first
+        argument to the wrapped function
+        """
+        def inner(*args, **kwargs):
+            return func(self._messaging, *args, **kwargs)
+        # Fix the function metadata
+        inner.__doc__ = func.__doc__
+        inner.__str__ = func.__str__
+        inner.__repr__ = func.__repr__
+
+        return inner
+
+    def _cmd_commands(self, msg: VexMessage):
         """
         returns a list of all available commands
+        works recursively
         """
-        # FIXME: name
-        def get_stuff(d: dict):
+        def get_commands(d: dict):
+            """
+            recursive command
+            """
             commands = []
             if not isinstance(d, dict):
                 return commands
 
             for k, v in d.items():
                 if isinstance(v, dict):
-                    stuff = get_stuff(v)
+                    # NOTE: recursive command
+                    stuff = get_commands(v)
                     for s in stuff:
                         commands.append(k + ' ' + s)
                 else:
                     commands.append(k)
             return commands
 
-        return get_stuff(self._commands)
+        return get_commands(self._commands)
 
-    def _send_command_not_found(self, target, original):
+    def _send_command_not_found(self, target: str, original: str):
+        """
+        helper method
+        """
         self._messaging.send_response(target=target,
                                       response='Command not found',
                                       original=original)
-
-    def parse_commands(self, msg):
-        command, arg = _get_command_and_args(msg)
-        commands = arg.split()
-        if not command:
-            return
-
-        callback = self._commands.get(command, None)
-        if callback:
-            # Allow nesting of callbacks
-            # reassign callback to the actual message
-            if isinstance(callback, dict):
-                callback, commands = _get_callback_recursively(callback,
-                                                               commands)
-
-                # callback can be None, handle that case and return from func
-                # FIXME: combine this call with the one several calls below
-                if callback is None:
-                    self._send_command_not_found(msg.source, command)
-                    return
-
-            # FIXME: Currently not passing in commands
-            results = callback(msg)
-            # FIXME
-            if results:
-                self._messaging.send_response(target=msg.source,
-                                              original=command,
-                                              response=results)
-
-            return
-
-        if not callback:
-            self._send_command_not_found(msg.source, command)
 
     def _help(self, args):
         if not args:
@@ -158,6 +206,29 @@ class CommandManager:
 
             if docs:
                 return docs
+
+
+class BotCommandManager(CommandManager):
+    def __init__(self, robot):
+        super().__init__(robot.messaging)
+        # nested command dict
+        subprocess = {}
+
+        # alias for pep8
+        s_manager = robot.subprocess_manager
+        subprocess['settings'] = _msg_list_wrapper(s_manager.settings)
+
+        self._commands['subprocess'] = subprocess
+
+        self._commands['killall'] = s_manager.killall
+        self._commands['restart_bot'] = _restart_bot
+        self._commands['alive'] = self._alive
+
+        self._commands['start'] = _msg_list_wrapper(s_manager.start)
+        self._commands['subprocesses'] = s_manager.registered_subprocesses
+        self._commands['restart'] = _msg_list_wrapper(s_manager.restart)
+        self._commands['kill'] = _msg_list_wrapper(s_manager.kill)
+        self._commands['running'] = s_manager.running_subprocesses
 
     def _alive(self, msg):
         """
