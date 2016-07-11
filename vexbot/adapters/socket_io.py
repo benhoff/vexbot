@@ -1,10 +1,9 @@
-import sys
 import argparse
 import json
 import requests
 import html
 import logging
-import signal
+# import signal
 import atexit
 from time import sleep
 from threading import Thread
@@ -17,9 +16,7 @@ from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
 
-class ReadOnlyWebSocket(websocket.WebSocketApp):
-    # NOTE: chat_signal defined in `__init__`
-
+class WebSocket(websocket.WebSocketApp):
     def __init__(self,
                  streamer_name,
                  namespace,
@@ -33,7 +30,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
         self.messaging = ZmqMessaging(service_name,
                                       publish_address,
                                       subscribe_address,
-                                      'socket_io')
+                                      service_name)
 
         self.messaging.start_messaging()
         self._streamer_name = streamer_name
@@ -44,11 +41,13 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
         self.log.info('Socket IO key got!')
         self.command_manager = AdapterCommandManager(self.messaging)
         self._thread = Thread(target=self.handle_subscription)
+        self._thread.daemon = True
         self._thread.start()
 
         # alters URL to be more websocket...ie
         self._website_socket = self._website_url.replace('http', 'ws')
         self._website_socket += 'websocket/'
+        self.nick = None
         super().__init__(self._website_socket + self.key,
                          on_open=self.on_open,
                          on_close=self.on_close,
@@ -61,6 +60,13 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
             message = decode_vex_message(frame)
             if message.type == 'CMD':
                 self.command_manager.parse_commands(message)
+            if message.type == 'RSP':
+                data = {}
+                data['name'] = 'message'
+                data['args'] = [message.contents.get('response'),
+                                self._streamer_name]
+
+                self.send_packet_helper(5, data)
 
     def repeat_run_forever(self):
         while True:
@@ -118,9 +124,11 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
                 sender = html.unescape(message['sender'])
                 message = html.unescape(message['text'])
                 self.messaging.send_message(author=sender, message=message)
+            elif data['name'] == 'join':
+                self.nick = data['args'][1]
 
     def on_error(self, *args):
-        print(args[1])
+        logging.error(args[1])
 
     def disconnect(self):
         callback = ''
@@ -159,7 +167,6 @@ def _get_args():
 def _handle_close(messaging):
     def inner(*args):
         messaging.send_status('DISCONNECTED')
-        sys.exit()
     return inner
 
 
@@ -173,16 +180,16 @@ def main():
     args = vars(_get_args())
     already_running = False
     try:
-        client = ReadOnlyWebSocket(**args)
+        client = WebSocket(**args)
     except ZMQError:
         already_running = True
 
     if not already_running:
         messaging = client.messaging
         atexit.register(_send_disconnect(messaging))
-        handle_close = _handle_close(messaging)
-        signal.signal(signal.SIGINT, handle_close)
-        signal.signal(signal.SIGTERM, handle_close)
+        # handle_close = _handle_close(messaging)
+        # signal.signal(signal.SIGINT, handle_close)
+        # signal.signal(signal.SIGTERM, handle_close)
         client.repeat_run_forever()
 
 

@@ -17,7 +17,7 @@ from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 
-class ReadOnlyXMPPBot(ClientXMPP):
+class XMPPBot(ClientXMPP):
     def __init__(self,
                  jid,
                  password,
@@ -131,7 +131,7 @@ def main():
     already_running = False
 
     try:
-        xmpp_bot = ReadOnlyXMPPBot(jid, **kwargs)
+        xmpp_bot = XMPPBot(jid, **kwargs)
     except zmq.ZMQError:
         already_running = True
 
