@@ -104,6 +104,9 @@ async def _check_subscription(bot):
                 channel = msg.contents.get('channel')
                 message = msg.contents.get('response')
                 bot.privmsg(channel, message)
+                bot.messaging.send_message(author=bot.nick,
+                                           message=message,
+                                           channel=channel)
 
 
 def _default(*args, **kwargs):
