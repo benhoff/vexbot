@@ -86,7 +86,9 @@ class SubprocessManager:
                 if data[1]:
                     args.extend(data[1])
                 process = Popen(args, stdout=DEVNULL)
-                self._subprocess[key] = process
+                return_code = process.poll()
+                if return_code is None:
+                    self._subprocess[key] = process
 
     def restart(self, values):
         """
@@ -98,8 +100,8 @@ class SubprocessManager:
             except KeyError:
                 continue
 
-            process.kill()
-            self.start(value)
+            process.terminate()
+            self.start((value, ))
 
     def kill(self, values):
         """
@@ -136,4 +138,15 @@ class SubprocessManager:
         """
         returns all running subprocess names
         """
-        return tuple(self._subprocess.keys())
+        results = []
+        killed = []
+        for name, subprocess in self._subprocess.items():
+            poll = subprocess.poll()
+            if poll is None:
+                results.append(name)
+            else:
+                killed.append(name)
+        if killed:
+            for killed_subprocess in killed:
+                self._subprocess.pop(killed_subprocess)
+        return results
