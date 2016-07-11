@@ -1,3 +1,4 @@
+import sys
 import logging
 import argparse
 import signal
@@ -32,7 +33,7 @@ class ReadOnlyXMPPBot(ClientXMPP):
         self.messaging = ZmqMessaging(service_name,
                                       publish_address,
                                       subscribe_address,
-                                      'xmpp')
+                                      service_name)
 
         self.messaging.start_messaging()
         self.command_manager = AdapterCommandManager(self.messaging)
@@ -58,6 +59,10 @@ class ReadOnlyXMPPBot(ClientXMPP):
             message = decode_vex_message(frame)
             if message.type == 'CMD':
                 self.command_manager.parse_commands(message)
+            elif message.type == 'RSP':
+                channel = message.contents.get('channel')
+                contents = message.contents.get('response')
+                self.send_message(channel, contents, mtype='groupchat')
 
     def _disconnected(self, *args):
         self.messaging.send_status('DISCONNECTED')
@@ -86,7 +91,9 @@ class ReadOnlyXMPPBot(ClientXMPP):
         self.get_roster()
 
     def muc_message(self, msg):
-        self.messaging.send_message(author=msg['mucnick'], message=msg['body'])
+        self.messaging.send_message(author=msg['mucnick'],
+                                    message=msg['body'],
+                                    channel=msg['from'].bare)
 
 
 def _get_args():
@@ -107,6 +114,7 @@ def _get_args():
 def _handle_close(messaging):
     def inner(*args):
         _send_disconnect(messaging)()
+        sys.exit()
     return inner
 
 
@@ -138,6 +146,8 @@ def main():
             try:
                 xmpp_bot.connect()
                 xmpp_bot.process(block=True)
+            except SystemExit:
+                break
             except Exception as e:
                 xmpp_bot.log.error(e)
 

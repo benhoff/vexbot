@@ -1,8 +1,8 @@
 import sys
-import asyncio
-import argparse
 import atexit
 import signal
+import asyncio
+import argparse
 
 import irc3
 import zmq
@@ -50,9 +50,11 @@ class EchoToMessage(object):
 
     @irc3.event(irc3.rfc.PRIVMSG)
     def message(self, mask, event, target, data):
-        nick = mask.split('!')[0]
+        nick = mask.nick
         message = data
-        self.bot.messaging.send_message(author=nick, message=str(message))
+        self.bot.messaging.send_message(author=nick,
+                                        message=str(message),
+                                        channel=target)
 
 
 def create_irc_bot(nick,
@@ -98,8 +100,10 @@ async def _check_subscription(bot):
             msg = decode_vex_message(msg)
             if msg.type == 'CMD':
                 bot.command_parser.parse_commands(msg)
-
-            msg = None
+            elif msg.type == 'RSP':
+                channel = msg.contents.get('channel')
+                message = msg.contents.get('response')
+                bot.privmsg(channel, message)
 
 
 def _default(*args, **kwargs):
@@ -118,9 +122,12 @@ def _send_disconnected(messaging):
     return inner
 
 
-def _handle_close(messaging):
+def _handle_close(messaging, event_loop):
     def inner(signum=None, frame=None):
         _send_disconnected(messaging)()
+        event_loop.stop()
+        for task in asyncio.Task.all_tasks():
+            task.cancel()
     return inner
 
 
@@ -141,7 +148,7 @@ def main(nick,
         messaging = ZmqMessaging(service_name,
                                  publish_address,
                                  subscribe_address,
-                                 socket_filter='irc')
+                                 socket_filter=service_name)
 
         messaging.start_messaging()
     except ZMQError:
@@ -168,7 +175,7 @@ def main(nick,
     asyncio.ensure_future(_check_subscription(irc_client))
     atexit.register(_send_disconnected(messaging))
 
-    handle_close = _handle_close(messaging)
+    handle_close = _handle_close(messaging, event_loop)
     signal.signal(signal.SIGINT, handle_close)
     signal.signal(signal.SIGTERM, handle_close)
     try:

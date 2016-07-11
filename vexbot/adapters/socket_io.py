@@ -1,3 +1,4 @@
+import sys
 import argparse
 import json
 import requests
@@ -65,7 +66,7 @@ class ReadOnlyWebSocket(websocket.WebSocketApp):
         while True:
             try:
                 self.run_forever()
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 break
             except Exception as e:
                 self.log.info('Socket IO errors: {}'.format(e))
@@ -158,6 +159,7 @@ def _get_args():
 def _handle_close(messaging):
     def inner(*args):
         messaging.send_status('DISCONNECTED')
+        sys.exit()
     return inner
 
 
@@ -167,8 +169,7 @@ def _send_disconnect(messaging):
     return inner
 
 
-if __name__ == '__main__':
-
+def main():
     args = vars(_get_args())
     already_running = False
     try:
@@ -183,3 +184,7 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, handle_close)
         signal.signal(signal.SIGTERM, handle_close)
         client.repeat_run_forever()
+
+
+if __name__ == '__main__':
+    main()

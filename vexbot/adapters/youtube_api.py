@@ -33,6 +33,7 @@ def _run(messaging):
 def _handle_close(messaging):
     def inner(*args):
         _send_disconnect(messaging)()
+        sys.exit()
     return inner
 
 
@@ -158,6 +159,6 @@ if __name__ == '__main__':
     kwargs = _get_kwargs()
     # OAuth2 lib has some argparse functionality that conflicts with ours
     # delete ours for ease of programming
-    for _ in range(4):
+    for _ in range(6):
         del sys.argv[1]
     main(**kwargs)
