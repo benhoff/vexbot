@@ -1,12 +1,14 @@
 import sys
 import os
-import argparse
-import tempfile
 import atexit
 import signal
+import logging
+import asyncio
+import argparse
+import tempfile
 from time import sleep
-from threading import Thread
 
+import zmq
 import httplib2
 
 from apiclient.discovery import build
@@ -21,19 +23,38 @@ from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 
-def _run(messaging):
+async def _run(messaging, live_chat_messages, live_chat_id, ):
     command_manager = AdapterCommandManager(messaging)
+    frame = None
     while True:
-        frame = messaging.sub_socket.recv_multipart()
-        message = decode_vex_message(frame)
-        if message.type == 'CMD':
-            command_manager.parse_commands(message)
+        try:
+            frame = messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
+        except zmq.error.ZMQError:
+            pass
+        if frame:
+            message = decode_vex_message(frame)
+            if message.type == 'CMD':
+                command_manager.parse_commands(message)
+            elif message.type == 'RSP':
+                message = message.contents.get('response')
+                body={'snippet':{'type': 'textmessageEvent',
+                                 'liveChatId': live_chat_id,
+                                 'textMessageDetails': {'messageText': message}}}
+
+                live_chat_messages.insert(part='snippet',
+                                          body=body).execute()
+
+            frame = None
+
+        await asyncio.sleep(1)
 
 
-def _handle_close(messaging):
+def _handle_close(messaging, event_loop):
     def inner(*args):
         _send_disconnect(messaging)()
-        sys.exit()
+        for task in asyncio.Task.all_tasks():
+            task.cancel()
+        event_loop.stop()
     return inner
 
 
@@ -54,13 +75,9 @@ def main(client_secret_filepath, publish_address, subscribe_address):
     except ZMQError:
         return
 
-    thread = Thread(target=_run, args=(messaging, ))
-    thread.daemon = True
-    thread.start()
-    handle_close = _handle_close(messaging)
-    signal.signal(signal.SIGINT, handle_close)
-    signal.signal(signal.SIGTERM, handle_close)
-    atexit.register(_send_disconnect(messaging))
+    # signal.signal(signal.SIGINT, handle_close)
+    # signal.signal(signal.SIGTERM, handle_close)
+    # handle_close = _handle_close(messaging)
 
     scope = ['https://www.googleapis.com/auth/youtube',
              'https://www.googleapis.com/auth/youtube.force-ssl',
@@ -72,6 +89,7 @@ def main(client_secret_filepath, publish_address, subscribe_address):
                                                             part=parts,
                                                             maxResults=1).execute()
 
+
     live_chat_id = livestream_response.get('items')[0]['snippet']['liveChatId']
 
     livechat_response = youtube_api.liveChatMessages().list(liveChatId=live_chat_id, part='snippet').execute()
@@ -81,8 +99,32 @@ def main(client_secret_filepath, publish_address, subscribe_address):
     polling_interval = _convert_to_seconds(polling_interval)
     messaging.send_status('CONNECTED')
 
+    event_loop = asyncio.get_event_loop()
+    asyncio.ensure_future(_recv_loop(messaging,
+                                     youtube_api,
+                                     live_chat_id,
+                                     next_token,
+                                     polling_interval))
+
+    asyncio.ensure_future(_run(messaging,
+                               youtube_api.liveChatMessages(),
+                               live_chat_id))
+
+    atexit.register(_send_disconnect(messaging))
+    event_loop.run_forever()
+
+
+    messaging.send_status('DISCONNECTED')
+
+
+async def _recv_loop(messaging,
+                     youtube_api,
+                     live_chat_id,
+                     next_token,
+                     polling_interval):
+
     while True:
-        sleep(polling_interval)
+        await asyncio.sleep(polling_interval)
         part = 'snippet, authorDetails'
         livechat_response = youtube_api.liveChatMessages().list(liveChatId=live_chat_id, part=part, pageToken=next_token).execute()
 
@@ -97,8 +139,6 @@ def main(client_secret_filepath, publish_address, subscribe_address):
             message = snippet['displayMessage']
             author = live_chat_message['authorDetails']['displayName']
             messaging.send_message(author=author, message=message)
-
-    messaging.send_status('DISCONNECTED')
 
 def _convert_to_seconds(milliseconds: str):
     return float(milliseconds)/1000.0
@@ -126,7 +166,7 @@ def _youtube_authentication(client_filepath, youtube_scope=_READ_ONLY):
                                    scope=youtube_scope,
                                    message=missing_client_message)
 
-    dir = os.path.abspath(__file__) 
+    dir = os.path.abspath(__file__)
     filepath = "{}-oauth2.json".format(dir)
     # remove old oauth files to be safe
     if os.path.isfile(filepath):

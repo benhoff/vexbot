@@ -1,7 +1,7 @@
 import sys
 import logging
 import argparse
-import signal
+# import signal
 import atexit
 from threading import Thread
 
@@ -138,9 +138,9 @@ def main():
     if not already_running:
         messaging = xmpp_bot.messaging
         atexit.register(_send_disconnect(messaging))
-        handle_close = _handle_close(messaging)
-        signal.signal(signal.SIGINT, handle_close)
-        signal.signal(signal.SIGTERM, handle_close)
+        # handle_close = _handle_close(messaging)
+        # signal.signal(signal.SIGINT, handle_close)
+        # signal.signal(signal.SIGTERM, handle_close)
 
         while True:
             try:
