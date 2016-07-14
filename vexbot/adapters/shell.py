@@ -9,6 +9,7 @@ import zmq
 from vexmessage import decode_vex_message
 
 from vexbot import __version__
+from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.command_managers import CommandManager
 
@@ -167,11 +168,12 @@ class Shell(cmd.Cmd):
 
 
 def _get_kwargs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--publish_address', default=None)
-    parser.add_argument('--subscribe_address', default=None)
-    parser.add_argument('--prompt_name', default='vexbot')
-    parser.add_argument('--history_file')
+    config = ArgEnvConfig()
+    config.add_argument('--publish_address', default=None)
+    config.add_argument('--subscribe_address', default=None)
+    config.add_argument('--prompt_name', default='vexbot')
+    config.add_argument('--history_file',
+                        environ='VEXBOT_SHELL_HISTORY')
 
     args = parser.parse_args()
     return vars(args)

@@ -26,12 +26,32 @@ class CommandManager:
     def is_command(self,
                    command: str,
                    call_command: bool=False) -> bool:
+
         callback, command, args = self._get_callback_recursively(command)
         if callback and call_command:
             callback(args)
             return True
         else:
             return bool(callback)
+
+    def parse_commands(self, msg: VexMessage):
+        command = msg.contents.get('command')
+
+        if not command:
+            return
+
+        args = msg.contents.get('args')
+
+        callback, command, args = self._get_callback_recursively(command, args)
+        msg.contents['parsed_args'] = args
+
+        if callback:
+            results = callback(msg)
+
+            if results:
+                self._messaging.send_response(target=msg.source,
+                                              original=command,
+                                              response=results)
 
     def _get_callback_recursively(self,
                                   command: str,
@@ -87,39 +107,6 @@ class CommandManager:
 
         command_str = ' '.join(commands)
         return callback, command_str, args[command_number:]
-
-    def parse_commands(self, msg: VexMessage):
-        command = msg.contents.get('command')
-
-        if not command:
-            return
-
-        args = msg.contents.get('args')
-
-        callback, command, args = self._get_callback_recursively(command, args)
-        msg.contents['parsed_args'] = args
-
-        if callback:
-            results = callback(msg)
-
-            if results:
-                self._messaging.send_response(target=msg.source,
-                                              original=command,
-                                              response=results)
-
-    def message_wrapper(self, func: _collections.Callable):
-        """
-        wraps a function and passes the messaging object as the first
-        argument to the wrapped function
-        """
-        def inner(*args, **kwargs):
-            return func(self._messaging, *args, **kwargs)
-        # Fix the function metadata
-        inner.__doc__ = func.__doc__
-        inner.__str__ = func.__str__
-        inner.__repr__ = func.__repr__
-
-        return inner
 
     def _cmd_commands(self, msg: VexMessage):
         """
