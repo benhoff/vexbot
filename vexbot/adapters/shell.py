@@ -1,6 +1,5 @@
 import cmd
 import atexit
-import argparse
 from time import sleep
 
 from threading import Thread
@@ -175,7 +174,7 @@ def _get_kwargs():
     config.add_argument('--history_file',
                         environ='VEXBOT_SHELL_HISTORY')
 
-    args = parser.parse_args()
+    args = config.parse_args()
     return vars(args)
 
 
