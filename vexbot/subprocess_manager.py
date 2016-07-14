@@ -8,6 +8,7 @@ class SubprocessManager:
     def __init__(self):
         # this is going to be a list of filepaths
         self._registered = {}
+        self._settings = {}
         # these will be subprocesses
         self._subprocess = {}
         atexit.register(self._close_subprocesses)
@@ -32,65 +33,70 @@ class SubprocessManager:
         """
         return tuple(self._registered.keys())
 
-    def register(self, keys, values, settings=None):
-        if settings is None:
-            settings = [None for _ in range(len(keys))]
-
-        for key, value, setting in zip(keys, values, settings):
-            if key in self.blacklist:
-                continue
-
-            self._registered[key] = (value, setting)
-
-    def update(self, key, value=None, setting=None):
-        """
-        This allows us to update the settings or value
-        """
+    def register(self, key: str, value, settings: dict=None):
+        self._settings[key] = settings
         if key in self.blacklist:
             return
+        self._registered[key] = value
 
-        if setting is None:
-            setting = self._registered[key][1]
-        if value is None:
-            value = self._registered[key][0]
-        self._registered[key] = (value, setting)
+    def update_setting_value(self,
+                             name: str,
+                             setting_name: str,
+                             setting_value):
 
-    def settings(self, key):
+        try:
+            self._settings[name][setting_name] = setting_value
+        except KeyError:
+            pass
+
+    def update_settings(self, name: str, settings: dict):
+        """
+        Need to pass in the subprocess name, a setting to be changed,
+        and the value to change the setting to
+        """
+        try:
+            self._settings[name].update(settings)
+        except KeyError:
+            pass
+
+    def settings(self, key: str):
         """
         trys to get the settings information for a given subprocess. Passes
         silently when there is no information
         """
-        if not key:
-            return
-        # FIXME
-        try:
-            v = self._registered.get(key, None)
-        except TypeError:
-            # FIXME
-            v = self._registered.get(key[0])
-        if v:
-            return v[1]
+        return self._registered.get(key)
 
-    def start(self, keys):
+    def start(self, keys: list):
         """
         starts subprocesses. Can pass in multiple subprocess to start
         """
         for key in keys:
-            try:
-                data = self._registered[key]
-            except KeyError:
-                data = None
+            executable = self._registered.get(key)
+            if executable is None:
+                continue
 
-            if data:
-                args = [sys.executable, data[0]]
-                if data[1]:
-                    args.extend(data[1])
-                process = Popen(args, stdout=DEVNULL)
-                return_code = process.poll()
-                if return_code is None:
-                    self._subprocess[key] = process
+            dict_list = [executable, ]
+            settings = self._settings.get(key, {})
+            filepath = settings.get('filepath')
+            if filepath:
+                dict_list.append(filepath)
 
-    def restart(self, values):
+            args = settings.get('args', [])
+            if args:
+                dict_list.extend(args)
+
+            for k, v in settings.items():
+                if k == 'filepath':
+                    continue
+                dict_list.append(k)
+                dict_list.append(v)
+
+            process = Popen(dict_list, stdout=DEVNULL)
+            return_code = process.poll()
+            if return_code is None:
+                self._subprocess[key] = process
+
+    def restart(self, values: list):
         """
         restarts subprocesses managed by the subprocess manager
         """
@@ -103,7 +109,7 @@ class SubprocessManager:
             process.terminate()
             self.start((value, ))
 
-    def kill(self, values):
+    def kill(self, values: list):
         """
         kills subprocess that is managed by the subprocess manager.
         If value does not match, quietly passes for now
@@ -114,16 +120,14 @@ class SubprocessManager:
             except KeyError:
                 continue
             process.kill()
-            self._subprocess.pop(value)
 
-    def terminate(self, values):
+    def terminate(self, values: list):
         for value in values:
             try:
                 process = self._subprocess[value]
             except KeyError:
                 continue
             process.terminate()
-            self._subprocess.pop(value)
 
     def killall(self):
         """
@@ -131,8 +135,6 @@ class SubprocessManager:
         """
         for subprocess in self._subprocess.values():
             subprocess.kill()
-
-        self._subprocess = {}
 
     def running_subprocesses(self):
         """

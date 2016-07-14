@@ -1,4 +1,5 @@
 import cmd
+import atexit
 import argparse
 from time import sleep
 
@@ -12,7 +13,6 @@ from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.command_managers import CommandManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
-# from vexbot.commands.create_vexdir import create_vexdir
 # from vexbot.commands.call_editor import call_editor
 
 
@@ -34,11 +34,10 @@ class Shell(cmd.Cmd):
         # FIXME
         self.command_manager._commands.pop('commands')
         self.stdout.write('Vexbot {}\n'.format(__version__))
-        self.stdout.write("Type \"help\" for command line help or "
-                          "\"commands\" for bot commands\n")
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
-        self.stdout.write('\n')
+        self.stdout.write("Type \"help\" for command line help or "
+                          "\"commands\" for bot commands\n\n")
 
         self.command_manager.register_command('start_vexbot',
                                               _start_vexbot)
@@ -48,10 +47,28 @@ class Shell(cmd.Cmd):
         self.prompt = prompt_name + ': '
         self.misc_header = "Commands"
         self._exit_loop = False
+        self._set_readline_helper(kwargs.get('history_file'))
 
     def default(self, arg):
         if not self.command_manager.is_command(arg, call_command=True):
-            self.messaging.send_command(command=arg)
+            command, argument, line = self.parseline(arg)
+
+            self.messaging.send_command(command=command,
+                                        args=argument,
+                                        line=line)
+
+    def _set_readline_helper(self, history_file=None):
+        try:
+            import readline
+        except ImportError:
+            return
+
+        try:
+            readline.read_history_file(history_file)
+        except IOError:
+            pass
+        readline.set_history_length(1000)
+        atexit.register(readline.write_history_file, history_file)
 
     def run(self):
         frame = None
@@ -154,6 +171,7 @@ def _get_kwargs():
     parser.add_argument('--publish_address', default=None)
     parser.add_argument('--subscribe_address', default=None)
     parser.add_argument('--prompt_name', default='vexbot')
+    parser.add_argument('--history_file')
 
     args = parser.parse_args()
     return vars(args)

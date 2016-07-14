@@ -1,47 +1,10 @@
-import string as _string
 import collections as _collections
 
 from vexmessage import Message as VexMessage
 
 from vexbot.commands.restart_bot import restart_bot as _restart_bot
-
-
-_INDENTCHARS = _string.ascii_letters + _string.digits + '_'
-
-
-def _msg_list_wrapper(func: _collections.Callable):
-    """
-    wraps methods that don't take the `msg` type and instead take a list of
-    args
-    """
-    def inner(msg: VexMessage):
-        parsed = msg.contents.get('parsed_args')
-        if parsed:
-            return func(parsed)
-        _, arg = _get_command_and_args(msg)
-        commands = arg.split()
-
-        return func(commands)
-
-    inner.__doc__ = func.__doc__
-    return inner
-
-
-def _get_command_and_args(message: (str, VexMessage)) -> (str, str):
-    if isinstance(message, VexMessage):
-        command = message.contents.get('command', None)
-    else:
-        command = message
-
-    if command is None:
-        return None, None
-
-    command = command.strip()
-    i, n = 0, len(command)
-    while i < n and command[i] in _INDENTCHARS:
-        i = i + 1
-    command, arg = command[:i], command[i:].strip()
-    return command, arg
+from vexbot.function_wrapers import (msg_list_wrapper,
+                                     no_arguments)
 
 
 class CommandManager:
@@ -49,7 +12,7 @@ class CommandManager:
         # NOTE: commands is a dict of dicts and there is nested parsing
         self._commands = {}
         self._messaging = messaging
-        self._commands['help'] = _msg_list_wrapper(self._help)
+        self._commands['help'] = msg_list_wrapper(self._help)
         self._commands['commands'] = self._cmd_commands
 
     def register_command(self,
@@ -60,14 +23,12 @@ class CommandManager:
         """
         self._commands[command] = function_or_dict
 
-    def is_command(self, command: str, call_command: bool=False) -> bool:
-        command, arg = _get_command_and_args(command)
-        callback, command, args = self._get_callback_recursively(command, arg)
+    def is_command(self,
+                   command: str,
+                   call_command: bool=False) -> bool:
+        callback, command, args = self._get_callback_recursively(command)
         if callback and call_command:
-            try:
-                callback(args)
-            except TypeError:
-                callback()
+            callback(args)
             return True
         else:
             return bool(callback)
@@ -128,19 +89,18 @@ class CommandManager:
         return callback, command_str, args[command_number:]
 
     def parse_commands(self, msg: VexMessage):
-        command, arg = _get_command_and_args(msg)
+        command = msg.contents.get('command')
 
         if not command:
             return
 
-        callback, command, args = self._get_callback_recursively(command, arg)
+        args = msg.contents.get('args')
+
+        callback, command, args = self._get_callback_recursively(command, args)
         msg.contents['parsed_args'] = args
 
         if callback:
-            try:
-                results = callback(msg)
-            except TypeError:
-                results = callback()
+            results = callback(msg)
 
             if results:
                 self._messaging.send_response(target=msg.source,
@@ -216,20 +176,26 @@ class BotCommandManager(CommandManager):
 
         # alias for pep8
         s_manager = robot.subprocess_manager
-        subprocess['settings'] = _msg_list_wrapper(s_manager.settings)
+
+        # Store a reference to the subprocess settings for the `alive` command
+        self._subprocess_settings = s_manager._registered
+        subprocess['settings'] = msg_list_wrapper(s_manager.settings, 1)
+        # subprocess['set-settings'] = msg_unpack_args(s_manager.update, 3)
 
         self._commands['subprocess'] = subprocess
 
-        self._commands['killall'] = s_manager.killall
-        self._commands['restart_bot'] = _restart_bot
+        self._commands['killall'] = no_arguments(s_manager.killall)
+        self._commands['restart_bot'] = no_arguments(_restart_bot)
         self._commands['alive'] = self._alive
 
-        self._commands['start'] = _msg_list_wrapper(s_manager.start)
-        self._commands['subprocesses'] = s_manager.registered_subprocesses
-        self._commands['restart'] = _msg_list_wrapper(s_manager.restart)
-        self._commands['kill'] = _msg_list_wrapper(s_manager.kill)
-        self._commands['terminate'] = _msg_list_wrapper(s_manager.terminate)
-        self._commands['running'] = s_manager.running_subprocesses
+        self._commands['start'] = msg_list_wrapper(s_manager.start)
+        registered = s_manager.registered_subprocesses
+        self._commands['subprocesses'] = no_arguments(registered)
+        self._commands['restart'] = msg_list_wrapper(s_manager.restart)
+        self._commands['kill'] = msg_list_wrapper(s_manager.kill)
+        self._commands['terminate'] = msg_list_wrapper(s_manager.terminate)
+        running = s_manager.running_subprocesses
+        self._commands['running'] = no_arguments(running)
 
     def _alive(self, msg):
         """
@@ -239,19 +205,37 @@ class BotCommandManager(CommandManager):
         """
         # FIXME
         values = list(self._commands['subprocesses']())
-        if values:
+
+        process_names = []
+        for value in values:
+            setting = self._subprocess_settings.get(value)
+
+            if not setting:
+                continue
+
+            setting = setting[1]
+            process_name = None
+            for i in range(0, len(setting), 2):
+                name = setting[i]
+                if name == '--service_name':
+                    process_name = setting[i+1]
+            if process_name is None:
+                process_name = value
+            process_names.append(process_name)
+        if process_names:
             try:
-                values.remove(msg.source)
+                process_names.remove(msg.source)
             except ValueError:
                 pass
-            for v in values:
-                self._messaging.send_command(target=v, command='alive')
+            for process_name in process_names:
+                self._messaging.send_command(target=process_name,
+                                             command='alive')
 
 
 class AdapterCommandManager(CommandManager):
     def __init__(self, messaging):
         super().__init__(messaging)
-        self._commands['alive'] = self._alive
+        self._commands['alive'] = no_arguments(self._alive)
 
     def _alive(self, *args):
         self._messaging.send_status('CONNECTED')

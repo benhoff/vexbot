@@ -1,3 +1,4 @@
+import sys
 import logging
 
 import pluginmanager
@@ -74,17 +75,17 @@ class Robot:
         collect_ep = plugin_manager.collect_entry_point_plugins
         plugins, plugin_names = collect_ep()
         plugins = [plugin.__file__ for plugin in plugins]
-        subprocess_manager.register(plugin_names, plugins)
+        for plugin, name in zip(plugins, plugin_names):
+            subprocess_manager.register(name,
+                                        sys.executable,
+                                        {'filepath': plugin})
 
         for name in plugin_names:
             try:
                 plugin_settings = settings[name]
-                values = []
-                for k_v in plugin_settings.items():
-                    values.extend(k_v)
             except KeyError:
-                values = []
-            self.subprocess_manager.update(name, setting=values)
+                plugin_settings = {}
+            self.subprocess_manager.update_settings(name, plugin_settings)
 
 
 def _get_config():
