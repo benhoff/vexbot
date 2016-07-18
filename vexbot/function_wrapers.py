@@ -9,8 +9,12 @@ def msg_list_wrapper(func: _collections.Callable, number_args: int=None):
     """
     def inner(msg: VexMessage):
         parsed = msg.contents.get('parsed_args')
-        if parsed:
+        if number_args is None:
             return func(parsed)
+        elif number_args == 1:
+            return func(parsed[0])
+        else:
+            return func(parsed[:number_args])
         """
         _, arg = _get_command_and_args(msg)
         commands = arg.split()

@@ -7,7 +7,7 @@ from vexbot.messaging import Messaging
 
 
 class TestMessaging(unittest.TestCase):
-    def setUp(self):
+    def __init__(self, *args, **kwargs):
         self.subscribe_address = 'tcp://127.0.0.1:4006'
         self.publish_address = 'tcp://127.0.0.1:4007'
         self.settings = {'subscribe_address': self.subscribe_address,
@@ -22,7 +22,8 @@ class TestMessaging(unittest.TestCase):
         self.test_subscribe_socket = context.socket(zmq.SUB)
         self.test_subscribe_socket.connect(self.subscribe_address)
         self.test_subscribe_socket.setsockopt_string(zmq.SUBSCRIBE, '')
-        sleep(1)
+        sleep(.2)
+        super().__init__(*args, **kwargs)
 
     """
     def test_send_message(self):

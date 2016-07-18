@@ -133,7 +133,7 @@ class Shell(cmd.Cmd):
                 if doc:
                     self.stdout.write("{}\n".format(str(doc)))
             else:
-                self.messaging.send_command(command='help ' + arg)
+                self.messaging.send_command(command='help', args=arg)
 
         else:
             self.stdout.write("{}\n".format(self.doc_leader))

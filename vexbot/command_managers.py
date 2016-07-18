@@ -1,3 +1,4 @@
+import logging # flake8: noqa
 import collections as _collections
 
 from vexmessage import Message as VexMessage
@@ -47,6 +48,7 @@ class CommandManager:
 
         if callback:
             results = callback(msg)
+            # logging.error('{} {}'.format(results, command))
 
             if results:
                 self._messaging.send_response(target=msg.source,
@@ -141,9 +143,9 @@ class CommandManager:
                                       response='Command not found',
                                       original=original)
 
-    def _help(self, args):
+    def _help(self, args=None):
         if not args:
-            return self._commands()
+            return self._commands.keys()
         else:
             docs = []
             for arg in args:
@@ -165,8 +167,8 @@ class BotCommandManager(CommandManager):
         s_manager = robot.subprocess_manager
 
         # Store a reference to the subprocess settings for the `alive` command
-        self._subprocess_settings = s_manager._registered
-        subprocess['settings'] = msg_list_wrapper(s_manager.settings, 1)
+        self._subprocess_settings = s_manager._settings
+        subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
         # subprocess['set-settings'] = msg_unpack_args(s_manager.update, 3)
 
         self._commands['subprocess'] = subprocess
@@ -191,21 +193,15 @@ class BotCommandManager(CommandManager):
         can also use the `running` command to see what's running locally
         """
         # FIXME
-        values = list(self._commands['subprocesses']())
+        values = list(self._commands['subprocesses'](msg))
 
         process_names = []
         for value in values:
             setting = self._subprocess_settings.get(value)
-
-            if not setting:
-                continue
-
-            setting = setting[1]
             process_name = None
-            for i in range(0, len(setting), 2):
-                name = setting[i]
-                if name == '--service_name':
-                    process_name = setting[i+1]
+            if setting:
+                if setting.get('--service_name'):
+                    process_name = setting['--service_name']
             if process_name is None:
                 process_name = value
             process_names.append(process_name)

@@ -54,17 +54,19 @@ class SubprocessManager:
         Need to pass in the subprocess name, a setting to be changed,
         and the value to change the setting to
         """
-        try:
-            self._settings[name].update(settings)
-        except KeyError:
-            pass
+        old_settings = self._settings.get(name)
+        if old_settings:
+            old_settings.update(settings)
+        else:
+            self._settings[name] = settings
 
-    def settings(self, key: str):
+    def get_settings(self, key: str):
         """
         trys to get the settings information for a given subprocess. Passes
         silently when there is no information
         """
-        return self._registered.get(key)
+        settings = self._settings.get(key)
+        return settings
 
     def start(self, keys: list):
         """
