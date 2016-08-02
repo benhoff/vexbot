@@ -48,6 +48,7 @@ setup(
         'pluginmanager',
         'pyzmq',
         'vexmessage',
+        'pyyaml',
         ],
 
     extras_require={

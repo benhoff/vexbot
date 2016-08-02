@@ -6,21 +6,30 @@ import logging
 import asyncio
 import argparse
 import tempfile
+import pkg_resources
 from time import sleep
 
 import zmq
-import httplib2
-
-from apiclient.discovery import build
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client.tools import run_flow, argparser
-
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
+
+_GOOGLE_API_INSTALLED = True
+
+try:
+    pkg_resources.get_distribution('google-api-python-client')
+except pkg_resources.DistributionNotFound:
+    _GOOGLE_API_INSTALLED = False
+
+if _GOOGLE_API_INSTALLED:
+    import httplib2
+
+    from apiclient.discovery import build
+    from oauth2client.client import flow_from_clientsecrets
+    from oauth2client.file import Storage
+    from oauth2client.tools import run_flow, argparser
 
 
 async def _run(messaging, live_chat_messages, live_chat_id, ):
@@ -65,6 +74,12 @@ def _send_disconnect(messaging):
 
 
 def main(client_secret_filepath, publish_address, subscribe_address):
+    if not _GOOGLE_API_INSTALLED:
+        logging.error('`google-api-python-client` required to use youtube. Install using `pip install google-api-python-client')
+        return
+
+    # TODO: Determine if this try/except pattern has become outdated
+    # with new `connect` methods being called rather than the old bind
     try:
         messaging = ZmqMessaging('youtube',
                                  publish_address,

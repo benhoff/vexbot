@@ -3,58 +3,69 @@ import atexit
 import signal
 import asyncio
 import argparse
+import logging
+import pkg_resources
 
-import irc3
 import zmq
 from zmq import ZMQError
-from irc3.plugins.autojoins import AutoJoins
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
+_IRC3_INSTALLED = True
 
-@irc3.plugin
-class AutoJoinMessage(AutoJoins):
-    requires = ['irc3.plugins.core', ]
+try:
+    pkg_resources.get_distribution('irc3')
+except pkg_resources.DistributionNotFound:
+    _IRC3_INSTALLED = False
 
-    def __init__(self, bot):
-        super().__init__(bot)
+if _IRC3_INSTALLED:
+    import irc3
+    from irc3.plugins.autojoins import AutoJoins
 
-    def connection_lost(self):
-        self.bot.messaging.send_status('DISCONNECTED')
-        super(AutoJoinMessage, self).connection_lost()
+if _IRC3_INSTALLED:
 
-    def join(self, channel=None):
-        super(AutoJoinMessage, self).join(channel)
-        self.bot.messaging.send_status('CONNECTED')
+    @irc3.plugin
+    class AutoJoinMessage(AutoJoins):
+        requires = ['irc3.plugins.core', ]
 
-    @irc3.event(irc3.rfc.KICK)
-    def on_kick(self, mask, channel, target, **kwargs):
-        self.bot.messaging.send_status('DISCONNECTED')
-        super().on_kick(mask, channel, target, **kwargs)
+        def __init__(self, bot):
+            super().__init__(bot)
 
-    @irc3.event("^:\S+ 47[1234567] \S+ (?P<channel>\S+).*")
-    def on_err_join(self, channel, **kwargs):
-        self.bot.messaging.send_status('DISCONNECTED')
-        super().on_err_join(channel, **kwargs)
+        def connection_lost(self):
+            self.bot.messaging.send_status('DISCONNECTED')
+            super(AutoJoinMessage, self).connection_lost()
 
+        def join(self, channel=None):
+            super(AutoJoinMessage, self).join(channel)
+            self.bot.messaging.send_status('CONNECTED')
 
-@irc3.plugin
-class EchoToMessage(object):
-    requires = ['irc3.plugins.core',
-                'irc3.plugins.command']
+        @irc3.event(irc3.rfc.KICK)
+        def on_kick(self, mask, channel, target, **kwargs):
+            self.bot.messaging.send_status('DISCONNECTED')
+            super().on_kick(mask, channel, target, **kwargs)
 
-    def __init__(self, bot):
-        self.bot = bot
+        @irc3.event("^:\S+ 47[1234567] \S+ (?P<channel>\S+).*")
+        def on_err_join(self, channel, **kwargs):
+            self.bot.messaging.send_status('DISCONNECTED')
+            super().on_err_join(channel, **kwargs)
 
-    @irc3.event(irc3.rfc.PRIVMSG)
-    def message(self, mask, event, target, data):
-        nick = mask.nick
-        message = data
-        self.bot.messaging.send_message(author=nick,
-                                        message=str(message),
-                                        channel=target)
+    @irc3.plugin
+    class EchoToMessage(object):
+        requires = ['irc3.plugins.core',
+                    'irc3.plugins.command']
+
+        def __init__(self, bot):
+            self.bot = bot
+
+        @irc3.event(irc3.rfc.PRIVMSG)
+        def message(self, mask, event, target, data):
+            nick = mask.nick
+            message = data
+            self.bot.messaging.send_message(author=nick,
+                                            message=str(message),
+                                            channel=target)
 
 
 def create_irc_bot(nick,
@@ -141,6 +152,10 @@ def main(nick,
          publish_address,
          subscribe_address,
          service_name):
+
+    if not _IRC3_INSTALLED:
+        logging.error('irc requires `irc3` to be installed. Please install '
+                      'using `pip install irc3`')
 
     irc_client = create_irc_bot(nick,
                                 password,

@@ -21,7 +21,8 @@ class ZmqMessaging:
         self._messaging_started = False
         try:
             import setproctitle
-            setproctitle.setproctitle(service_name)
+            if service_name:
+                setproctitle.setproctitle(service_name)
         except ImportError:
             pass
 

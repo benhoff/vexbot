@@ -3,18 +3,27 @@ import logging
 import argparse
 # import signal
 import atexit
+import pkg_resources
 from threading import Thread
 
 import zmq
-
-from sleekxmpp import ClientXMPP
-from sleekxmpp.exceptions import IqError, IqTimeout
-from time import sleep
 
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
+
+_SLEEKXMPP_INSTALLED = True
+
+try:
+    pkg_resources.get_distribution('sleekxmpp')
+except pkg_resources.DistributionNotFound:
+    _SLEEKXMPP_INSTALLED = False
+    ClientXMPP = object
+
+if _SLEEKXMPP_INSTALLED:
+    from sleekxmpp import ClientXMPP
+    from sleekxmpp.exceptions import IqError, IqTimeout
 
 
 class XMPPBot(ClientXMPP):
@@ -29,6 +38,9 @@ class XMPPBot(ClientXMPP):
                  **kwargs):
 
         # Initialize the parent class
+        if not _SLEEKXMPP_INSTALLED:
+            logging.error('must install sleekxmpp')
+
         super().__init__(jid, password)
         self.messaging = ZmqMessaging(service_name,
                                       publish_address,
@@ -125,6 +137,9 @@ def _send_disconnect(messaging):
 
 
 def main():
+    if not _SLEEKXMPP_INSTALLED:
+        logging.error('xmpp requires `sleekxmpp` installed. Please install using `pip install sleekxmpp`')
+
     args = _get_args()
     jid = '{}@{}/{}'.format(args.local, args.domain, args.resource)
     kwargs = vars(args)

@@ -1,22 +1,44 @@
 import argparse
 import json
-import requests
 import html
 import logging
 # import signal
+import pkg_resources
 import atexit
 from time import sleep
 from threading import Thread
 
-import websocket
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
 
+_WEBSOCKET_INSTALLED = True
+_REQUESTS_INSTALLED = True
 
-class WebSocket(websocket.WebSocketApp):
+try:
+    pkg_resources.get_distribution('websocket')
+except pkg_resources.DistributionNotFound:
+    _WEBSOCKET_INSTALLED = False
+
+try:
+    pkg_resources.get_distribution('requests')
+except pkg_resources.DistributionNotFound:
+    _REQUESTS_INSTALLED = False
+
+if _WEBSOCKET_INSTALLED:
+    from websocket import WebSocketApp
+else:
+    WebSocketApp = object
+
+if _REQUESTS_INSTALLED:
+    import requests
+else:
+    pass
+
+
+class WebSocket(WebSocketApp):
     def __init__(self,
                  streamer_name,
                  namespace,
@@ -27,6 +49,11 @@ class WebSocket(websocket.WebSocketApp):
 
         self.log = logging.getLogger(__name__)
         self.log.setLevel(0)
+        if not _WEBSOCKET_INSTALLED:
+            self.log.error('Must install `websocket`')
+        if not _REQUESTS_INSTALLED:
+            self.log.error('Must install `requests')
+
         self.messaging = ZmqMessaging(service_name,
                                       publish_address,
                                       subscribe_address,
@@ -177,6 +204,17 @@ def _send_disconnect(messaging):
 
 
 def main():
+    if not _REQUESTS_INSTALLED:
+        logging.error('Socket IO needs `requests` installed. Please run `pip '
+                      'install requests`')
+
+        return
+    if not _WEBSOCKET_INSTALLED:
+        logging.error('Socket IO needs `websocket` installed. Please run `pip '
+                      'install websocket`')
+
+        return
+
     args = vars(_get_args())
     already_running = False
     try:

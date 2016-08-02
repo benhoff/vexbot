@@ -35,6 +35,7 @@ def start_vexbot():
     """
     config = _get_config()
     settings_path = config.get('settings_path')
+    # TODO: add in some handeling if no settings found
     settings = config.load_settings(settings_path)
     process = None
 
