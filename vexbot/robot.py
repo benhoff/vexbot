@@ -11,11 +11,24 @@ from vexbot.command_managers import BotCommandManager
 from vexbot.subprocess_manager import SubprocessManager
 
 
+class RobotSettings:
+    def __init__(self,
+                 publish_address=None,
+                 subscribe_address=None,
+                 monitor_address=None):
+
+        self.publish_address = publish_address
+        self.subscribe_address = subscribe_address
+        self.monitor_address = monitor_address
+
+    @classmethod
+    def create_from_configuration(cls, configuration):
+        pass
+
+
 class Robot:
-    def __init__(self, configuration, bot_name="vex"):
+    def __init__(self, settings: RobotSettings, bot_name="vex"):
         # get the settings path and then load the settings from file
-        settings_path = configuration.get('settings_path')
-        settings = configuration.load_settings(settings_path)
         self.messaging = Messaging(settings)
 
         # create the plugin manager
@@ -26,9 +39,9 @@ class Robot:
 
         # create the subprocess manager and add in the plugins
         self.subprocess_manager = SubprocessManager()
-        self._update_plugins(settings,
-                             self.subprocess_manager,
-                             self.plugin_manager)
+        _update_plugins(settings,
+                        self.subprocess_manager,
+                        self.plugin_manager)
 
         subprocesses_to_start = settings.get('startup_adapters', [])
         subprocesses_to_start.extend(settings.get('startup_plugins', []))
@@ -60,44 +73,68 @@ class Robot:
 
                     self.command_manager.parse_commands(msg)
 
-    def _update_plugins(self,
-                        settings,
-                        subprocess_manager=None,
-                        plugin_manager=None):
-        """
-        Helper process which loads the plugins from the entry points
-        """
-        if subprocess_manager is None:
-            subprocess_manager = self.subprocess_manager
-        if plugin_manager is None:
-            plugin_manager = self.plugin_manager
 
-        collect_ep = plugin_manager.collect_entry_point_plugins
-        plugins, plugin_names = collect_ep()
-        plugins = [plugin.__file__ for plugin in plugins]
-        for plugin, name in zip(plugins, plugin_names):
-            subprocess_manager.register(name,
-                                        sys.executable,
-                                        {'filepath': plugin})
 
-        for name in plugin_names:
-            try:
-                plugin_settings = settings[name]
-            except KeyError:
-                plugin_settings = {}
-            self.subprocess_manager.update_settings(name, plugin_settings)
+def _update_plugins(self,
+                    settings,
+                    subprocess_manager,
+                    plugin_manager):
+
+    """
+    Helper process which loads the plugins from the entry points
+    """
+    collect_ep = plugin_manager.collect_entry_point_plugins
+    plugins, plugin_names = collect_ep()
+    plugins = [plugin.__file__ for plugin in plugins]
+    for plugin, name in zip(plugins, plugin_names):
+        subprocess_manager.register(name,
+                                    sys.executable,
+                                    {'filepath': plugin})
+
+    for name in plugin_names:
+        try:
+            plugin_settings = settings[name]
+        except KeyError:
+            plugin_settings = {}
+
+        subprocess_manager.update_settings(name, plugin_settings)
 
 
 def _get_config():
     config = ArgEnvConfig()
     config.add_argument('--settings_path',
-                        default='settings.yml',
+                        default=None,
+                        action='store')
+
+    config.add_argument('--subscribe_address',
+                        default=None,
+                        action='store')
+
+    config.add_argument('--publish_address',
+                        default=None,
+                        action='store')
+
+    config.add_argument('--monitor_address',
+                        default=None,
                         action='store')
 
     return config
 
+"""
+settings_path = configuration.get('settings_path')
+if settings_path:
+    settings = configuration.load_settings(settings_path)
+else:
+    settings = {}
+"""
+
 
 if __name__ == '__main__':
     config = _get_config()
-    robot = Robot(config)
+    sp = '--settings_path'
+    if config.get(sp):
+        config.update_settings(config.get(sp))
+
+    robot_settings = RobotSettings.create_from_configuration(config)
+    robot = Robot(robot_settings)
     robot.run()

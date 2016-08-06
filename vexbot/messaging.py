@@ -10,14 +10,9 @@ class Messaging:
         context = context or zmq.Context()
 
         self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
-        proxy_address = settings.get('proxy_address',
-                                     'tcp://127.0.0.1:4002')
-
-        subscribe_address = settings.get('subscribe_address',
-                                         'tcp://127.0.0.1:4000')
-
-        publish_address = settings.get('publish_address',
-                                       'tcp://127.0.0.1:4001')
+        proxy_address = settings.get('monitor_address')
+        subscribe_address = settings.get('subscribe_address')
+        publish_address = settings.get('publish_address')
 
         self._proxy.bind_in(publish_address)
         self._proxy.bind_out(subscribe_address)

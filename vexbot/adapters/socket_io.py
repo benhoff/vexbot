@@ -211,7 +211,7 @@ def main():
         return
     if not _WEBSOCKET_INSTALLED:
         logging.error('Socket IO needs `websocket` installed. Please run `pip '
-                      'install websocket`')
+                      'install websocket-client`')
 
         return
 

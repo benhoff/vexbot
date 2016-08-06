@@ -6,6 +6,7 @@ from os import getenv as _getenv
 class ArgEnvConfig:
     def __init__(self):
         self._environ = {}
+        self._settings = {}
         self._arg = _argparse.ArgumentParser()
 
     def initialize_argparse(self,
@@ -46,12 +47,6 @@ class ArgEnvConfig:
         if environ:
             self._environ[argument.dest] = environ
 
-    def add_environment_variable(self, *args, **kwargs):
-        pass
-
-    def add_settings_file(self, *args, **kwargs):
-        pass
-
     def get(self, value):
         args = self._arg.parse_args()
         result = getattr(args, value)
@@ -60,7 +55,8 @@ class ArgEnvConfig:
             if key:
                 result = _getenv(key)
             else:
-                result = None
+                result = self._settings.get(value)
+
         return result
 
     def get_args(self):
@@ -70,4 +66,9 @@ class ArgEnvConfig:
         with open(filepath) as f:
             settings = _yaml.load(f)
         return settings
-        settings = _yaml.load(filepath)
+
+    def update_settings(self, filepath):
+        with open(filepath) as f:
+            settings = _yaml.load(f)
+
+        self._settings.update(settings)
