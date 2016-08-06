@@ -49,6 +49,7 @@ setup(
         'pyzmq',
         'vexmessage',
         'pyyaml',
+        'sqlalchemy',
         ],
 
     extras_require={

@@ -1,9 +1,14 @@
 from os import path, mkdir
 
 
-def create_vexdir():
+def get_vexdir_filepath():
     home_direct = path.expanduser("~")
-    vexdir = path.join(home_direct, '.vexbot')
+    vexdir = path.abspath(path.join(home_direct, '.vexbot'))
+    return vexdir
+
+
+def create_vexdir():
+    vexdir = get_vexdir_filepath()
     if not path.isdir(vexdir):
         mkdir(vexdir)
 

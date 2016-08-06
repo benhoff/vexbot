@@ -1,8 +1,26 @@
 import sys
 from os import path
 from subprocess import Popen
+
+from sqlalchemy import create_engine as _create_engine
+from sqlalchemy.ext.declarative import declarative_base as _declarative_base
+
 import zmq
+
 from vexbot.argenvconfig import ArgEnvConfig
+from vexbot.commands.create_vexdir import create_vexdir as _create_vexdir
+from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
+
+_Base = _declarative_base()
+
+
+def _create_database():
+    _create_vexdir()
+    database_filepath = get_settings_database_filepath()
+
+    if not path.isfile(database_filepath):
+        engine = _create_engine('sqlite:///{}'.format(database_filepath))
+        _Base.metadata.create_all(engine)
 
 
 def _get_config():
