@@ -41,7 +41,8 @@ setup(
                                       'socket_io = vexbot.adapters.socket_io',
                                       'youtube = vexbot.adapters.youtube_api'],
 
-                  'console_scripts': ['vexbot=vexbot.__main__:main']},
+                  'console_scripts': ['vexbot=vexbot.__main__:main',
+                                      'vexbot_create_database=vexbot.util.create_database:create_database']},
 
     packages= find_packages(), # exclude=['docs', 'tests']
     install_requires=[

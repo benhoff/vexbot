@@ -14,6 +14,7 @@ from vexbot import __version__
 from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.adapters.messaging import ZmqMessaging
 from vexbot.command_managers import CommandManager
+from vexbot.settings_manager import SettingsManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 # from vexbot.commands.call_editor import call_editor
@@ -25,9 +26,9 @@ _Base = _declarative_base()
 class ShellSettings(_Base):
     __tablename__ = 'shell_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
-    publish_address = _alchy(_alchy.String(length=100))
-    subscribe_address = _alchy(_alchy.String(length=100))
-    history_filepath = _alchy(_alchy.String(length=4096))
+    publish_address = _alchy.Column(_alchy.String(length=100))
+    subscribe_address = _alchy.Column(_alchy.String(length=100))
+    history_filepath = _alchy.Column(_alchy.String(length=4096))
 
 
 class Shell(cmd.Cmd):
@@ -55,6 +56,9 @@ class Shell(cmd.Cmd):
 
         self.command_manager.register_command('start_vexbot',
                                               _start_vexbot)
+
+        self.command_manager.register_command('create_robot_settings',
+                                              self._create_robot_settings)
 
         self.messaging.start_messaging()
 
@@ -131,6 +135,59 @@ class Shell(cmd.Cmd):
             self.default(' '.join((command, arg)))
         return resulting_function
 
+    def _prompt_helper(self, prompt, default=None):
+        self.stdout.write(prompt)
+        self.stdout.flush()
+        line = self.stdin.readline()
+        if not len(line):
+            line = 'EOF'
+        else:
+            line = line.rstrip('\r\n')
+
+        if not line in ('EOF', 'STOP'):
+            if line == '' and not default is None:
+                line = default
+
+            # TODO: Clean up
+            self.stdout.write('\n' + prompt + '\n' + line + '\n\n')
+
+            return line
+
+        return None
+
+    def _create_robot_settings(self, *args, **kwargs):
+        context = self._prompt_helper('context [default]: ', 'default')
+        if context is None:
+            return
+
+        name = self._prompt_helper('name [vexbot]: ', 'vexbot')
+        if name is None:
+            return
+
+        sub_address = self._prompt_helper('subscribe_address [127.0.0.1:4001]: ',
+                                          '127.0.0.1:4001')
+
+        if sub_address is None:
+            return
+
+        pub_address = self._prompt_helper('publish address [127.0.0.1:4002]: ',
+                                          '127.0.0.1:4002')
+        if pub_address is None:
+            return
+
+        mon_address = self._prompt_helper('monitor address [blank]: ', '')
+        if mon_address is None:
+            return
+
+        settings = {'context': context,
+                    'name': name,
+                    'subscribe_address': sub_address,
+                    'publish_address': pub_address,
+                    'monitor_address': mon_address}
+
+        settings_manager = SettingsManager()
+        settings_manager.create_robot_settings(settings)
+
     def do_EOF(self, arg):
         self.stdout.write('\n')
         # NOTE: This ensures we exit out of the `run` method on EOF
@@ -188,7 +245,7 @@ def _get_kwargs():
     config.add_argument('--history_file',
                         environ='VEXBOT_SHELL_HISTORY')
 
-    args = config.parse_args()
+    args = config.get_args()
     return vars(args)
 
 

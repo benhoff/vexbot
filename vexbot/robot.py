@@ -1,47 +1,23 @@
 import sys
 import logging
 
-import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
-
 import pluginmanager
 
 from vexmessage import decode_vex_message
 
-from vexbot.messaging import Messaging
-from vexbot.argenvconfig import ArgEnvConfig
 from vexbot.command_managers import BotCommandManager
 from vexbot.subprocess_manager import SubprocessManager
-
-
-_Base = _declarative_base()
-
-
-class RobotSettings(_Base):
-    __tablename__ = 'robot_settings'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    # Robot context
-    context = _alchy.Column(_alchy.String(length=50))
-    name = _alchy.Column(_alchy.String(length=100), default='vexbot')
-
-    subscribe_address = _alchy.Column(_alchy.String(length=100),
-                                      default='tcp://127.0.0.1:4001')
-
-    publish_address = _alchy.Column(_alchy.String(length=100),
-                                    default='tcp://127.0.0.1:4002')
-
-    monitor_address = _alchy.Column(_alchy.String(length=100),
-                                    default='tcp://127.0.0.1:4003')
-
-
-    @classmethod
-    def create_from_configuration(cls, configuration):
-        pass
+from vexbot.messaging import Messaging
+from vexbot.settings_manager import SettingsManager
+from vexbot.argenvconfig import ArgEnvConfig
 
 
 class Robot:
-    def __init__(self, settings: RobotSettings, bot_name="vex"):
+    def __init__(self, context='default', bot_name="vex"):
+        self.settings_manager = SettingsManager()
+        robot_settings = self.settings_manager.get_robot_settings(context)
         # get the settings path and then load the settings from file
+        # FIXME: Api broken now
         self.messaging = Messaging(settings)
 
         # create the plugin manager
@@ -52,6 +28,8 @@ class Robot:
 
         # create the subprocess manager and add in the plugins
         self.subprocess_manager = SubprocessManager()
+
+        # This method call SCREAMS MAGIC! Do not like!
         _update_plugins(settings,
                         self.subprocess_manager,
                         self.plugin_manager)
@@ -70,6 +48,12 @@ class Robot:
             pass
 
     def run(self):
+        self.messaging.start()
+        # if not self.messaging.subscription_active():
+        if True:
+            logging.error('Subscription socket not set for context, check/set before running robot')
+            return
+
         while True:
             frame = self.messaging.subscription_socket.recv_multipart()
             msg = None
@@ -133,14 +117,6 @@ def _get_config():
 
     return config
 
-"""
-settings_path = configuration.get('settings_path')
-if settings_path:
-    settings = configuration.load_settings(settings_path)
-else:
-    settings = {}
-"""
-
 
 if __name__ == '__main__':
     config = _get_config()
@@ -148,6 +124,5 @@ if __name__ == '__main__':
     if config.get(sp):
         config.update_settings(config.get(sp))
 
-    robot_settings = RobotSettings.create_from_configuration(config)
-    robot = Robot(robot_settings)
+    robot = Robot()
     robot.run()
