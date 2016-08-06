@@ -6,8 +6,10 @@ import atexit
 import pkg_resources
 from threading import Thread
 
-import zmq
+import sqlalchemy as _alchy
+from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
+import zmq
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
@@ -24,6 +26,21 @@ except pkg_resources.DistributionNotFound:
 if _SLEEKXMPP_INSTALLED:
     from sleekxmpp import ClientXMPP
     from sleekxmpp.exceptions import IqError, IqTimeout
+
+_Base = _declarative_base()
+
+
+class XMPPSettings(_Base):
+    __tablename__ = 'xmpp_settings'
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    service_name = _alchy.Column(_alchy.String(length=50), unique=True)
+    password = _alchy.Column(_alchy.String(length=100))
+    local = _alchy.Column(_alchy.String(length=30))
+    bot_nick = _alchy.Column(_alchy.String(length=30))
+    room = _alchy.Column(_alchy.String(length=30))
+    domain = _alchy.Column(_alchy.String(length=50))
+    publish_address = _alchy.Column(_alchy.String(length=100))
+    subscribe_address = _alchy.Column(_alchy.String(length=100))
 
 
 class XMPPBot(ClientXMPP):

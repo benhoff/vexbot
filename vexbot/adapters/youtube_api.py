@@ -9,6 +9,9 @@ import tempfile
 import pkg_resources
 from time import sleep
 
+import sqlalchemy as _alchy
+from sqlalchemy.ext.declarative import declarative_base as _declarative_base
+
 import zmq
 from zmq import ZMQError
 from vexmessage import decode_vex_message
@@ -71,6 +74,16 @@ def _send_disconnect(messaging):
     def inner():
         messaging.send_status('DISCONNECTED')
     return inner
+
+_Base = _declarative_base()
+
+
+class YoutubeSettings(_Base):
+    __tablename__ = 'youtube_settings'
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    publish_address = _alchy.Column(_alchy.String(length=100))
+    subscribe_address = _alchy.Column(_alchy.String(length=100))
+    client_secret_filepath = _alchy.Column(_alchy.String(length=4096))
 
 
 def main(client_secret_filepath, publish_address, subscribe_address):

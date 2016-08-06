@@ -44,6 +44,7 @@ _Base = _declarative_base()
 
 
 class SocketIOSettings(_Base):
+    __tablename__ = 'socket_io_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     service_name = _alchy.Column(_alchy.String(length=50))
     streamer_name = _alchy.Column(_alchy.String(length=50))

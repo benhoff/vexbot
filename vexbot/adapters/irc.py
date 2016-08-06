@@ -28,12 +28,15 @@ _Base = _declarative_base()
 
 # TODO: Finish
 class IrcSettings(_Base):
+    __tablename__ = 'irc_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
-    service_name = _alchy.Column(_alchy.String(length=50))
-    # FIXME: sqlalchemy has a password type. use that instead
+    service_name = _alchy.Column(_alchy.String(length=50), unique=True)
     password = _alchy.Column(_alchy.String(length=100))
     channel = _alchy.Column(_alchy.String(length=30))
     nick = _alchy.Column(_alchy.String(length=30))
+    host = _alchy.Column(_alchy.String(length=50))
+    publish_address = _alchy.Column(_alchy.String(length=100))
+    subscribe_address = _alchy.Column(_alchy.String(length=100))
 
 
 if _IRC3_INSTALLED:
