@@ -8,6 +8,9 @@ import atexit
 from time import sleep
 from threading import Thread
 
+import sqlalchemy as _alchy
+from sqlalchemy.ext.declarative import declarative_base as _declarative_base
+
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
@@ -36,6 +39,18 @@ if _REQUESTS_INSTALLED:
     import requests
 else:
     pass
+
+_Base = _declarative_base()
+
+
+class SocketIOSettings(_Base):
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    service_name = _alchy.Column(_alchy.String(length=50))
+    streamer_name = _alchy.Column(_alchy.String(length=50))
+    namespace = _alchy.Column(_alchy.String(length=20))
+    website_url = _alchy.Column(_alchy.String(length=200))
+    publish_address = _alchy.Column(_alchy.String(length=100))
+    subscribe_address = _alchy.Column(_alchy.String(length=100))
 
 
 class WebSocket(WebSocketApp):

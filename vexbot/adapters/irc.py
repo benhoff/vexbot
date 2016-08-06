@@ -6,6 +6,9 @@ import argparse
 import logging
 import pkg_resources
 
+import sqlalchemy as _alchy
+from sqlalchemy.ext.declarative import declarative_base as _declarative_base
+
 import zmq
 from zmq import ZMQError
 from vexmessage import decode_vex_message
@@ -20,11 +23,22 @@ try:
 except pkg_resources.DistributionNotFound:
     _IRC3_INSTALLED = False
 
+_Base = _declarative_base()
+
+
+# TODO: Finish
+class IrcSettings(_Base):
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    service_name = _alchy.Column(_alchy.String(length=50))
+    # FIXME: sqlalchemy has a password type. use that instead
+    password = _alchy.Column(_alchy.String(length=100))
+    channel = _alchy.Column(_alchy.String(length=30))
+    nick = _alchy.Column(_alchy.String(length=30))
+
+
 if _IRC3_INSTALLED:
     import irc3
     from irc3.plugins.autojoins import AutoJoins
-
-if _IRC3_INSTALLED:
 
     @irc3.plugin
     class AutoJoinMessage(AutoJoins):
