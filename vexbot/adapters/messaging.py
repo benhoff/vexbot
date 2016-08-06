@@ -35,16 +35,7 @@ class ZmqMessaging:
         self.pub_socket = context.socket(zmq.PUB)
         self.sub_socket = context.socket(zmq.SUB)
         if self._pub_address:
-            try:
-                self.pub_socket.connect(self._pub_address)
-            except zmq.error.ZMQError:
-                err = """
-                      Incorrect value passed in for socket address in {}, fix
-                      it in your settings.yml or default_settings.yml
-                      """.format(self._service_name)
-
-                # TODO: use log module instead of print
-                print(err)
+            self.pub_socket.connect(self._pub_address)
 
             if self._socket_filter is not None:
                 self.set_socket_filter(self._socket_filter)
@@ -55,6 +46,7 @@ class ZmqMessaging:
         self._messaging_started = True
 
     def update_messaging(self):
+        # FIXME: need to disconnect first?
         if self._pub_address:
             self.pub_socket.bind(self._pub_address)
         if self._sub_address:
