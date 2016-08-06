@@ -49,7 +49,10 @@ class ArgEnvConfig:
 
     def get(self, value):
         args = self._arg.parse_args()
-        result = getattr(args, value)
+        try:
+            result = getattr(args, value)
+        except AttributeError:
+            result = None
         if result is None:
             key = self._environ.get(value)
             if key:
