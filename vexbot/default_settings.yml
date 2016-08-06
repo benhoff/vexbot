@@ -12,6 +12,7 @@ startup_adapters: []
 shell:
     --publish_address: ''
     --subscribe_address: ''
+    --history_file: ''
 
 irc:
     # I use this site to get oauth_token 
