@@ -1,10 +1,8 @@
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
-_Base = _declarative_base()
+from vexbot.sql_helper import Base
 
-
-class RobotSettings(_Base):
+class RobotSettings(Base):
     __tablename__ = 'robot_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     # Robot context

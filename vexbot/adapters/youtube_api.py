@@ -10,7 +10,6 @@ import pkg_resources
 from time import sleep
 
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
 import zmq
 from zmq import ZMQError
@@ -18,6 +17,7 @@ from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
+from vexbot.sql_helper import Base
 
 _GOOGLE_API_INSTALLED = True
 
@@ -75,10 +75,8 @@ def _send_disconnect(messaging):
         messaging.send_status('DISCONNECTED')
     return inner
 
-_Base = _declarative_base()
 
-
-class YoutubeSettings(_Base):
+class YoutubeSettings(Base):
     __tablename__ = 'youtube_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     publish_address = _alchy.Column(_alchy.String(length=100))

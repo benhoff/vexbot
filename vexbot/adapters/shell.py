@@ -5,7 +5,6 @@ from time import sleep
 from threading import Thread
 
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
 import zmq
 from vexmessage import decode_vex_message
@@ -17,13 +16,11 @@ from vexbot.command_managers import CommandManager
 from vexbot.settings_manager import SettingsManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
+from vexbot.sql_helper import Base
 # from vexbot.commands.call_editor import call_editor
 
 
-_Base = _declarative_base()
-
-
-class ShellSettings(_Base):
+class ShellSettings(Base):
     __tablename__ = 'shell_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     publish_address = _alchy.Column(_alchy.String(length=100))

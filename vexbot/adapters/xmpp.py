@@ -7,12 +7,12 @@ import pkg_resources
 from threading import Thread
 
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
 import zmq
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
+from vexbot.sql_helper import Base
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
 
 _SLEEKXMPP_INSTALLED = True
@@ -27,10 +27,8 @@ if _SLEEKXMPP_INSTALLED:
     from sleekxmpp import ClientXMPP
     from sleekxmpp.exceptions import IqError, IqTimeout
 
-_Base = _declarative_base()
 
-
-class XMPPSettings(_Base):
+class XMPPSettings(Base):
     __tablename__ = 'xmpp_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     service_name = _alchy.Column(_alchy.String(length=50), unique=True)

@@ -9,13 +9,13 @@ from time import sleep
 from threading import Thread
 
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
+from vexbot.sql_helper import Base
 
 _WEBSOCKET_INSTALLED = True
 _REQUESTS_INSTALLED = True
@@ -40,10 +40,8 @@ if _REQUESTS_INSTALLED:
 else:
     pass
 
-_Base = _declarative_base()
 
-
-class SocketIOSettings(_Base):
+class SocketIOSettings(Base):
     __tablename__ = 'socket_io_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     service_name = _alchy.Column(_alchy.String(length=50))

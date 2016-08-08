@@ -1,19 +1,18 @@
 import sqlalchemy as _alchy
-from sqlalchemy.ext.declarative import declarative_base as _declarative_base
 import sqlalchemy.orm as _orm
+
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.robot_settings import RobotSettings
+from vexbot.sql_helper import Base
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
-
-_Base = _declarative_base()
 
 
 def _create_session(filepath):
     engine = _create_engine('sqlite:///{}'.format(filepath))
-    _Base.metadata.bind = engine
+    Base.metadata.bind = engine
     # TODO: decide if this is the best place to do this?
-    _Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     DBSession = _orm.sessionmaker(bind=engine)
     return DBSession()
 
