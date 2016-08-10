@@ -41,6 +41,9 @@ setup(
                                       'socket_io = vexbot.adapters.socket_io',
                                       'youtube = vexbot.adapters.youtube_api'],
 
+                  'vexbot.adapter_settings': ['shell_settings = vexbot.adapters.shell:ShellSettings',
+                                              'irc_settings = vexbot.adapters.irc:IrcSettings'],
+
                   'console_scripts': ['vexbot=vexbot.__main__:main',
                                       'vexbot_create_database=vexbot.util.create_database:create_database']},
 

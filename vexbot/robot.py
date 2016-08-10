@@ -16,24 +16,49 @@ class Robot:
     def __init__(self, context='default', bot_name="vex"):
         self.settings_manager = SettingsManager()
         robot_settings = self.settings_manager.get_robot_settings(context)
-        # get the settings path and then load the settings from file
-        # FIXME: Api broken now
-        self.messaging = Messaging(settings)
+
+        self.messaging = Messaging(context,
+                                   robot_settings.publish_address,
+                                   robot_settings.subscribe_address,
+                                   robot_settings.monitor_address)
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
         # add the entry points of interest
-        self.plugin_manager.add_entry_points(('vexbot.plugins',
-                                              'vexbot.adapters'))
 
         # create the subprocess manager and add in the plugins
         self.subprocess_manager = SubprocessManager()
 
-        # This method call SCREAMS MAGIC! Do not like!
-        _update_plugins(settings,
-                        self.subprocess_manager,
-                        self.plugin_manager)
+        # Note: pluginmanager should probably return a `dict` instead of
+        # two lists. Should probably fix
+        collect_ep = self.plugin_manager.collect_entry_point_plugins
+        plugin_settings, ps_names = collect_ep('vexbot.adapter_settings')
+        name_setting = zip(ps_names, plugin_settings)
+        plugin_settings = {name: setting for name, setting in name_setting}
 
+        self.plugin_manager.add_entry_points('vexbot.adapters')
+
+        adapters, names = collect_ep()
+        adapters = {name: p.__file__ for p, name in zip(adapters, names)}
+
+        for name, adapter in adapters.items():
+            self.subprocess_manager.register(name,
+                                             sys.executable,
+                                             {'filepath': adapter})
+
+            for name in names:
+                try:
+                    # using convention to snag plugin settings.
+                    # expect that settings will be in the form of
+                    # `adapter_name` + `_settings`
+                    # I.E. `irc_settings` for adapter `irc`
+                    plugin_settings = plugin_settings[name + '_settings']
+                except KeyError:
+                    plugin_settings = None
+
+        subprocess_manager.set_settings_class(name, plugin_settings)
+
+        # FIXME: API broken
         subprocesses_to_start = settings.get('startup_adapters', [])
         subprocesses_to_start.extend(settings.get('startup_plugins', []))
         self.subprocess_manager.start(subprocesses_to_start)
@@ -81,20 +106,6 @@ def _update_plugins(self,
     Helper process which loads the plugins from the entry points
     """
     collect_ep = plugin_manager.collect_entry_point_plugins
-    plugins, plugin_names = collect_ep()
-    plugins = [plugin.__file__ for plugin in plugins]
-    for plugin, name in zip(plugins, plugin_names):
-        subprocess_manager.register(name,
-                                    sys.executable,
-                                    {'filepath': plugin})
-
-    for name in plugin_names:
-        try:
-            plugin_settings = settings[name]
-        except KeyError:
-            plugin_settings = {}
-
-        subprocess_manager.update_settings(name, plugin_settings)
 
 
 def _get_config():

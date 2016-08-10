@@ -24,7 +24,6 @@ except pkg_resources.DistributionNotFound:
     _IRC3_INSTALLED = False
 
 
-# TODO: Finish
 class IrcSettings(Base):
     __tablename__ = 'irc_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
