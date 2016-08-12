@@ -46,22 +46,20 @@ class Robot:
                                              sys.executable,
                                              {'filepath': adapter})
 
-            for name in names:
-                try:
-                    # using convention to snag plugin settings.
-                    # expect that settings will be in the form of
-                    # `adapter_name` + `_settings`
-                    # I.E. `irc_settings` for adapter `irc`
-                    plugin_settings = plugin_settings[name + '_settings']
-                except KeyError:
-                    plugin_settings = None
+            try:
+                # using convention to snag plugin settings.
+                # expect that settings will be in the form of
+                # `adapter_name` + `_settings`
+                # I.E. `irc_settings` for adapter `irc`
+                setting_name = name + '_settings'
+                setting_class = plugin_settings[setting_name]
+            except KeyError:
+                setting_class = None
 
-        subprocess_manager.set_settings_class(name, plugin_settings)
+            self.subprocess_manager.set_settings_class(name, setting_class)
 
-        # FIXME: API broken
-        subprocesses_to_start = settings.get('startup_adapters', [])
-        subprocesses_to_start.extend(settings.get('startup_plugins', []))
-        self.subprocess_manager.start(subprocesses_to_start)
+        startup_adapters = self.settings_manager.get_startup_adapters()
+        self.subprocess_manager.start(startup_adapters)
 
         self.name = bot_name
         self._logger = logging.getLogger(__name__)
@@ -74,10 +72,12 @@ class Robot:
 
     def run(self):
         self.messaging.start()
+        """
         # if not self.messaging.subscription_active():
         if True:
             logging.error('Subscription socket not set for context, check/set before running robot')
             return
+        """
 
         while True:
             frame = self.messaging.subscription_socket.recv_multipart()

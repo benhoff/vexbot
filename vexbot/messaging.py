@@ -48,11 +48,13 @@ class Messaging:
 
         self.subscription_socket = context.socket(zmq.SUB)
         self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
-        self.subscription_socket.connect(subscribe_address)
+        if self._subscribe_address:
+            self.subscription_socket.connect(self._subscribe_address)
 
         self._proxy.start()
         self.publish_socket = context.socket(zmq.PUB)
-        self.publish_socket.connect(publish_address)
+        if self._publish_address:
+            self.publish_socket.connect(self._publish_address)
 
     def subscription_active(self):
         # FIXME: add in actual parsing

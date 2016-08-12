@@ -161,14 +161,15 @@ class Shell(cmd.Cmd):
         if name is None:
             return
 
-        sub_address = self._prompt_helper('subscribe_address [127.0.0.1:4001]: ',
-                                          '127.0.0.1:4001')
+        sub_address = self._prompt_helper('subscribe_address [tcp://127.0.0.1:4001]: ',
+                                          'tcp://127.0.0.1:4001')
 
         if sub_address is None:
             return
 
-        pub_address = self._prompt_helper('publish address [127.0.0.1:4002]: ',
-                                          '127.0.0.1:4002')
+        pub_address = self._prompt_helper('publish address [tcp://127.0.0.1:4002]: ',
+                                          'tcp://127.0.0.1:4002')
+
         if pub_address is None:
             return
 

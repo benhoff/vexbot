@@ -15,9 +15,10 @@ from vexbot.robot_settings import RobotSettings
 # Couldn't tell you why though
 class SubprocessDefaultSettings(Base):
     __tablename__ = 'subprocess_configuration'
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
     subprocess = _alchy.Column(_alchy.String(100))
     default_configuration = _alchy.Column(_alchy.String(100))
-    robot_id = _alchy.Column(_alchy.Integer, _alchy.ForeignKey('robot.id'))
+    robot_id = _alchy.Column(_alchy.Integer, _alchy.ForeignKey('robot_settings.id'))
     robot_context = _orm.relationship(RobotSettings)
 
 

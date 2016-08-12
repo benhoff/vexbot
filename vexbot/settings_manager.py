@@ -4,7 +4,7 @@ import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.sql_helper import Base
-from vexbot.robot_settings import RobotSettings
+from vexbot.robot_settings import RobotSettings, Adapters
 from vexbot.subprocess_manager import SubprocessDefaultSettings
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
@@ -54,3 +54,14 @@ class SettingsManager:
 
     def get_settings_dict(self, settings):
         pass
+
+    def get_startup_adapters(self, context=None):
+        if context is None:
+            context = self.context
+
+        settings = self.get_robot_settings(context)
+
+        adapters = self.session.query(Adapters).\
+                filter(Adapters.contexts.any(context=settings)).all()
+
+        return adapters
