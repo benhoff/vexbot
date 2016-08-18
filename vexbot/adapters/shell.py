@@ -5,6 +5,7 @@ from time import sleep
 from threading import Thread
 
 import sqlalchemy as _alchy
+from sqlalchemy.orm import relationship
 
 import zmq
 from vexmessage import decode_vex_message
@@ -23,26 +24,30 @@ from vexbot.sql_helper import Base
 class ShellSettings(Base):
     __tablename__ = 'shell_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
-    publish_address = _alchy.Column(_alchy.String(length=100))
-    subscribe_address = _alchy.Column(_alchy.String(length=100))
     history_filepath = _alchy.Column(_alchy.String(length=4096))
+    robot_settings = relationship("RobotSettings")
+    robot_settings_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_settings.id'))
+
 
 
 class Shell(cmd.Cmd):
     def __init__(self,
-                 context=None,
+                 context='default',
                  prompt_name='vexbot',
                  publish_address=None,
                  subscribe_address=None,
                  **kwargs):
 
         super().__init__()
+        self.settings_manager = SettingsManager(context=context)
         self.messaging = ZmqMessaging('shell',
                                       publish_address,
                                       subscribe_address,
                                       'shell')
 
         self.command_manager = CommandManager(self.messaging)
+
         # FIXME
         self.command_manager._commands.pop('commands')
         self.stdout.write('Vexbot {}\n'.format(__version__))
@@ -58,6 +63,8 @@ class Shell(cmd.Cmd):
                                               self._create_robot_settings)
 
         self.messaging.start_messaging()
+        self._context = context
+        self.do_context(context)
 
         self.prompt = prompt_name + ': '
         self.misc_header = "Commands"
@@ -71,6 +78,11 @@ class Shell(cmd.Cmd):
             self.messaging.send_command(command=command,
                                         args=argument,
                                         line=line)
+
+            if self._context is None:
+                self.stdout.write('\nNo context set! Use `contexts` to see '
+                                  'stored robot contexts and the `context` '
+                                  'command to set the shell context\n\n')
 
     def _set_readline_helper(self, history_file=None):
         try:
@@ -146,45 +158,66 @@ class Shell(cmd.Cmd):
                 line = default
 
             # TODO: Clean up
-            self.stdout.write('\n' + prompt + '\n' + line + '\n\n')
+            self.stdout.write(line + '\n\n')
 
             return line
 
         return None
 
+    def _get_old_settings(self, setting_manager, context):
+        # CHECK ME
+        old_settings = self.settings_manager.get_robot_settings(context)
+        if old_settings is None:
+            return {}
+        old_settings = old_settings.__dict__
+        old_settings.pop('_sa_instance_state')
+        old_settings.pop('id')
+        return old_settings
+
     def _create_robot_settings(self, *args, **kwargs):
-        context = self._prompt_helper('context [default]: ', 'default')
-        if context is None:
-            return
-
-        name = self._prompt_helper('name [vexbot]: ', 'vexbot')
-        if name is None:
-            return
-
-        sub_address = self._prompt_helper('subscribe_address [tcp://127.0.0.1:4001]: ',
-                                          'tcp://127.0.0.1:4001')
-
-        if sub_address is None:
-            return
-
-        pub_address = self._prompt_helper('publish address [tcp://127.0.0.1:4002]: ',
-                                          'tcp://127.0.0.1:4002')
-
-        if pub_address is None:
-            return
-
-        mon_address = self._prompt_helper('monitor address [blank]: ', '')
-        if mon_address is None:
-            return
-
-        settings = {'context': context,
-                    'name': name,
-                    'subscribe_address': sub_address,
-                    'publish_address': pub_address,
-                    'monitor_address': mon_address}
-
+        s = {}
         settings_manager = SettingsManager()
-        settings_manager.create_robot_settings(settings)
+        s['context'] = self._prompt_helper('context [default]: ', 'default')
+        if s['context'] is None:
+            return
+
+        s.update(self._get_old_settings(settings_manager, s['context']))
+        s['name'] = self._prompt_helper('name [{}]: '.format(s.get('name', 'vexbot')),
+                                        s.get('name', 'vexbot'))
+
+        if s['name'] is None:
+            return
+
+        s['subscribe_address'] = self._prompt_helper('subscribe_address [{}]: '.format(s.get('subscribe_address',
+                                                                                       'tcp://127.0.0.1:4000')),
+                                               s.get('subscribe_address',
+                                                     'tcp://127.0.0.1:4000'))
+
+        if s['subscribe_address'] is None:
+            return
+
+        s['publish_address'] = self._prompt_helper('publish address [{}]: '.format(s.get('publish_address', 'tcp://127.0.0.1:4001')),
+                                               s.get('publish_address', 'tcp://127.0.0.1:4001'))
+
+        if s['publish_address'] is None:
+            return
+
+        s['monitor_address'] = self._prompt_helper('monitor address [{}]: '.format(s.get('monitor_address', '')),
+                                               s.get('monitor_address', ''))
+
+        if s['monitor_address'] is None:
+            return
+
+        # FIXME
+        starting_adapters = ' '.join(s.get('starting_adapters', ()))
+
+        starting_adapters = self._prompt_helper('starting adapters [{}]: '.format(starting_adapters),
+                                                starting_adapters)
+
+        if starting_adapters is not None:
+            starting_adapters = starting_adapters.lower().split()
+
+        settings_manager.create_robot_settings(s)
 
     def do_EOF(self, arg):
         self.stdout.write('\n')
@@ -194,6 +227,36 @@ class Shell(cmd.Cmd):
 
     def get_names(self):
         return dir(self)
+
+    def do_context(self, arg):
+        if arg:
+            return self.do_contexts(arg)
+        context = self._context
+        if context is None:
+            context = 'NONE SET'
+        self.stdout.write('\n' + context + '\n\n')
+
+    def do_contexts(self, arg):
+        if arg:
+            # Do this first for now, in case our user messes up
+            settings = self.settings_manager.get_robot_settings(arg)
+            # FIXME----
+            if self.messaging._pub_address:
+                self.messaging.pub_socket.disconnect(self.messaging._pub_address)
+            if self.messaging._sub_address:
+                self.messaging.sub_socket.disconnect(self.messaging._sub_address)
+            #------
+
+            self.messaging._pub_address = settings.publish_address
+            self.messaging._sub_address = settings.subscribe_address
+            self.messaging.update_messaging()
+            self._context = arg
+        else:
+            contexts = self.settings_manager.get_robot_contexts()
+            self.print_topics(self.misc_header,
+                              contexts,
+                              15,
+                              80)
 
     def do_help(self, arg):
         if arg:
@@ -206,9 +269,10 @@ class Shell(cmd.Cmd):
 
         else:
             self.stdout.write("{}\n".format(self.doc_leader))
-            # TODO: get these from robot?
+            # TODO: add commands from shell
+            commands = '\n'.join(self.command_manager._commands.keys())
             self.print_topics(self.misc_header,
-                              ['start vexbot\nhelp [foo]', ],
+                              [commands],
                               15,
                               80)
 
@@ -235,21 +299,9 @@ class Shell(cmd.Cmd):
     """
 
 
-def _get_kwargs():
-    config = ArgEnvConfig()
-    config.add_argument('--publish_address', default=None)
-    config.add_argument('--subscribe_address', default=None)
-    config.add_argument('--prompt_name', default='vexbot')
-    config.add_argument('--history_file',
-                        environ='VEXBOT_SHELL_HISTORY')
-
-    args = config.get_args()
-    return vars(args)
-
-
 def main(**kwargs):
     if not kwargs:
-        kwargs = _get_kwargs()
+        kwargs = {}
     shell = Shell(**kwargs)
     cmd_loop_thread = Thread(target=shell.run)
     cmd_loop_thread.daemon = True

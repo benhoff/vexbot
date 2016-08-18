@@ -13,7 +13,7 @@ from vexbot.robot_settings import RobotSettings
 
 # This is going to work
 # Couldn't tell you why though
-class SubprocessDefaultSettings(Base):
+class SubprocessConfiguration(Base):
     __tablename__ = 'subprocess_configuration'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     subprocess = _alchy.Column(_alchy.String(100))

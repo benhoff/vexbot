@@ -1,22 +1,21 @@
 import sys
 import logging
 
+import zmq
 import pluginmanager
 
 from vexmessage import decode_vex_message
 
-from vexbot.command_managers import BotCommandManager
-from vexbot.subprocess_manager import SubprocessManager
 from vexbot.messaging import Messaging
 from vexbot.settings_manager import SettingsManager
-from vexbot.argenvconfig import ArgEnvConfig
+from vexbot.command_managers import BotCommandManager
+from vexbot.subprocess_manager import SubprocessManager
 
 
 class Robot:
-    def __init__(self, context='default', bot_name="vex"):
-        self.settings_manager = SettingsManager()
-        robot_settings = self.settings_manager.get_robot_settings(context)
-
+    def __init__(self, context='default'):
+        self.settings_manager = SettingsManager(context=context)
+        robot_settings = self.settings_manager.get_robot_settings()
         self.messaging = Messaging(context,
                                    robot_settings.publish_address,
                                    robot_settings.subscribe_address,
@@ -61,12 +60,12 @@ class Robot:
         startup_adapters = self.settings_manager.get_startup_adapters()
         self.subprocess_manager.start(startup_adapters)
 
-        self.name = bot_name
+        self.name = robot_settings.name
         self._logger = logging.getLogger(__name__)
         self.command_manager = BotCommandManager(robot=self)
         try:
             import setproctitle
-            setproctitle.setproctitle(bot_name)
+            setproctitle.setproctitle(robot_settings.name)
         except ImportError:
             pass
 
@@ -84,6 +83,7 @@ class Robot:
             msg = None
             try:
                 msg = decode_vex_message(frame)
+                print(msg)
             except Exception:
                 pass
             if msg:
@@ -96,44 +96,6 @@ class Robot:
                     self.command_manager.parse_commands(msg)
 
 
-
-def _update_plugins(self,
-                    settings,
-                    subprocess_manager,
-                    plugin_manager):
-
-    """
-    Helper process which loads the plugins from the entry points
-    """
-    collect_ep = plugin_manager.collect_entry_point_plugins
-
-
-def _get_config():
-    config = ArgEnvConfig()
-    config.add_argument('--settings_path',
-                        default=None,
-                        action='store')
-
-    config.add_argument('--subscribe_address',
-                        default=None,
-                        action='store')
-
-    config.add_argument('--publish_address',
-                        default=None,
-                        action='store')
-
-    config.add_argument('--monitor_address',
-                        default=None,
-                        action='store')
-
-    return config
-
-
 if __name__ == '__main__':
-    config = _get_config()
-    sp = '--settings_path'
-    if config.get(sp):
-        config.update_settings(config.get(sp))
-
     robot = Robot()
     robot.run()

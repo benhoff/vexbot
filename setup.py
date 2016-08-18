@@ -45,6 +45,7 @@ setup(
                                               'irc_settings = vexbot.adapters.irc:IrcSettings'],
 
                   'console_scripts': ['vexbot=vexbot.__main__:main',
+                                      'vexbot_shell=vexbot.adapters.shell:main',
                                       'vexbot_create_database=vexbot.util.create_database:create_database']},
 
     packages= find_packages(), # exclude=['docs', 'tests']

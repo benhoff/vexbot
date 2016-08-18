@@ -3,21 +3,21 @@ from sqlalchemy.orm import relationship
 
 from vexbot.sql_helper import Base
 
-class SettingsToAdapters(Base):
-    __tablename__ = 'settings_adapters'
-    robot_id = _alchy.Column(_alchy.Integer,
-                            _alchy.ForeignKey('robot_settings.id'),
-                            primary_key=True)
 
-    adapter_id = _alchy.Column(_alchy.Integer,
-                             _alchy.ForeignKey('adapters.id'),
-                             primary_key=True)
+_T = _alchy.Table
+_C = _alchy.Column
+_AFK = _alchy.ForeignKey
 
-    adapter = relationship("Adapters",
-                           back_populates="contexts")
 
-    context = relationship("RobotSettings",
-                           back_populates="startup_adapters")
+adapter_robot_association_table = _T('adapter_robot_association',
+                                     Base.metadata,
+                                     _C('robot_settings_id',
+                                        _alchy.Integer,
+                                        _AFK('robot_settings.id')),
+                                     _C('adapter_configuration_id',
+                                        _alchy.Integer,
+                                        _AFK('adapter_configuration.id')))
+
 
 class RobotSettings(Base):
     __tablename__ = 'robot_settings'
@@ -35,13 +35,26 @@ class RobotSettings(Base):
     monitor_address = _alchy.Column(_alchy.String(length=100),
                                     default='tcp://127.0.0.1:4003')
 
-    startup_adapters = relationship('SettingsToAdapters',
-                                    back_populates='context')
+    startup_adapters = relationship('AdapterConfiguration',
+                                    secondary=adapter_robot_association_table,
+                                    backref='contexts')
 
-class Adapters(Base):
-    __tablename__ = 'adapters'
+
+class AdapterConfiguration(Base):
+    __tablename__ = 'adapter_configuration'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
-    name = _alchy.Column(_alchy.String(length=100), unique=True)
+    name = _alchy.Column(_alchy.String(length=100))
+    attributes = relationship("AdapterAttributes")
+    robot_settings = relationship("RobotSettings")
+    robot_settings_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_settings.id'))
 
-    contexts = relationship("SettingsToAdapters",
-                            back_populates='adapter')
+
+class AdapterAttributes(Base):
+    __tablename__ = 'adapter_attributes'
+    adapter_id = _alchy.Column(_alchy.Integer, primary_key=True)
+    configuration_id = _alchy.Column(_alchy.Integer,
+                                     _alchy.ForeignKey('adapter_configuration.id'))
+
+    attribute_name = _alchy.Column(_alchy.String(length=20))
+    attribut_value = _alchy.Column(_alchy.String(length=100))

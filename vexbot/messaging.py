@@ -1,3 +1,5 @@
+import logging
+
 import zmq
 import zmq.devices
 
@@ -12,7 +14,7 @@ class Messaging:
                  subscribe_address=None,
                  monitor_address=None):
 
-        # FIXME: naming convetion?
+        # FIXME: naming convention?
         self._service_name = context
         self._proxy = None
         self._messaging_started = False
@@ -20,38 +22,27 @@ class Messaging:
         self._subscribe_address = subscribe_address
         self._monitor_address = monitor_address
 
-    def _try_bind(self, function_call, address):
-        """
-        Try bind only binds if bool(address) is True
-        Does a try/except around the method call
-        """
-        if address:
-            try:
-                function_call(address)
-            except zmq.error.ZMQError:
-                err = """
-                      Incorrect value passed in for socket address in {}, fix
-                      it in your settings.yml or default_settings.yml
-                      """.format(self._service_name)
-
-                # TODO: use log module instead of print
-                print(err)
-
     def start(self, zmq_context=None):
         context = zmq_context or zmq.Context()
-
         self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
 
-        self._try_bind(self._proxy.bind_in, self._publish_address)
-        self._try_bind(self._proxy.bind_out, self._subscribe_address)
-        self._try_bind(self._proxy.bind_mon, self._monitor_address)
+        if self._publish_address:
+            self._proxy.bind_in(self._publish_address)
+        if self._subscribe_address:
+            self._proxy.bind_out(self._subscribe_address)
+        if self._monitor_address:
+            self._proxy.bind_mon(self._monitor_address)
 
         self.subscription_socket = context.socket(zmq.SUB)
         self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
         if self._subscribe_address:
             self.subscription_socket.connect(self._subscribe_address)
 
-        self._proxy.start()
+        try:
+            self._proxy.run()
+        except zmq.error.ZMQError as e:
+            # FIXME: make more descriptive, use bound e
+            logging.error('\nCant run, address already bound\n')
         self.publish_socket = context.socket(zmq.PUB)
         if self._publish_address:
             self.publish_socket.connect(self._publish_address)

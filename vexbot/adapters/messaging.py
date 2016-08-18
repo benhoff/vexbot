@@ -46,11 +46,11 @@ class ZmqMessaging:
         self._messaging_started = True
 
     def update_messaging(self):
-        # FIXME: need to disconnect first?
         if self._pub_address:
-            self.pub_socket.bind(self._pub_address)
+            self.pub_socket.connect(self._pub_address)
         if self._sub_address:
-            self.sub_socket.bind(self._sub_address)
+            self.sub_socket.connect(self._sub_address)
+            self.set_socket_filter(self._socket_filter)
 
     def set_socket_filter(self, filter_):
         if self.sub_socket:
