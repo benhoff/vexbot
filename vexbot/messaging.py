@@ -25,21 +25,19 @@ class Messaging:
     def start(self, zmq_context=None):
         context = zmq_context or zmq.Context()
         self._proxy = zmq.devices.ThreadProxy(zmq.XSUB, zmq.XPUB)
+        self.subscription_socket = context.socket(zmq.SUB)
+        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
         if self._publish_address:
             self._proxy.bind_in(self._publish_address)
         if self._subscribe_address:
             self._proxy.bind_out(self._subscribe_address)
+            self.subscription_socket.connect(self._subscribe_address)
         if self._monitor_address:
             self._proxy.bind_mon(self._monitor_address)
 
-        self.subscription_socket = context.socket(zmq.SUB)
-        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
-        if self._subscribe_address:
-            self.subscription_socket.connect(self._subscribe_address)
-
         try:
-            self._proxy.run()
+            self._proxy.start()
         except zmq.error.ZMQError as e:
             # FIXME: make more descriptive, use bound e
             logging.error('\nCant run, address already bound\n')

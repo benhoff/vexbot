@@ -83,7 +83,6 @@ class Robot:
             msg = None
             try:
                 msg = decode_vex_message(frame)
-                print(msg)
             except Exception:
                 pass
             if msg:
