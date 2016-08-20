@@ -30,7 +30,6 @@ class ShellSettings(Base):
                                       _alchy.ForeignKey('robot_settings.id'))
 
 
-
 class Shell(cmd.Cmd):
     def __init__(self,
                  context='default',
@@ -240,6 +239,8 @@ class Shell(cmd.Cmd):
         if arg:
             # Do this first for now, in case our user messes up
             settings = self.settings_manager.get_robot_settings(arg)
+            if settings is None:
+                return
             # FIXME----
             if self.messaging._pub_address:
                 self.messaging.pub_socket.disconnect(self.messaging._pub_address)
