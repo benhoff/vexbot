@@ -61,17 +61,6 @@ class SettingsManager:
         settings = self.session.query('shell_settings').\
                 filter(robot=settings.id).first()
 
-    def get_subprocess_settings(self, context=None):
-        if context is None:
-            context = self.context
-        robot_id = self.session.query(RobotSettings).\
-                filter(RobotSettings.context == context).first().id
-
-        settings = self.session.query(AdapterConfiguration).\
-                filter(AdapterConfiguration.robot_settings_id == robot_id).all()
-
-        return settings
-
     def create_robot_settings(self, settings: dict):
         # TODO: Validate settings here instead of passing in directly
         new_robot = RobotSettings(**settings)
@@ -94,3 +83,6 @@ class SettingsManager:
     def get_robot_contexts(self):
         result = self.session.query(RobotSettings.context).all()[0]
         return result
+
+    def get_adapter_settings(self, kls, context=None):
+        pass

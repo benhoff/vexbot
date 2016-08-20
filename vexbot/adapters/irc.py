@@ -34,6 +34,7 @@ class IrcSettings(Base):
     host = _alchy.Column(_alchy.String(length=50))
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
+    # TODO: need a foreign key for the `robot_settings` table
 
 
 if _IRC3_INSTALLED:

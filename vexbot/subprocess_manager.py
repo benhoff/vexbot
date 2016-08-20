@@ -11,17 +11,6 @@ from vexbot.sql_helper import Base
 from vexbot.robot_settings import RobotSettings
 
 
-# This is going to work
-# Couldn't tell you why though
-class SubprocessConfiguration(Base):
-    __tablename__ = 'subprocess_configuration'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    subprocess = _alchy.Column(_alchy.String(100))
-    default_configuration = _alchy.Column(_alchy.String(100))
-    robot_id = _alchy.Column(_alchy.Integer, _alchy.ForeignKey('robot_settings.id'))
-    robot_context = _orm.relationship(RobotSettings)
-
-
 class SubprocessManager:
     def __init__(self, settings_manager=None):
         # this is going to be a list of filepaths
@@ -33,13 +22,7 @@ class SubprocessManager:
         signal.signal(signal.SIGINT, self._handle_close_signal)
         signal.signal(signal.SIGTERM, self._handle_close_signal)
         self.blacklist = ['shell', ]
-        if settings_manager:
-            self._handle_settings(settings_manager)
-
-    def _handle_settings(self, manager):
-        subprocess_settings = manager.get_subprocess_settings()
-        for key, default in subprocess_settings.items():
-            self._settings_configuration[key] = default
+        self._settings_manager = settings_manager
 
     def _handle_close_signal(self, signum=None, frame=None):
         self._close_subprocesses()
@@ -59,13 +42,22 @@ class SubprocessManager:
         return tuple(self._registered.keys())
 
     def register(self, key: str, value, settings: dict=None):
-        self._settings[key] = settings
+        if settings is None:
+            settings = {}
+        if self._settings.get(key):
+            self._settings[key].update(settings)
+        else:
+            self._settings[key] = settings
         if key in self.blacklist:
             return
         self._registered[key] = value
 
     def set_settings_class(self, name, kls):
-        self._settings[name] = kls
+        update_dict = {'settings_class': kls}
+        if self._settings.get(name):
+            self._settings[name].update(update_dict)
+        else:
+            self._settings[name] = update_dict
 
     # FIXME: API broken
     def update_setting_value(self,
@@ -100,8 +92,13 @@ class SubprocessManager:
 
         return result
 
+    # TODO: add this functionality
+    """
+    def start_one(self, key, context=None):
+        pass
+    """
 
-    def start(self, keys: list):
+    def start(self, keys: list, context=None):
         """
         starts subprocesses. Can pass in multiple subprocess to start
         """
@@ -111,10 +108,14 @@ class SubprocessManager:
                 continue
 
             dict_list = [executable, ]
-            default_configuration = self._settings_configuration.get(key)
-            settings_class = self._settings.get(key)
-            settings = self._get_dict_from_settings(settings_class,
-                                                    default_configuration)
+            settings = self._settings.get(key)
+            # TODO: Find better way todo this
+            settings_class = settings.get('settings_class')
+            if settings_class is not None:
+                get_adapter_settings = self._settings_manager.get_adapter_settings
+                setting_values = get_adapter_settings(settings_class, context)
+                if setting_values is None:
+                    continue
 
             filepath = settings.get('filepath')
             if filepath:
@@ -124,9 +125,18 @@ class SubprocessManager:
             if args:
                 dict_list.extend(args)
 
+            # NOTE: want to make sure I'm not messing with the state of 
+            # the original dict that's tracked by the subprocess manager
+            # TODO: check if neccesairy
+            settings = dict(settings)
+            # Not sure if this will work
+            settings.update(setting_values)
+
             for k, v in settings.items():
-                if k == 'filepath':
+                if k in ('filepath', '_sa_instance_state', 'id', 'robot_id'):
                     continue
+                if not k[2:] == '--':
+                    k = '--' + k
                 dict_list.append(k)
                 dict_list.append(v)
 

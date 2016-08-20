@@ -1,5 +1,7 @@
 import sys
 import logging
+import textwrap
+import argparse
 
 import zmq
 import pluginmanager
@@ -15,7 +17,16 @@ from vexbot.subprocess_manager import SubprocessManager
 class Robot:
     def __init__(self, context='default'):
         self.settings_manager = SettingsManager(context=context)
+        # Handle None case
         robot_settings = self.settings_manager.get_robot_settings()
+        if robot_settings is None:
+            s = textwrap.fill('Context: `{}` not found in settings, be sure to '
+                              'create this using shell adapter, or another '
+                              'fashion'.format(context))
+
+            logging.error(s)
+            sys.exit(1)
+
         self.messaging = Messaging(context,
                                    robot_settings.publish_address,
                                    robot_settings.subscribe_address,
@@ -26,7 +37,7 @@ class Robot:
         # add the entry points of interest
 
         # create the subprocess manager and add in the plugins
-        self.subprocess_manager = SubprocessManager()
+        self.subprocess_manager = SubprocessManager(self.settings_manager)
 
         # Note: pluginmanager should probably return a `dict` instead of
         # two lists. Should probably fix
@@ -39,6 +50,7 @@ class Robot:
 
         adapters, names = collect_ep()
         adapters = {name: p.__file__ for p, name in zip(adapters, names)}
+        print(adapters)
 
         for name, adapter in adapters.items():
             self.subprocess_manager.register(name,
@@ -94,7 +106,14 @@ class Robot:
 
                     self.command_manager.parse_commands(msg)
 
+def _get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('context', default='default', nargs='?')
+    args = parser.parse_args()
+    return args
+
 
 if __name__ == '__main__':
-    robot = Robot()
+    args = vars(_get_args())
+    robot = Robot(*args.values())
     robot.run()
