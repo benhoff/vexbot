@@ -47,7 +47,9 @@ class Shell(cmd.Cmd):
 
         self.command_manager = CommandManager(self.messaging)
 
-        # FIXME
+        # NOTE: Hack. Command manager comes with defatul `command` command. 
+        # this ensures that the command goes to the robot, which returns a
+        # a list of all commands
         self.command_manager._commands.pop('commands')
         self.stdout.write('Vexbot {}\n'.format(__version__))
         if kwargs.get('already_running', False):
@@ -57,9 +59,6 @@ class Shell(cmd.Cmd):
 
         self.command_manager.register_command('start_vexbot',
                                               _start_vexbot)
-
-        self.command_manager.register_command('create_robot_settings',
-                                              self._create_robot_settings)
 
         self.messaging.start_messaging()
         self._context = context
@@ -109,6 +108,7 @@ class Shell(cmd.Cmd):
 
             if frame:
                 message = decode_vex_message(frame)
+                # NOTE: No message type other than `RSP` currently handeled
                 if message.type == 'RSP':
                     self.stdout.write("\n{}\n".format(self.doc_leader))
                     header = message.contents.get('original', 'Response')
@@ -130,12 +130,6 @@ class Shell(cmd.Cmd):
 
                     self.stdout.write("vexbot: ")
                     self.stdout.flush()
-
-                else:
-                    # FIXME
-                    print(message.type,
-                          message.contents,
-                          'fix me in shell adapter, run function')
                 frame = None
 
     def _create_command_function(self, command):
@@ -144,6 +138,9 @@ class Shell(cmd.Cmd):
         return resulting_function
 
     def _prompt_helper(self, prompt, default=None):
+        """
+        used in `do_create_robot_settings`
+        """
         self.stdout.write(prompt)
         self.stdout.flush()
         line = self.stdin.readline()
@@ -164,20 +161,25 @@ class Shell(cmd.Cmd):
         return None
 
     def _get_old_settings(self, setting_manager, context):
-        # CHECK ME
+        """
+        returns settings minus the `_sa_instance_state`
+        used in `do_create_robot_settings`
+        """
         old_settings = self.settings_manager.get_robot_settings(context)
         if old_settings is None:
-            return {}
+            return dict()
         old_settings = old_settings.__dict__
         old_settings.pop('_sa_instance_state')
-        old_settings.pop('id')
         return old_settings
 
-    def _create_robot_settings(self, *args, **kwargs):
+    def do_create_robot_settings(self, *args, **kwargs):
         s = {}
         settings_manager = SettingsManager()
+
+
         s['context'] = self._prompt_helper('context [default]: ', 'default')
         if s['context'] is None:
+            self.stdout.write('\n')
             return
 
         s.update(self._get_old_settings(settings_manager, s['context']))
@@ -185,6 +187,7 @@ class Shell(cmd.Cmd):
                                         s.get('name', 'vexbot'))
 
         if s['name'] is None:
+            self.stdout.write('\n')
             return
 
         s['subscribe_address'] = self._prompt_helper('subscribe_address [{}]: '.format(s.get('subscribe_address',
@@ -193,18 +196,21 @@ class Shell(cmd.Cmd):
                                                      'tcp://127.0.0.1:4000'))
 
         if s['subscribe_address'] is None:
+            self.stdout.write('\n')
             return
 
         s['publish_address'] = self._prompt_helper('publish address [{}]: '.format(s.get('publish_address', 'tcp://127.0.0.1:4001')),
                                                s.get('publish_address', 'tcp://127.0.0.1:4001'))
 
         if s['publish_address'] is None:
+            self.stdout.write('\n')
             return
 
         s['monitor_address'] = self._prompt_helper('monitor address [{}]: '.format(s.get('monitor_address', '')),
                                                s.get('monitor_address', ''))
 
         if s['monitor_address'] is None:
+            self.stdout.write('\n')
             return
 
         # FIXME
@@ -216,6 +222,8 @@ class Shell(cmd.Cmd):
         if starting_adapters is not None:
             starting_adapters = starting_adapters.lower().split()
 
+        # TODO: check to see if has value `id` and update instead
+        # old_settings.pop('id')
         settings_manager.create_robot_settings(s)
 
     def do_EOF(self, arg):
@@ -225,7 +233,10 @@ class Shell(cmd.Cmd):
         return True
 
     def get_names(self):
-        return dir(self)
+        names = dir(self)
+        # NOTE: Adds the names from the command manager to the autocomplete helper
+        names.extend(['do_' + a for a in self.command_manager._commands.keys()])
+        return names
 
     def do_context(self, arg):
         if arg:
