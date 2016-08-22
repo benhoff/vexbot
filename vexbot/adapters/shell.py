@@ -272,6 +272,9 @@ class Shell(cmd.Cmd):
             self.stdout.write("{}\n".format(self.doc_leader))
             # TODO: add commands from shell
             commands = '\n'.join(self.command_manager._commands.keys())
+            commands = commands + '\n' + '\n'.join(a[3:] for a in self.get_names()
+                                                   if a.startswith('do_'))
+
             self.print_topics(self.misc_header,
                               [commands],
                               15,
