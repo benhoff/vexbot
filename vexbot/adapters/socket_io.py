@@ -9,6 +9,7 @@ from time import sleep
 from threading import Thread
 
 import sqlalchemy as _alchy
+from sqlalchemy.orm import relationship
 
 from zmq import ZMQError
 from vexmessage import decode_vex_message
@@ -50,6 +51,9 @@ class SocketIOSettings(Base):
     website_url = _alchy.Column(_alchy.String(length=200))
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
+    robot_settings = relationship("RobotSettings")
+    robot_settings_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_settings.id'))
 
 
 class WebSocket(WebSocketApp):

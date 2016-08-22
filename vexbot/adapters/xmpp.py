@@ -7,6 +7,7 @@ import pkg_resources
 from threading import Thread
 
 import sqlalchemy as _alchy
+from sqlalchemy.orm import relationship
 
 import zmq
 from vexmessage import decode_vex_message
@@ -39,7 +40,9 @@ class XMPPSettings(Base):
     domain = _alchy.Column(_alchy.String(length=50))
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
-
+    robot_settings = relationship("RobotSettings")
+    robot_settings_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_settings.id'))
 
 class XMPPBot(ClientXMPP):
     def __init__(self,

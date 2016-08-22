@@ -10,6 +10,7 @@ import pkg_resources
 from time import sleep
 
 import sqlalchemy as _alchy
+from sqlalchemy.orm import relationship
 
 import zmq
 from zmq import ZMQError
@@ -82,6 +83,9 @@ class YoutubeSettings(Base):
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
     client_secret_filepath = _alchy.Column(_alchy.String(length=4096))
+    robot_settings = relationship("RobotSettings")
+    robot_settings_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_settings.id'))
 
 
 def main(client_secret_filepath, publish_address, subscribe_address):
