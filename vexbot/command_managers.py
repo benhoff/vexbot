@@ -1,3 +1,4 @@
+import sys
 import logging # flake8: noqa
 import collections as _collections
 
@@ -182,9 +183,16 @@ class BotCommandManager(CommandManager):
         self._commands['subprocesses'] = no_arguments(registered)
         self._commands['restart'] = msg_list_wrapper(s_manager.restart)
         self._commands['kill'] = msg_list_wrapper(s_manager.kill)
+        self._commands['kill_bot'] = self._kill_bot
         self._commands['terminate'] = msg_list_wrapper(s_manager.terminate)
         running = s_manager.running_subprocesses
         self._commands['running'] = no_arguments(running)
+
+    def _kill_bot(self, msg):
+        """
+        Kills the instance of vexbot
+        """
+        sys.exit()
 
     def _alive(self, msg):
         """

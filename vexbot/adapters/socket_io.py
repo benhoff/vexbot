@@ -22,7 +22,7 @@ _WEBSOCKET_INSTALLED = True
 _REQUESTS_INSTALLED = True
 
 try:
-    pkg_resources.get_distribution('websocket')
+    pkg_resources.get_distribution('websocket-client')
 except pkg_resources.DistributionNotFound:
     _WEBSOCKET_INSTALLED = False
 
