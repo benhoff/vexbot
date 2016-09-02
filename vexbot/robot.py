@@ -16,15 +16,16 @@ from vexbot.subprocess_manager import SubprocessManager
 
 class Robot:
     def __init__(self, context='default'):
+        name = __name__ if __name__ != '__main__' else 'vexbot.robot'
+        self._logger = logging.getLogger(name)
         self.settings_manager = SettingsManager(context=context)
-        # Handle None case
         robot_settings = self.settings_manager.get_robot_settings()
         if robot_settings is None:
-            s = textwrap.fill('Context: `{}` not found in settings, be sure to '
+            s = textwrap.fill(' the context: `{}` was not found in settings. Be sure to '
                               'create this using shell adapter, or another '
-                              'fashion'.format(context))
+                              'fashion and relaunch the robot. Exiting robot for now'.format(context))
 
-            logging.error(s)
+            self._logger.error(s)
             sys.exit(1)
 
         self.messaging = Messaging(context,
@@ -34,7 +35,6 @@ class Robot:
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
-        # add the entry points of interest
 
         # create the subprocess manager and add in the plugins
         self.subprocess_manager = SubprocessManager(self.settings_manager)
@@ -50,7 +50,6 @@ class Robot:
 
         adapters, names = collect_ep()
         adapters = {name: p.__file__ for p, name in zip(adapters, names)}
-        print(adapters)
 
         for name, adapter in adapters.items():
             self.subprocess_manager.register(name,
@@ -73,7 +72,6 @@ class Robot:
         self.subprocess_manager.start(startup_adapters)
 
         self.name = robot_settings.name
-        self._logger = logging.getLogger(__name__)
         self.command_manager = BotCommandManager(robot=self)
         try:
             import setproctitle
