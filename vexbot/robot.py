@@ -20,11 +20,11 @@ class Robot:
         self.settings_manager = SettingsManager(context=context)
         robot_settings = self.settings_manager.get_robot_settings()
         if robot_settings is None:
-            s = textwrap.fill(' the context: `{}` was not found in settings. Be sure to '
-                              'create this using shell adapter, or another '
-                              'fashion, and relaunch vexbot. Exiting robot now'.format(context))
+            s = textwrap.dedent('The context: `{}` was not found in settings. Be sure to '
+                                'create this using `create_robot_settings` in the shell adapter, or another '
+                                'fashion, and relaunch vexbot. Exiting robot now.'.format(context))
 
-            self._logger.warn(s)
+            self._logger.warn(textwrap.fill(s, initial_indent='', subsequent_indent='    '))
             sys.exit(1)
 
         self.messaging = Messaging(context,
@@ -105,7 +105,9 @@ class Robot:
         if not self.messaging.running():
             s = textwrap.fill('Could not bind the ports. Either another '
                               'instance of vexbot is running or another '
-                              'program is bound to the address. Exiting bot')
+                              'program is bound to the address. Exiting bot',
+                              intial_indent='',
+                              subsquent_indent='    ')
 
             self._logger.error(s)
 

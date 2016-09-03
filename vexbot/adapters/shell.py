@@ -1,5 +1,6 @@
 import cmd
 import atexit
+import textwrap
 from time import sleep
 
 from threading import Thread
@@ -154,7 +155,7 @@ class Shell(cmd.Cmd):
                 line = default
 
             # TODO: Clean up
-            self.stdout.write(line + '\n\n')
+            self.stdout.write('    ' + line + '\n\n')
 
             return line
 
@@ -168,14 +169,21 @@ class Shell(cmd.Cmd):
         old_settings = self.settings_manager.get_robot_settings(context)
         if old_settings is None:
             return dict()
-        old_settings = old_settings.__dict__
+        old_settings = dict(old_settings.__dict__)
         old_settings.pop('_sa_instance_state')
         return old_settings
 
     def do_create_robot_settings(self, *args, **kwargs):
+        self.stdout.write('\n' + textwrap.fill('Default values are shown in `'
+                                               '[]` after the prompt name. Pre'
+                                               'ssing enter accpets the defaul'
+                                               't value',
+                                               initial_indent='    ',
+                                               subsequent_indent='        ')
+                                               + '\n\n')
+
         s = {}
         settings_manager = SettingsManager()
-
 
         s['context'] = self._prompt_helper('context [default]: ', 'default')
         if s['context'] is None:
@@ -223,8 +231,11 @@ class Shell(cmd.Cmd):
             starting_adapters = starting_adapters.lower().split()
 
         # TODO: check to see if has value `id` and update instead
-        # old_settings.pop('id')
-        settings_manager.create_robot_settings(s)
+        if 'id' in s:
+            settings_manager.update_robot_settings(s)
+        else:
+            settings_manager.create_robot_settings(s)
+
         if s['context'] == self._context:
             self.do_context(self._context)
 

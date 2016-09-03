@@ -33,8 +33,10 @@ class SettingsManager:
         if not os.path.isfile(filepath):
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
-                s = s + ' Please run `$ vexbot_create_database` from the cmd line to create settings database'
-            s = textwrap.fill(s)
+                s = s + (' Please run `$ vexbot_create_database` from the cmd line to create settings database.'
+                         'Then run `create_robot_settings` from the shell adapter')
+
+            s = textwrap.fill(s, initial_indent='', subsequent_indent='    ')
             self._logger.error(s)
             sys.exit(1)
 
@@ -84,6 +86,13 @@ class SettingsManager:
         self.session.add(new_robot)
         self.session.commit()
         # TODO: return validation errors, if any
+
+    def update_robot_settings(self, settings: dict):
+        self.session.query(RobotSettings).\
+                filter(RobotSettings.id == settings.pop('id')).\
+                update(settings)
+
+        self.session.commit()
 
     def get_startup_adapters(self, context=None):
         if context is None:
