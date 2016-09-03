@@ -3,7 +3,6 @@ import logging
 import textwrap
 import argparse
 
-import zmq
 import pluginmanager
 
 from vexmessage import decode_vex_message
@@ -23,9 +22,9 @@ class Robot:
         if robot_settings is None:
             s = textwrap.fill(' the context: `{}` was not found in settings. Be sure to '
                               'create this using shell adapter, or another '
-                              'fashion and relaunch the robot. Exiting robot for now'.format(context))
+                              'fashion, and relaunch vexbot. Exiting robot now'.format(context))
 
-            self._logger.error(s)
+            self._logger.warn(s)
             sys.exit(1)
 
         self.messaging = Messaging(context,
@@ -87,8 +86,7 @@ class Robot:
             logging.error('Subscription socket not set for context, check/set before running robot')
             return
         """
-
-        while True:
+        while True and self.messaging._proxy.launcher.is_alive():
             frame = self.messaging.subscription_socket.recv_multipart()
             msg = None
             try:
@@ -103,6 +101,7 @@ class Robot:
                      msg.source == 'command_line') and msg.type == 'CMD'):
 
                     self.command_manager.parse_commands(msg)
+
 
 def _get_args():
     parser = argparse.ArgumentParser()
