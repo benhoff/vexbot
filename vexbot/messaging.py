@@ -40,6 +40,9 @@ class Messaging:
         if self._publish_address:
             self.publish_socket.connect(self._publish_address)
 
+    def running(self):
+        return self._proxy.launcher.is_alive()
+
     def subscription_active(self):
         # FIXME: add in actual parsing
         return True

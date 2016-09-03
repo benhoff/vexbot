@@ -86,14 +86,14 @@ class Robot:
             logging.error('Subscription socket not set for context, check/set before running robot')
             return
         """
-        while True and self.messaging._proxy.launcher.is_alive():
+        while True and self.messaging.running():
             frame = self.messaging.subscription_socket.recv_multipart()
             msg = None
             try:
                 msg = decode_vex_message(frame)
             except Exception:
                 pass
-            if msg:
+            if msg and self.messaging.running():
                 # Right now this is hardcoded into being only
                 # the shell adapter
                 # change this to some kind of auth code
@@ -101,6 +101,13 @@ class Robot:
                      msg.source == 'command_line') and msg.type == 'CMD'):
 
                     self.command_manager.parse_commands(msg)
+
+        if not self.messaging.running():
+            s = textwrap.fill('Could not bind the ports. Either another '
+                              'instance of vexbot is running or another '
+                              'program is bound to the address. Exiting bot')
+
+            self._logger.error(s)
 
 
 def _get_args():
