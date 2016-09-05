@@ -5,8 +5,8 @@ import collections as _collections
 from vexmessage import Message as VexMessage
 
 from vexbot.commands.restart_bot import restart_bot as _restart_bot
-from vexbot.function_wrapers import (msg_list_wrapper,
-                                     no_arguments)
+from vexbot.util.function_wrapers import (msg_list_wrapper,
+                                          no_arguments)
 
 
 class CommandManager:
@@ -161,6 +161,7 @@ class CommandManager:
 class BotCommandManager(CommandManager):
     def __init__(self, robot):
         super().__init__(robot.messaging)
+        self._robot = robot
         # nested command dict
         subprocess = {}
 
@@ -193,6 +194,9 @@ class BotCommandManager(CommandManager):
         Kills the instance of vexbot
         """
         sys.exit()
+
+    def _context(self, msg):
+        return self._robot.settings_manager.context
 
     def _alive(self, msg):
         """

@@ -55,11 +55,9 @@ class Shell(cmd.Cmd):
         self.stdout.write('Vexbot {}\n'.format(__version__))
         if kwargs.get('already_running', False):
             self.stdout.write('vexbot already running\n')
-        self.stdout.write("Type \"help\" for command line help or "
-                          "\"commands\" for bot commands\n\n")
-
-        self.command_manager.register_command('start_vexbot',
-                                              _start_vexbot)
+        self.stdout.write("    Type \"help\" for command line help or "
+                          "\"commands\" for bot commands\n    NOTE: "
+                          "\"commands\" will only work if bot is running\n\n")
 
         self.messaging.start_messaging()
         self._context = context
@@ -173,7 +171,19 @@ class Shell(cmd.Cmd):
         old_settings.pop('_sa_instance_state')
         return old_settings
 
-    def do_create_robot_settings(self, *args, **kwargs):
+    def do_start_bot(self, arg):
+        if arg == '':
+            arg = self._context
+        _start_vexbot(arg)
+
+    def do_update_robot_settings(self, arg):
+        if arg == '':
+            self.do_contexts('')
+
+        self.do_create_robot_settings(arg)
+
+
+    def do_create_robot_settings(self, arg):
         self.stdout.write('\n' + textwrap.fill('Default values are shown in `'
                                                '[]` after the prompt name. Pre'
                                                'ssing enter accpets the defaul'
@@ -184,8 +194,10 @@ class Shell(cmd.Cmd):
 
         s = {}
         settings_manager = SettingsManager()
+        if arg == '':
+            arg = 'default'
 
-        s['context'] = self._prompt_helper('context [default]: ', 'default')
+        s['context'] = self._prompt_helper('context [{}]: '.format(arg), arg)
         if s['context'] is None:
             self.stdout.write('\n')
             return
@@ -229,8 +241,11 @@ class Shell(cmd.Cmd):
 
         if starting_adapters is not None:
             starting_adapters = starting_adapters.lower().split()
+        else:
+            starting_adapters = []
 
-        # TODO: check to see if has value `id` and update instead
+        s['starting_adapters'] = starting_adapters
+
         if 'id' in s:
             settings_manager.update_robot_settings(s)
         else:
@@ -278,7 +293,8 @@ class Shell(cmd.Cmd):
             self._context = arg
         else:
             contexts = self.settings_manager.get_robot_contexts()
-            self.print_topics(self.misc_header,
+            self.stdout.write('\n')
+            self.print_topics('contexts',
                               contexts,
                               15,
                               80)
@@ -297,6 +313,7 @@ class Shell(cmd.Cmd):
             # TODO: add commands from shell
             commands = set(self.command_manager._commands.keys())
             commands.update(x[3:] for x in self.get_names() if x.startswith('do_'))
+            commands.add('commands')
             commands = '\n'.join(commands)
 
             self.print_topics(self.misc_header,

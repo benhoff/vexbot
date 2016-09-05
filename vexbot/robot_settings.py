@@ -14,9 +14,9 @@ adapter_robot_association_table = _T('adapter_robot_association',
                                      _C('robot_settings_id',
                                         _alchy.Integer,
                                         _AFK('robot_settings.id')),
-                                     _C('adapter_configuration_id',
+                                     _C('adapter_id',
                                         _alchy.Integer,
-                                        _AFK('adapter_configuration.id')))
+                                        _AFK('adapters.id')))
 
 
 class RobotSettings(Base):
@@ -58,3 +58,9 @@ class AdapterAttributes(Base):
 
     attribute_name = _alchy.Column(_alchy.String(length=20))
     attribut_value = _alchy.Column(_alchy.String(length=100))
+
+
+class Adapter(Base):
+    __tablename__ = 'adapters'
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    name = _alchy.Column(_alchy.String(length=100))

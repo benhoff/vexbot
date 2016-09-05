@@ -105,11 +105,13 @@ class Robot:
         if not self.messaging.running():
             s = textwrap.fill('Could not bind the ports. Either another '
                               'instance of vexbot is running or another '
-                              'program is bound to the address. Exiting bot',
-                              intial_indent='',
-                              subsquent_indent='    ')
+                              'program is bound to the address. Exiting this'
+                              ' bot',
+                              initial_indent='',
+                              subsequent_indent='    ')
 
             self._logger.error(s)
+            sys.exit()
 
 
 def _get_args():

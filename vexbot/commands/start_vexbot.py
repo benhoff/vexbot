@@ -5,7 +5,7 @@ from subprocess import Popen
 from vexbot.argenvconfig import ArgEnvConfig
 
 
-def start_vexbot(settings=None):
+def start_vexbot(context='default'):
     """
     starts up an instance of vexbot
     """
@@ -16,10 +16,8 @@ def start_vexbot(settings=None):
 
     # Start the subprocess
     main_robot_args = [sys.executable,
-                       robot_filepath]
-
-    if settings:
-        main_robot_args.extend(settings)
+                       robot_filepath,
+                       context]
 
     process = Popen(main_robot_args)
 

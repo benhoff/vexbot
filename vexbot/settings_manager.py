@@ -9,7 +9,7 @@ import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.sql_helper import Base
-from vexbot.robot_settings import RobotSettings, AdapterConfiguration
+from vexbot.robot_settings import RobotSettings, AdapterConfiguration, Adapter
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
@@ -56,6 +56,11 @@ class SettingsManager:
         settings = self.get_robot_settings(context)
         self._context_settings = settings
 
+    def add_adapters(self, adapters: list):
+        self.session.execute(Adapter.insert().where(_alchy.text("NOT EXISTS (SELECT * FROM adapters WHERE adapters.name = :")))
+
+    def add_adapter(self, adapter: str):
+        pass
 
     def get_robot_settings(self, context=None):
         """
