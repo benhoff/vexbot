@@ -48,6 +48,7 @@ class Robot:
         self.plugin_manager.add_entry_points('vexbot.adapters')
 
         adapters, names = collect_ep()
+        self.settings_manager.update_adapters(names)
         adapters = {name: p.__file__ for p, name in zip(adapters, names)}
 
         for name, adapter in adapters.items():

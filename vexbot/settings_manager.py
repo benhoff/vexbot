@@ -9,7 +9,7 @@ import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.sql_helper import Base
-from vexbot.robot_settings import RobotSettings, AdapterConfiguration, Adapter
+from vexbot.robot_settings import RobotSettings, Adapter
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
@@ -33,8 +33,9 @@ class SettingsManager:
         if not os.path.isfile(filepath):
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
-                s = s + (' Please run `$ vexbot_create_database` from the cmd line to create settings database.'
-                         'Then run `create_robot_settings` from the shell adapter')
+                s = s + (' Please run `$ vexbot_create_database` from the cmd line to create settings database. '
+                         'Then run `create_robot_settings` from the shell adapter. '
+                         'Alternatively run `$ vexbot_quickstart`')
 
             s = textwrap.fill(s, initial_indent='', subsequent_indent='    ')
             self._logger.error(s)
@@ -57,10 +58,13 @@ class SettingsManager:
         self._context_settings = settings
 
     def add_adapters(self, adapters: list):
-        self.session.execute(Adapter.insert().where(_alchy.text("NOT EXISTS (SELECT * FROM adapters WHERE adapters.name = :")))
+        # FIXME
+        self.update_adapters(adapters)
 
     def add_adapter(self, adapter: str):
-        pass
+        new_adapter = Adapter(name=adapter)
+        self.session.add(new_adapter)
+        self.session.commit()
 
     def get_robot_settings(self, context=None):
         """
@@ -105,8 +109,8 @@ class SettingsManager:
         else:
             settings = self.get_robot_settings(context)
 
-        adapters = self.session.query(AdapterConfiguration.name).\
-                filter(AdapterConfiguration.contexts.any(context=context))\
+        adapters = self.session.query(Adapter.name).\
+                filter(Adapter.contexts.any(context=context))\
                 .all()
 
         return adapters
@@ -117,3 +121,14 @@ class SettingsManager:
 
     def get_adapter_settings(self, kls, context=None):
         pass
+
+    def update_adapters(self, adapters: list):
+        for adapter in adapters:
+            instance = self.session.query(Adapter).\
+                    filter(Adapter.name==adapter).first()
+            if instance:
+                continue
+            else:
+                instance = Adapter(name=adapter)
+                self.session.add(instance)
+        self.session.commit()

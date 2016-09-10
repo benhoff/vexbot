@@ -9,7 +9,7 @@ def quickstart():
             'name': 'vexbot',
             'subscribe_address': 'tcp://127.0.0.1:4000',
             'publish_address': 'tcp://127.0.0.1:4001',
-            'monitor_address', '',}
+            'monitor_address': '',}
 
 
     settings_manager.create_robot_settings(default_settings)

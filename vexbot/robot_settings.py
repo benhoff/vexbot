@@ -35,11 +35,24 @@ class RobotSettings(Base):
     monitor_address = _alchy.Column(_alchy.String(length=100),
                                     default='tcp://127.0.0.1:4003')
 
-    startup_adapters = relationship('AdapterConfiguration',
+    startup_adapters = relationship('Adapter',
                                     secondary=adapter_robot_association_table,
                                     backref='contexts')
 
 
+class Adapter(Base):
+    __tablename__ = 'adapters'
+    id = _alchy.Column(_alchy.Integer, primary_key=True)
+    name = _alchy.Column(_alchy.String(length=100),
+                         unique=True,
+                         nullable=False)
+
+    robots = relationship('RobotSettings',
+                          secondary=adapter_robot_association_table,
+                          back_populates='startup_adapters')
+
+
+"""
 class AdapterConfiguration(Base):
     __tablename__ = 'adapter_configuration'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
@@ -58,9 +71,4 @@ class AdapterAttributes(Base):
 
     attribute_name = _alchy.Column(_alchy.String(length=20))
     attribut_value = _alchy.Column(_alchy.String(length=100))
-
-
-class Adapter(Base):
-    __tablename__ = 'adapters'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    name = _alchy.Column(_alchy.String(length=100))
+"""

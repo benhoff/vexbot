@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import atexit
-import textwrap
-from os import path
 
 from vexbot.commands.start_vexbot import start_vexbot
 from vexbot.adapters.shell import main as shell_main
