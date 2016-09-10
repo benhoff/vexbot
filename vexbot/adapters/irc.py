@@ -34,10 +34,10 @@ class IrcSettings(Base):
     host = _alchy.Column(_alchy.String(length=50))
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
-    robot_settings_id = _alchy.Column(_alchy.Integer,
-                                      _alchy.ForeignKey('robot_settings.id'))
+    robot_model_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_models.id'))
 
-    robot_settings = _alchy.orm.relationship("RobotSettings")
+    robot_model = _alchy.orm.relationship("RobotModel")
 
 
 if _IRC3_INSTALLED:

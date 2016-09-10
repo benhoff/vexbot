@@ -9,7 +9,7 @@ import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.sql_helper import Base
-from vexbot.robot_settings import RobotSettings, Adapter
+from vexbot.robot_models import RobotModel, Adapter
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
@@ -34,7 +34,7 @@ class SettingsManager:
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
                 s = s + (' Please run `$ vexbot_create_database` from the cmd line to create settings database. '
-                         'Then run `create_robot_settings` from the shell adapter. '
+                         'Then run `create_robot_models` from the shell adapter. '
                          'Alternatively run `$ vexbot_quickstart`')
 
             s = textwrap.fill(s, initial_indent='', subsequent_indent='    ')
@@ -44,7 +44,7 @@ class SettingsManager:
         self.session = _create_session(filepath)
         self._context = context
         try:
-            self._context_settings = self.get_robot_settings(context)
+            self._context_settings = self.get_robot_model(context)
         except _alchy.exc.OperationalError:
             self._context_settings = None
 
@@ -54,7 +54,7 @@ class SettingsManager:
 
     @context.setter
     def context(self, context):
-        settings = self.get_robot_settings(context)
+        settings = self.get_robot_model(context)
         self._context_settings = settings
 
     def add_adapters(self, adapters: list):
@@ -66,7 +66,7 @@ class SettingsManager:
         self.session.add(new_adapter)
         self.session.commit()
 
-    def get_robot_settings(self, context=None):
+    def get_robot_model(self, context=None):
         """
         Can return `None`
         """
@@ -74,8 +74,8 @@ class SettingsManager:
             return self._context_settings
 
         try:
-            settings = self.session.query(RobotSettings).\
-                    filter(RobotSettings.context == context).first()
+            settings = self.session.query(RobotModel).\
+                    filter(RobotModel.context == context).first()
         except _alchy.exc.OperationalError:
             return None
 
@@ -85,20 +85,31 @@ class SettingsManager:
         if context is None:
             settings = self._context_settings
         else:
-            settings = self.get_robot_settings(context)
+            settings = self.get_robot_model(context)
         settings = self.session.query('shell_settings').\
                 filter(robot=settings.id).first()
 
-    def create_robot_settings(self, settings: dict):
+    def create_robot_model(self, settings: dict):
+        adapters = settings.pop('startup_adapters', [])
         # TODO: Validate settings here instead of passing in directly
-        new_robot = RobotSettings(**settings)
+        new_robot = RobotModel(**settings)
+
+        for adapter in adapters:
+            if isinstance(adapter, Adapter):
+                new_robot.startup_adapters.append(adapter)
+            else:
+                adapter = self.session.query(Adapter).\
+                        filter(Adapter.name==Adapter).first()
+
+                new_robot.startup_adapters.append(adapter)
+
         self.session.add(new_robot)
         self.session.commit()
         # TODO: return validation errors, if any
 
-    def update_robot_settings(self, settings: dict):
-        self.session.query(RobotSettings).\
-                filter(RobotSettings.id == settings.pop('id')).\
+    def update_robot_model(self, settings: dict):
+        self.session.query(RobotModel).\
+                filter(RobotModel.id == settings.pop('id')).\
                 update(settings)
 
         self.session.commit()
@@ -107,7 +118,7 @@ class SettingsManager:
         if context is None:
             settings = self._context_settings
         else:
-            settings = self.get_robot_settings(context)
+            settings = self.get_robot_model(context)
 
         adapters = self.session.query(Adapter.name).\
                 filter(Adapter.contexts.any(context=context))\
@@ -116,7 +127,7 @@ class SettingsManager:
         return adapters
 
     def get_robot_contexts(self):
-        result = self.session.query(RobotSettings.context).all()[0]
+        result = self.session.query(RobotModel.context).all()[0]
         return result
 
     def get_adapter_settings(self, kls, context=None):

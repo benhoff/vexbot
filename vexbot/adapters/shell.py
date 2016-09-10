@@ -26,9 +26,9 @@ class ShellSettings(Base):
     __tablename__ = 'shell_settings'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     history_filepath = _alchy.Column(_alchy.String(length=4096))
-    robot_settings = relationship("RobotSettings")
-    robot_settings_id = _alchy.Column(_alchy.Integer,
-                                      _alchy.ForeignKey('robot_settings.id'))
+    robot_model = relationship("RobotModel")
+    robot_model_id = _alchy.Column(_alchy.Integer,
+                                   _alchy.ForeignKey('robot_models.id'))
 
 
 class Shell(cmd.Cmd):
@@ -164,7 +164,7 @@ class Shell(cmd.Cmd):
         returns settings minus the `_sa_instance_state`
         used in `do_create_robot_settings`
         """
-        old_settings = self.settings_manager.get_robot_settings(context)
+        old_settings = self.settings_manager.get_robot_model(context)
         if old_settings is None:
             return dict()
         old_settings = dict(old_settings.__dict__)
@@ -247,9 +247,9 @@ class Shell(cmd.Cmd):
         s['starting_adapters'] = starting_adapters
 
         if 'id' in s:
-            settings_manager.update_robot_settings(s)
+            settings_manager.update_robot_model(s)
         else:
-            settings_manager.create_robot_settings(s)
+            settings_manager.create_robot_model(s)
 
         if s['context'] == self._context:
             self.do_context(self._context)
@@ -277,7 +277,7 @@ class Shell(cmd.Cmd):
     def do_contexts(self, arg):
         if arg:
             # Do this first for now, in case our user messes up
-            settings = self.settings_manager.get_robot_settings(arg)
+            settings = self.settings_manager.get_robot_model(arg)
             if settings is None:
                 return
             # FIXME----

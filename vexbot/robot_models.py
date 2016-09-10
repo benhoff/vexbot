@@ -11,16 +11,16 @@ _AFK = _alchy.ForeignKey
 
 adapter_robot_association_table = _T('adapter_robot_association',
                                      Base.metadata,
-                                     _C('robot_settings_id',
+                                     _C('robot_models_id',
                                         _alchy.Integer,
-                                        _AFK('robot_settings.id')),
+                                        _AFK('robot_models.id')),
                                      _C('adapter_id',
                                         _alchy.Integer,
                                         _AFK('adapters.id')))
 
 
-class RobotSettings(Base):
-    __tablename__ = 'robot_settings'
+class RobotModel(Base):
+    __tablename__ = 'robot_models'
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     # Robot context
     context = _alchy.Column(_alchy.String(length=50), unique=True)
@@ -47,7 +47,7 @@ class Adapter(Base):
                          unique=True,
                          nullable=False)
 
-    robots = relationship('RobotSettings',
+    robots = relationship('RobotModel',
                           secondary=adapter_robot_association_table,
                           back_populates='startup_adapters')
 
@@ -58,9 +58,9 @@ class AdapterConfiguration(Base):
     id = _alchy.Column(_alchy.Integer, primary_key=True)
     name = _alchy.Column(_alchy.String(length=100))
     attributes = relationship("AdapterAttributes")
-    robot_settings = relationship("RobotSettings")
-    robot_settings_id = _alchy.Column(_alchy.Integer,
-                                      _alchy.ForeignKey('robot_settings.id'))
+    robot_models = relationship("RobotModel")
+    robot_models_id = _alchy.Column(_alchy.Integer,
+                                      _alchy.ForeignKey('robot_models.id'))
 
 
 class AdapterAttributes(Base):

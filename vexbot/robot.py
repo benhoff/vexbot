@@ -18,8 +18,8 @@ class Robot:
         name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = logging.getLogger(name)
         self.settings_manager = SettingsManager(context=context)
-        robot_settings = self.settings_manager.get_robot_settings()
-        if robot_settings is None:
+        robot_model = self.settings_manager.get_robot_model()
+        if robot_model is None:
             s = textwrap.dedent('The context: `{}` was not found in settings. Be sure to '
                                 'create this using `create_robot_settings` in the shell adapter, or another '
                                 'fashion, and relaunch vexbot. Exiting robot now.'.format(context))
@@ -28,9 +28,9 @@ class Robot:
             sys.exit(1)
 
         self.messaging = Messaging(context,
-                                   robot_settings.publish_address,
-                                   robot_settings.subscribe_address,
-                                   robot_settings.monitor_address)
+                                   robot_model.publish_address,
+                                   robot_model.subscribe_address,
+                                   robot_model.monitor_address)
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
@@ -71,11 +71,11 @@ class Robot:
         startup_adapters = self.settings_manager.get_startup_adapters()
         self.subprocess_manager.start(startup_adapters)
 
-        self.name = robot_settings.name
+        self.name = robot_model.name
         self.command_manager = BotCommandManager(robot=self)
         try:
             import setproctitle
-            setproctitle.setproctitle(robot_settings.name)
+            setproctitle.setproctitle(robot_model.name)
         except ImportError:
             pass
 

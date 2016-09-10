@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import create_engine as _create_engine
 
-import vexbot.robot_settings as _robot
+import vexbot.robot_models as _robot
 import vexbot.adapters.shell as _shell
 import vexbot.adapters.irc as _irc
 import vexbot.adapters.xmpp as _xmpp

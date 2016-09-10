@@ -40,9 +40,9 @@ class XMPPSettings(Base):
     domain = _alchy.Column(_alchy.String(length=50))
     publish_address = _alchy.Column(_alchy.String(length=100))
     subscribe_address = _alchy.Column(_alchy.String(length=100))
-    robot_settings = relationship("RobotSettings")
-    robot_settings_id = _alchy.Column(_alchy.Integer,
-                                      _alchy.ForeignKey('robot_settings.id'))
+    robot_model = relationship("RobotModel")
+    robot_model_id = _alchy.Column(_alchy.Integer,
+                                   _alchy.ForeignKey('robot_models.id'))
 
 class XMPPBot(ClientXMPP):
     def __init__(self,

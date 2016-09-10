@@ -12,4 +12,4 @@ def quickstart():
             'monitor_address': '',}
 
 
-    settings_manager.create_robot_settings(default_settings)
+    settings_manager.create_robot_model(default_settings)
