@@ -89,28 +89,40 @@ class SettingsManager:
         settings = self.session.query('shell_settings').\
                 filter(robot=settings.id).first()
 
+    def _handle_startup_adapters(self,
+                                 model: RobotModel,
+                                 startup_adapters: list):
+
+        for adapter in startup_adapters:
+            if isinstance(adapter, Adapter):
+                model.startup_adapters.append(adapter)
+            else:
+                adapter = self.session.query(Adapter).\
+                        filter(Adapter.name==adapter).first()
+
+                print(adapter, bool(adapter))
+
+                if adapter:
+                    model.startup_adapters.append(adapter)
+
     def create_robot_model(self, settings: dict):
         adapters = settings.pop('startup_adapters', [])
         # TODO: Validate settings here instead of passing in directly
         new_robot = RobotModel(**settings)
+        self._handle_startup_adapters(new_robot, adapters)
 
-        for adapter in adapters:
-            if isinstance(adapter, Adapter):
-                new_robot.startup_adapters.append(adapter)
-            else:
-                adapter = self.session.query(Adapter).\
-                        filter(Adapter.name==Adapter).first()
-
-                new_robot.startup_adapters.append(adapter)
 
         self.session.add(new_robot)
         self.session.commit()
         # TODO: return validation errors, if any
 
     def update_robot_model(self, settings: dict):
-        self.session.query(RobotModel).\
-                filter(RobotModel.id == settings.pop('id')).\
-                update(settings)
+        adapters = settings.pop('startup_adapters', [])
+        model = self.session.query(RobotModel).\
+                filter(RobotModel.id == settings.pop('id')).first()
+        self._handle_startup_adapters(model, adapters)
+        for k, v in settings.items():
+            setattr(model, k, v)
 
         self.session.commit()
 
@@ -120,11 +132,7 @@ class SettingsManager:
         else:
             settings = self.get_robot_model(context)
 
-        adapters = self.session.query(Adapter.name).\
-                filter(Adapter.contexts.any(context=context))\
-                .all()
-
-        return adapters
+        return [x.name for x in settings.startup_adapters]
 
     def get_robot_contexts(self):
         result = self.session.query(RobotModel.context).all()[0]
@@ -142,4 +150,5 @@ class SettingsManager:
             else:
                 instance = Adapter(name=adapter)
                 self.session.add(instance)
+
         self.session.commit()

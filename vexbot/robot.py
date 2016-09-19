@@ -45,7 +45,8 @@ class Robot:
         name_setting = zip(ps_names, plugin_settings)
         plugin_settings = {name: setting for name, setting in name_setting}
 
-        self.plugin_manager.add_entry_points('vexbot.adapters')
+        self.plugin_manager.add_entry_points(('vexbot.adapters',
+                                              'vexbot.plugins'))
 
         adapters, names = collect_ep()
         self.settings_manager.update_adapters(names)

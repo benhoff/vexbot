@@ -110,11 +110,12 @@ class SubprocessManager:
             dict_list = [executable, ]
             settings = self._settings.get(key)
             # TODO: Find better way todo this
-            settings_class = settings.get('settings_class')
+            settings_class = settings.pop('settings_class')
+            setting_values = {}
             if settings_class is not None:
                 get_adapter_settings = self._settings_manager.get_adapter_settings
                 setting_values = get_adapter_settings(settings_class, context)
-                if setting_values is None:
+                if setting_values is None or not setting_values:
                     continue
 
             filepath = settings.get('filepath')
@@ -127,7 +128,7 @@ class SubprocessManager:
 
             # NOTE: want to make sure I'm not messing with the state of 
             # the original dict that's tracked by the subprocess manager
-            # TODO: check if neccesairy
+            # TODO: check if recreating dict is neccesairy
             settings = dict(settings)
             # Not sure if this will work
             settings.update(setting_values)

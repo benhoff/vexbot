@@ -25,6 +25,12 @@ class CommandManager:
         """
         self._commands[command] = function_or_dict
 
+    def remove_command(self, command: str):
+        try:
+            return self._commands.pop(command)
+        except KeyError:
+            return None
+
     def is_command(self,
                    command: str,
                    call_command: bool=False) -> bool:

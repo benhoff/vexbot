@@ -35,20 +35,20 @@ setup(
         'Operating System :: OS Independent'],
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
-    entry_points={'vexbot.adapters': ['shell = vexbot.adapters.shell',
+    entry_points={'vexbot.adapters': ['shell = vexbot.adapters.shell.__main__',
                                       'irc = vexbot.adapters.irc',
                                       'xmpp = vexbot.adapters.xmpp',
                                       'socket_io = vexbot.adapters.socket_io',
                                       'youtube = vexbot.adapters.youtube_api'],
 
-                  'vexbot.adapter_settings': ['shell_settings = vexbot.adapters.shell:ShellSettings',
+                  'vexbot.adapter_settings': ['shell_settings = vexbot.adapters.shell.model:ShellSettings',
                                               'irc_settings = vexbot.adapters.irc:IrcSettings',
                                               'youtube_settings = vexbot.adapters.youtube_api:YoutubeSettings',
                                               'xmpp_settings = vexbot.adapters.xmpp:XMPPSettings',
                                               'socket_io_settings = vexbot.adapters.socket_io:SocketIOSettings'],
 
                   'console_scripts': ['vexbot=vexbot.__main__:main',
-                                      'vexbot_shell=vexbot.adapters.shell:main',
+                                      'vexbot_shell=vexbot.adapters.shell.__main__:main',
                                       'vexbot_quickstart=vexbot.util.quickstart:quickstart',
                                       'vexbot_create_database=vexbot.util.create_database:create_database']},
 

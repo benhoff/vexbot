@@ -2,7 +2,7 @@
 import atexit
 
 from vexbot.commands.start_vexbot import start_vexbot
-from vexbot.adapters.shell import main as shell_main
+from vexbot.adapters.shell.__main__ import main as shell_main
 
 
 def _kill_vexbot(process):
@@ -21,14 +21,6 @@ def main(settings=None):
         atexit.register(_kill_vexbot(process))
 
     shell_settings = settings.get('shell', {})
-    # TODO: are these next 5 lines needed?
-    process = process.poll()
-    if process is not None:
-        already_running = True
-    else:
-        already_running = False
-
-    shell_settings['already_running'] = already_running
     # Launch the shell interface
     shell_main(**shell_settings)
 
