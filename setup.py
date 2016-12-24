@@ -59,6 +59,8 @@ setup(
         'vexmessage',
         'pyyaml',
         'sqlalchemy',
+        # TODO: move as optional
+        'urwid',
         ],
 
     extras_require={

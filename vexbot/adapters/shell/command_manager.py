@@ -8,6 +8,12 @@ from vexbot.settings_manager import SettingsManager as _SettingsManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 
+from vexbot.adapters.shell.tui_robot_settings import main as robot_settings
+from vexbot.adapters.shell.tui_irc import main as irc_settings
+from vexbot.adapters.shell.tui_socket_io import main as socket_io_settings
+from vexbot.adapters.shell.tui_xmpp import main as xmpp_settings
+from vexbot.adapters.shell.tui_youtube import main as youtube_settings
+
 
 class ShellCommand(_Command):
     identchars = _cmd.IDENTCHARS
@@ -82,12 +88,6 @@ class ShellCommand(_Command):
             arg = self._context
         _start_vexbot(arg)
 
-    def do_update_robot_settings(self, arg):
-        if arg == '':
-            self.do_contexts('')
-
-        self.do_create_robot_settings(arg)
-
     def do_context(self, arg):
         if arg:
             return self.do_contexts(arg)
@@ -137,70 +137,11 @@ class ShellCommand(_Command):
         old_settings['startup_adapters'] = adapters
         return old_settings
 
-    def do_create_robot_settings(self, arg):
-        s = ('Default values are shown in `[]` after the prompt name. Pressin'
-             'g enter accepts the default value')
+    def do_robot_settings(self, arg):
+        robot_settings()
 
-        self.stdout.write('\n' + _textwrap.fill(s,
-                                                initial_indent='    ',
-                                                subsequent_indent='        ')
-                               + '\n\n')
-
-        s = {}
-        if arg == '':
-            arg = 'default'
-
-        s['context'] = self._prompt_helper('context [{}]: '.format(arg), arg)
-        if s['context'] is None:
-            self.stdout.write('\n')
-            return
-
-        s.update(self._get_old_settings(self.settings_manager,
-                                        s['context']))
-
-        s['name'] = self._prompt_helper('name [{}]: '.format(s.get('name', 'vexbot')),
-                                        s.get('name', 'vexbot'))
-
-        if s['name'] is None:
-            self.stdout.write('\n')
-            return
-
-        s['subscribe_address'] = self._prompt_helper('subscribe_address [{}]: '.format(s.get('subscribe_address',
-                                                                                       'tcp://127.0.0.1:4000')),
-                                               s.get('subscribe_address',
-                                                     'tcp://127.0.0.1:4000'))
-
-        if s['subscribe_address'] is None:
-            self.stdout.write('\n')
-            return
-
-        s['publish_address'] = self._prompt_helper('publish address [{}]: '.format(s.get('publish_address', 'tcp://127.0.0.1:4001')),
-                                               s.get('publish_address', 'tcp://127.0.0.1:4001'))
-
-        if s['publish_address'] is None:
-            self.stdout.write('\n')
-            return
-
-        s['monitor_address'] = self._prompt_helper('monitor address [{}]: '.format(s.get('monitor_address', '')),
-                                               s.get('monitor_address', ''))
-
-        if s['monitor_address'] is None:
-            self.stdout.write('\n')
-            return
-
-        # FIXME
-        starting_adapters = ' '.join(s.get('startup_adapters', ()))
-
-        starting_adapters = self._prompt_helper('starting adapters [{}]: '.format(starting_adapters),
-                                                starting_adapters)
-
-        if starting_adapters is not None:
-            starting_adapters = starting_adapters.lower().split()
-        else:
-            starting_adapters = []
-
-        s['startup_adapters'] = starting_adapters
-
+        # TODO: implement
+        """
         if 'id' in s:
             self.settings_manager.update_robot_model(s)
         else:
@@ -208,6 +149,19 @@ class ShellCommand(_Command):
 
         if s['context'] == self._context:
             self.do_context(self._context)
+        """
+
+    def do_irc_settings(self, arg):
+        irc_settings()
+
+    def do_xmpp_settings(self, arg):
+        xmpp_settings()
+
+    def do_youtube_settings(self, arg):
+        youtube_settings()
+
+    def do_socket_io_settings(self, arg):
+        socket_io_settings()
 
     def _prompt_helper(self, prompt, default=None):
         """
