@@ -18,7 +18,6 @@ from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
-from vexbot.sql_helper import Base
 
 _GOOGLE_API_INSTALLED = True
 

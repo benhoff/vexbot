@@ -1,3 +1,4 @@
+import time
 import logging
 
 import zmq
@@ -6,13 +7,19 @@ import zmq.devices
 from vexmessage import create_vex_message
 
 
+class _HeartBeat:
+    def __init__(self, address):
+        pass
+
+
 class Messaging:
     # TODO: add an `update_messaging` command
     def __init__(self,
                  context,
                  publish_address=None,
                  subscribe_address=None,
-                 monitor_address=None):
+                 monitor_address=None,
+                 heartbeat_address=None):
 
         self._service_name = context
         self._proxy = None
@@ -20,6 +27,7 @@ class Messaging:
         self._publish_address = publish_address
         self._subscribe_address = subscribe_address
         self._monitor_address = monitor_address
+        self._heartbeat = _HeartBeat(heartbeat_address)
 
     def start(self, zmq_context=None):
         context = zmq_context or zmq.Context()
@@ -30,8 +38,9 @@ class Messaging:
         if self._publish_address:
             self._proxy.bind_in(self._publish_address)
         if self._subscribe_address:
-            self._proxy.bind_out(self._subscribe_address)
-            self.subscription_socket.connect(self._subscribe_address)
+            for s in self._subscribe_address:
+                self._proxy.bind_out(s)
+                self.subscription_socket.connect(s)
         if self._monitor_address:
             self._proxy.bind_mon(self._monitor_address)
 

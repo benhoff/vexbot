@@ -20,9 +20,9 @@ class YoutubeSettings(Adapter):
 class IrcSettings(Adapter):
     __tablename__ = 'irc_settings'
     id = Column(Integer, primary_key=True)
-    adapter = Column(Integer,
-                     ForeignKey('adapters.id'),
-                     nullable=False)
+    adapter_id = Column(Integer,
+                        ForeignKey('adapters.id'),
+                        nullable=False)
 
     adapter = relationship("Adapter")
     password = Column(String(length=100))
@@ -35,9 +35,9 @@ class IrcSettings(Adapter):
 class XMPPSettings(Adapter):
     __tablename__ = 'xmpp_settings'
     id = Column(Integer, primary_key=True)
-    adapter = Column(Integer,
-                     ForeignKey('adapters.id'),
-                     nullable=False)
+    adapter_id = Column(Integer,
+                        ForeignKey('adapters.id'),
+                        nullable=False)
 
     adapter = relationship("Adapter")
     password = Column(String(length=100))
@@ -45,15 +45,16 @@ class XMPPSettings(Adapter):
     bot_nick = Column(String(length=30))
     room = Column(String(length=30))
     domain = Column(String(length=50))
+
     __mapper_args__ = {'concrete':True}
 
 
 class SocketIOSettings(Adapter):
     __tablename__ = 'socket_io_settings'
     id = Column(Integer, primary_key=True)
-    adapter = Column(Integer,
-                     ForeignKey('adapters.id'),
-                     nullable=False)
+    adapter_id = Column(Integer,
+                        ForeignKey('adapters.id'),
+                        nullable=False)
     adapter = relationship("Adapter")
     service_name = Column(String(length=50))
     streamer_name = Column(String(length=50))
@@ -67,7 +68,7 @@ class ShellSettings(Adapter):
     id = Column(Integer, primary_key=True)
     history_filepath = Column(String(length=4096))
     adapter = relationship("Adapter")
-    adapter = Column(Integer,
-                     ForeignKey('adapters.id'),
-                     nullable=False)
+    adapter_id = Column(Integer,
+                        ForeignKey('adapters.id'),
+                        nullable=False)
     __mapper_args__ = {'concrete':True}

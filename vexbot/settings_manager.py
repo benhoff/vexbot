@@ -8,8 +8,8 @@ import sqlalchemy.orm as _orm
 
 from sqlalchemy import create_engine as _create_engine
 
-from vexbot.sql_helper import Base
-from vexbot.models import RobotModel, Adapter, Module
+from vexbot.models import Base, RobotModel, Adapter, Module, ZmqAddress
+import vexbot.adapters.models
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
@@ -57,6 +57,45 @@ class SettingsManager:
         settings = self.get_robot_model(context)
         self._context_settings = settings
 
+    def get_all_contexts(self):
+        return self.session.query(RobotModel.context)[0]
+
+    def get_all_addresses(self):
+        return self.session.query(ZmqAddress.address)[0]
+
+    def get_startup_adapters(self, context=None):
+        model = self.get_robot_model(context)
+        adapters = model.startup_adapters
+        return adapters
+
+    def create_default(self):
+        pub = self.get_or_create_address('127.0.0.1:4001')
+        model = RobotModel(context='default',
+                           name='vexbot',
+                           publish_address=pub.id)
+
+        sub = self.get_or_create_address('127.0.0.1:4000')
+        model.subscribe_addresses.append(sub)
+        self.session.add(model)
+        self.session.commit()
+
+        return True
+
+
+    def get_or_create_address(self, address):
+        if address.startswith('tcp://'):
+            # TODO: CHECK that this works
+            address = address[6:]
+
+        address_obj = self.session.query(ZmqAddress).\
+                filter(ZmqAddress.address == address).first()
+        if address_obj:
+            return address_obj
+
+        address = ZmqAddress(address=address)
+        self.session.add(address)
+        return address
+
     def add_module(self, module: str):
         instance = Module(name=module)
         self.session.add(instance)
@@ -69,11 +108,8 @@ class SettingsManager:
         if context is None:
             return self._context_settings
 
-        try:
-            settings = self.session.query(RobotModel).\
-                    filter(RobotModel.context == context).first()
-        except _alchy.exc.OperationalError:
-            settings = None
+        settings = self.session.query(RobotModel).\
+                filter(RobotModel.context == context).first()
 
         return settings
 

@@ -35,6 +35,13 @@ startup_adapters_assoc = Table('startup_adapters',
                                Integer,
                                ForeignKey('adapters.id')))
 
+def _zmq_address_stripper(address):
+    if address.startswith('tcp://'):
+        return address[6:]
+
+    return address
+
+
 class RobotModel(Base):
     __tablename__ = 'robot_models'
     id = Column(Integer, primary_key=True)
@@ -45,12 +52,32 @@ class RobotModel(Base):
     subscribe_addresses = relationship('ZmqAddress', secondary=robot_address)
     startup_adapters = relationship('Adapter', secondary=startup_adapters_assoc)
 
+    @property
+    def zmq_monitor_address(self):
+        if not self.monitor_address:
+            return None
+        return self.monitor_address.zmq_address
+
+    @property
+    def zmq_publish_address(self):
+        if not self.publish_address:
+            return None
+        return self.publish_address.zmq_address
+
+    @property
+    def zmq_subscription_addresses(self):
+        if self.subscribe_addresses:
+            return [x.zmq_address for x in self.subscribe_addresses]
+        else:
+            return list()
+
 
 class ZmqAddress(Base):
     __tablename__ = 'zmq_addresses'
     id = Column(Integer, primary_key=True)
-    address = Column(String(100), nullable=False)
+    address = Column(String(100), nullable=False, unique=True)
 
+    @property
     def zmq_address(self):
         """
         default to tcp transport for now

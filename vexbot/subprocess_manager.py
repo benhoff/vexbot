@@ -7,9 +7,6 @@ from sqlalchemy import inspect as _sql_inspect
 import sqlalchemy as _alchy
 import sqlalchemy.orm as _orm
 
-from vexbot.sql_helper import Base
-from vexbot.models import RobotModel
-
 
 class SubprocessManager:
     def __init__(self, settings_manager=None):

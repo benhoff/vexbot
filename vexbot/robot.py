@@ -33,9 +33,9 @@ class Robot:
             sys.exit(1)
 
         self.messaging = Messaging(context,
-                                   robot_model.publish_address,
-                                   robot_model.subscribe_address,
-                                   robot_model.monitor_address)
+                                   robot_model.zmq_publish_address,
+                                   robot_model.zmq_subscription_addresses,
+                                   robot_model.zmq_monitor_address)
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()
@@ -52,7 +52,7 @@ class Robot:
         # self.plugin_manager.add_entry_points(('vexbot.plugins',))
 
         adapters = collect_ep(return_dict=True)
-        self.settings_manager.update_adapters(adapters.keys())
+        self.settings_manager.update_modules(adapters.keys())
         for name, adapter in adapters.items():
             adapters[name] = value.__file__
 
@@ -73,7 +73,6 @@ class Robot:
             self.subprocess_manager.set_settings_class(name, setting_class)
 
         startup_adapters = self.settings_manager.get_startup_adapters()
-        print(startup_adapters)
         self.subprocess_manager.start(startup_adapters)
 
         self.name = robot_model.name

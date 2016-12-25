@@ -41,7 +41,8 @@ class ZmqMessaging:
                 self.set_socket_filter(self._socket_filter)
 
         if self._sub_address:
-            self.sub_socket.connect(self._sub_address)
+            for s in self._sub_address:
+                self.sub_socket.connect(s)
 
         self._messaging_started = True
 
@@ -49,8 +50,9 @@ class ZmqMessaging:
         if self._pub_address:
             self.pub_socket.connect(self._pub_address)
         if self._sub_address:
-            self.sub_socket.connect(self._sub_address)
-            self.set_socket_filter(self._socket_filter)
+            for s in self._sub_address:
+                self.sub_socket.connect(s)
+                self.set_socket_filter(self._socket_filter)
 
     def set_socket_filter(self, filter_):
         if self.sub_socket:

@@ -12,12 +12,6 @@ def main():
             blank,
             urwid.Edit('Name: '),
             blank,
-            *Address('Subscription').content,
-            blank,
-            *Address('Publish').content,
-            blank,
-            *Address('Monitor').content,
-            blank,
             urwid.GridFlow(
                 [urwid.AttrWrap(urwid.Button(txt, button_press),
                     'buttn', 'buttnf') for txt in ['Ok', 'Cancel']],

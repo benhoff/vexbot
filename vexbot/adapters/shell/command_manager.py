@@ -7,12 +7,7 @@ from vexbot.command_managers import CommandManager as _Command
 from vexbot.settings_manager import SettingsManager as _SettingsManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
-
-from vexbot.adapters.shell.tui_robot_settings import main as robot_settings
-from vexbot.adapters.shell.tui_irc import main as irc_settings
-from vexbot.adapters.shell.tui_socket_io import main as socket_io_settings
-from vexbot.adapters.shell.tui_xmpp import main as xmpp_settings
-from vexbot.adapters.shell.tui_youtube import main as youtube_settings
+from vexbot.adapters.shell.tui import VexTextInterface
 
 
 class ShellCommand(_Command):
@@ -39,6 +34,7 @@ class ShellCommand(_Command):
         self.messaging = messaging
         self.messaging.start_messaging()
         self.settings_manager = _SettingsManager(context=context)
+        self._text_interface = VexTextInterface(self.settings_manager)
 
         self._context = context
         self.do_context(context)
@@ -110,8 +106,8 @@ class ShellCommand(_Command):
                 m.sub_socket.disconnect(m._sub_address)
             # ------
 
-            self.messaging._pub_address = settings.publish_address
-            self.messaging._sub_address = settings.subscribe_address
+            self.messaging._pub_address = settings.zmq_publish_address
+            self.messaging._sub_address = settings.zmq_subscription_addresses
             self.messaging.update_messaging()
             self._context = arg
         else:
@@ -138,7 +134,7 @@ class ShellCommand(_Command):
         return old_settings
 
     def do_robot_settings(self, arg):
-        robot_settings()
+        self._text_interface.robot_settings()
 
         # TODO: implement
         """
