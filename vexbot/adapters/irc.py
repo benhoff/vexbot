@@ -6,15 +6,12 @@ import argparse
 import logging
 import pkg_resources
 
-import sqlalchemy as _alchy
-
 import zmq
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
-from vexbot.sql_helper import Base
 
 _IRC3_INSTALLED = True
 
@@ -22,22 +19,6 @@ try:
     pkg_resources.get_distribution('irc3')
 except pkg_resources.DistributionNotFound:
     _IRC3_INSTALLED = False
-
-
-class IrcSettings(Base):
-    __tablename__ = 'irc_settings'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    service_name = _alchy.Column(_alchy.String(length=50), unique=True)
-    password = _alchy.Column(_alchy.String(length=100))
-    channel = _alchy.Column(_alchy.String(length=30))
-    nick = _alchy.Column(_alchy.String(length=30))
-    host = _alchy.Column(_alchy.String(length=50))
-    publish_address = _alchy.Column(_alchy.String(length=100))
-    subscribe_address = _alchy.Column(_alchy.String(length=100))
-    robot_model_id = _alchy.Column(_alchy.Integer,
-                                      _alchy.ForeignKey('robot_models.id'))
-
-    robot_model = _alchy.orm.relationship("RobotModel")
 
 
 if _IRC3_INSTALLED:

@@ -8,15 +8,11 @@ import atexit
 from time import sleep
 from threading import Thread
 
-import sqlalchemy as _alchy
-from sqlalchemy.orm import relationship
-
 from zmq import ZMQError
 from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
-from vexbot.sql_helper import Base
 
 _WEBSOCKET_INSTALLED = True
 _REQUESTS_INSTALLED = True
@@ -40,20 +36,6 @@ if _REQUESTS_INSTALLED:
     import requests
 else:
     pass
-
-
-class SocketIOSettings(Base):
-    __tablename__ = 'socket_io_settings'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    service_name = _alchy.Column(_alchy.String(length=50))
-    streamer_name = _alchy.Column(_alchy.String(length=50))
-    namespace = _alchy.Column(_alchy.String(length=20))
-    website_url = _alchy.Column(_alchy.String(length=200))
-    publish_address = _alchy.Column(_alchy.String(length=100))
-    subscribe_address = _alchy.Column(_alchy.String(length=100))
-    robot_model = relationship("RobotModel")
-    robot_model_id = _alchy.Column(_alchy.Integer,
-                                   _alchy.ForeignKey('robot_models.id'))
 
 
 class WebSocket(WebSocketApp):

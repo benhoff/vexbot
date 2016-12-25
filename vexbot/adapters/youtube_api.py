@@ -77,17 +77,6 @@ def _send_disconnect(messaging):
     return inner
 
 
-class YoutubeSettings(Base):
-    __tablename__ = 'youtube_settings'
-    id = _alchy.Column(_alchy.Integer, primary_key=True)
-    publish_address = _alchy.Column(_alchy.String(length=100))
-    subscribe_address = _alchy.Column(_alchy.String(length=100))
-    client_secret_filepath = _alchy.Column(_alchy.String(length=4096))
-    robot_model = relationship("RobotModel")
-    robot_model_id = _alchy.Column(_alchy.Integer,
-                                   _alchy.ForeignKey('robot_models.id'))
-
-
 def main(client_secret_filepath, publish_address, subscribe_address):
     if not _GOOGLE_API_INSTALLED:
         logging.error('`google-api-python-client` required to use youtube. Install using `pip install google-api-python-client')

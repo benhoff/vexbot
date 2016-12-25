@@ -3,6 +3,11 @@ import logging
 import textwrap
 import argparse
 
+try:
+    import setproctitle
+except ImportError:
+    pass
+
 import pluginmanager
 
 from vexmessage import decode_vex_message
@@ -41,21 +46,19 @@ class Robot:
         # Note: pluginmanager should probably return a `dict` instead of
         # two lists. Should probably fix
         collect_ep = self.plugin_manager.collect_entry_point_plugins
-        plugin_settings, ps_names = collect_ep('vexbot.adapter_settings')
-        name_setting = zip(ps_names, plugin_settings)
-        plugin_settings = {name: setting for name, setting in name_setting}
+        plugin_settings = collect_ep('vexbot.adapter_settings',
+                                     return_dict=True)
 
-        self.plugin_manager.add_entry_points(('vexbot.adapters',
-                                              'vexbot.plugins'))
+        # self.plugin_manager.add_entry_points(('vexbot.plugins',))
 
-        adapters, names = collect_ep()
-        self.settings_manager.update_adapters(names)
-        adapters = {name: p.__file__ for p, name in zip(adapters, names)}
-
+        adapters = collect_ep(return_dict=True)
+        self.settings_manager.update_adapters(adapters.keys())
         for name, adapter in adapters.items():
+            adapters[name] = value.__file__
+
             self.subprocess_manager.register(name,
                                              sys.executable,
-                                             {'filepath': adapter})
+                                             {'filepath': adapter.__file__})
 
             try:
                 # using convention to snag plugin settings.
@@ -70,14 +73,14 @@ class Robot:
             self.subprocess_manager.set_settings_class(name, setting_class)
 
         startup_adapters = self.settings_manager.get_startup_adapters()
+        print(startup_adapters)
         self.subprocess_manager.start(startup_adapters)
 
         self.name = robot_model.name
         self.command_manager = BotCommandManager(robot=self)
         try:
-            import setproctitle
             setproctitle.setproctitle(robot_model.name)
-        except ImportError:
+        except NameError: # this will happen if setproctitil is not installed
             pass
 
     def run(self):

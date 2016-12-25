@@ -1,12 +1,8 @@
 import os
 from sqlalchemy import create_engine as _create_engine
 
-import vexbot.robot_models as _robot
-import vexbot.adapters.shell.model as _shell
-import vexbot.adapters.irc as _irc
-import vexbot.adapters.xmpp as _xmpp
-import vexbot.adapters.youtube_api as _youtube
-import vexbot.adapters.socket_io as _socket
+from vexbot.models import Base
+import vexbot.adapters.models
 
 
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
@@ -18,5 +14,4 @@ def create_database():
     if not os.path.isdir(directory):
         os.mkdir(directory)
     engine = _create_engine('sqlite:///{}'.format(database_filepath))
-    for file in [_robot, _shell, _socket, _irc, _xmpp, _youtube]:
-        file.Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)

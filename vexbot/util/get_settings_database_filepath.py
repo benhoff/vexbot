@@ -1,6 +1,6 @@
 from os import path
 
-from vexbot.commands.create_vexdir import get_vexdir_filepath as _get_vexdir_filpath
+from vexbot.util.create_vexdir import get_vexdir_filepath as _get_vexdir_filpath
 
 def get_settings_database_filepath():
     vexdir = _get_vexdir_filpath()

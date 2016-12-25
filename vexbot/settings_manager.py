@@ -9,7 +9,7 @@ import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.sql_helper import Base
-from vexbot.robot_models import RobotModel, Adapter
+from vexbot.models import RobotModel, Adapter, Module
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
@@ -57,13 +57,9 @@ class SettingsManager:
         settings = self.get_robot_model(context)
         self._context_settings = settings
 
-    def add_adapters(self, adapters: list):
-        # FIXME
-        self.update_adapters(adapters)
-
-    def add_adapter(self, adapter: str):
-        new_adapter = Adapter(name=adapter)
-        self.session.add(new_adapter)
+    def add_module(self, module: str):
+        instance = Module(name=module)
+        self.session.add(instance)
         self.session.commit()
 
     def get_robot_model(self, context=None):
@@ -77,17 +73,9 @@ class SettingsManager:
             settings = self.session.query(RobotModel).\
                     filter(RobotModel.context == context).first()
         except _alchy.exc.OperationalError:
-            return None
+            settings = None
 
         return settings
-
-    def get_shell_settings(self, context=None):
-        if context is None:
-            settings = self._context_settings
-        else:
-            settings = self.get_robot_model(context)
-        settings = self.session.query('shell_settings').\
-                filter(robot=settings.id).first()
 
     def _handle_startup_adapters(self,
                                  model: RobotModel,
@@ -105,50 +93,14 @@ class SettingsManager:
                 if adapter:
                     model.startup_adapters.append(adapter)
 
-    def create_robot_model(self, settings: dict):
-        adapters = settings.pop('startup_adapters', [])
-        # TODO: Validate settings here instead of passing in directly
-        new_robot = RobotModel(**settings)
-        self._handle_startup_adapters(new_robot, adapters)
-
-
-        self.session.add(new_robot)
-        self.session.commit()
-        # TODO: return validation errors, if any
-
-    def update_robot_model(self, settings: dict):
-        adapters = settings.pop('startup_adapters', [])
-        model = self.session.query(RobotModel).\
-                filter(RobotModel.id == settings.pop('id')).first()
-        self._handle_startup_adapters(model, adapters)
-        for k, v in settings.items():
-            setattr(model, k, v)
-
-        self.session.commit()
-
-    def get_startup_adapters(self, context=None):
-        if context is None:
-            settings = self._context_settings
-        else:
-            settings = self.get_robot_model(context)
-
-        return [x.name for x in settings.startup_adapters]
-
-    def get_robot_contexts(self):
-        result = self.session.query(RobotModel.context).all()[0]
-        return result
-
-    def get_adapter_settings(self, kls, context=None):
-        pass
-
-    def update_adapters(self, adapters: list):
-        for adapter in adapters:
-            instance = self.session.query(Adapter).\
-                    filter(Adapter.name==adapter).first()
+    def update_modules(self, modules: list):
+        for module in modules:
+            instance = self.session.query(Module).\
+                    filter(Module.name==module).first()
             if instance:
                 continue
             else:
-                instance = Adapter(name=adapter)
+                instance = Module(name=module)
                 self.session.add(instance)
 
         self.session.commit()
