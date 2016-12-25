@@ -2,8 +2,6 @@ import sys
 from os import path
 from subprocess import Popen
 
-from vexbot.argenvconfig import ArgEnvConfig
-
 
 def start_vexbot(context='default'):
     """
