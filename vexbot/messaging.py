@@ -1,9 +1,8 @@
-import os
 import sys
 import time
-import traceback
 import logging
 from threading import Thread
+from contextlib import ContextDecorator
 
 import zmq
 import zmq.devices
@@ -20,9 +19,6 @@ class Messaging:
                  heartbeat_address=None):
 
         self._service_name = context
-        self._proxy = None
-        self._messaging_started = False
-        self._types = ['publish', 'subscribe', 'heartbeat']
         self.address = {'publish': publish_address,
                         'subscriptions': subscribe_address,
                         'heartbeat': heartbeat_address}
@@ -33,10 +29,11 @@ class Messaging:
                        'heartbeat': None}
 
         self._poller = zmq.Poller()
-        self.subscription_socket = None
-        self.publish_socket = None
         self._thread = None
         self.running = False
+
+        self.subscription_socket = None
+        self.publish_socket = None
 
     def start(self, zmq_context=None):
         context = zmq_context or zmq.Context()
@@ -51,45 +48,71 @@ class Messaging:
         # out type
         pub = context.socket(zmq.XPUB)
         addresses = self.address['subscriptions']
+
+        _sub_failures = 0
         if addresses:
             for addr in addresses:
-                pub.bind(addr)
+                try:
+                    pub.bind(addr)
+                except zmq.error.ZMQError:
+                    _sub_failures += 1
+
                 self.subscription_socket.connect(addr)
 
+        if _sub_failures == len(
+
         self.socket['publish'] = pub
-        self._poller.register(pub, zmq.POLLOUT)
+        self._poller.register(pub, zmq.POLLIN)
 
         # in type
         sub = context.socket(zmq.XSUB)
         sub_addr = self.address['publish']
         if sub_addr:
-            sub.bind(sub_addr)
+            try:
+                sub.bind(sub_addr)
+            except zmq.error.ZMQError:
+                sys.exit(1)
             self.publish_socket.connect(sub_addr)
 
         self.socket['subscribe'] = sub
         self._poller.register(sub, zmq.POLLIN)
 
         # heartbeat
-        heartbeat = context.socket(zmq.PUB)
+        heartbeat = context.socket(zmq.ROUTER)
         hb_addr = self.address['heartbeat']
         if hb_addr:
             heartbeat.bind(hb_addr)
 
         self.socket['heartbeat'] = heartbeat
-        self._poller.register(heartbeat, zmq.POLLOUT)
+        self._poller.register(heartbeat, zmq.POLLIN)
 
         def run():
             self.running = True
             time_start = time.time()
             while True:
-                socks = dict(self._poller.poll(500))
-                if sub in socks:
-                    pub.send(sub.recv(zmq.NOBLOCK))
+                socks = dict(self._poller.poll(timeout=500))
+                socks = dict(socks)
                 time_now = time.time()
                 time_delta = time_now - time_start
-                if time_delta > 0.75:
-                    heartbeat.send(b'', zmq.NOBLOCK)
-                    time_start = time_now
+                if sub in socks:
+                    try:
+                        msg = sub.recv_multipart(zmq.NOBLOCK)
+                        pub.send_multipart(msg)
+                    except zmq.error.Again:
+                        pass
+                if pub in socks:
+                    try:
+                        msg = pub.recv_multipart(zmq.NOBLOCK)
+                        sub.send_multipart(msg)
+                    except zmq.error.Again:
+                        pass
+
+                if heartbeat in socks:
+                    try:
+                        msg = heartbeat.recv_multipart(zmq.NOBLOCK)
+                        hearbeat.send_multipart([msg[0], b''], zmq.NOBLOCK)
+                    except zmq.error.Again:
+                        pass
 
         self._thread = Thread(target=run)
         self._thread.daemon = True
