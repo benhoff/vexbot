@@ -23,6 +23,7 @@ def main(settings=None):
     shell_settings = settings.get('shell', {})
     # Launch the shell interface
     shell_main(**shell_settings)
+    process.poll()
 
 
 if __name__ == "__main__":

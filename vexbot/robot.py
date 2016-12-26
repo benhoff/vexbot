@@ -35,7 +35,6 @@ class Robot:
         self.messaging = Messaging(context,
                                    robot_model.zmq_publish_address,
                                    robot_model.zmq_subscription_addresses,
-                                   robot_model.zmq_monitor_address,
                                    robot_model.zmq_heartbeat_address)
 
         # create the plugin manager
@@ -91,7 +90,7 @@ class Robot:
             logging.error('Subscription socket not set for context, check/set before running robot')
             return
         """
-        while True and self.messaging.running():
+        while True and self.messaging.running:
             frame = self.messaging.subscription_socket.recv_multipart()
             msg = None
             try:
