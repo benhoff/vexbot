@@ -70,9 +70,12 @@ class SettingsManager:
 
     def create_default(self):
         pub = self.get_or_create_address('127.0.0.1:4001')
+        heartbeat = self.get_or_create_address('127.0.0.1:4002')
+
         model = RobotModel(context='default',
                            name='vexbot',
-                           publish_address=pub.id)
+                           publish_address=pub,
+                           heartbeat_address=heartbeat)
 
         sub = self.get_or_create_address('127.0.0.1:4000')
         model.subscribe_addresses.append(sub)

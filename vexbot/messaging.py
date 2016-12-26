@@ -1,5 +1,6 @@
 import time
 import logging
+from threading import Thread
 
 import zmq
 import zmq.devices
@@ -9,7 +10,26 @@ from vexmessage import create_vex_message
 
 class _HeartBeat:
     def __init__(self, address):
-        pass
+        self.address = address
+        self.heartbeat_socket = None
+        self._time = None
+        self._thread = None
+
+    def start_beating(self, zmq_context=None):
+        context = zmq_context or zmq.Context()
+        self.heartbeat_socket = context.socket(zmq.PUB)
+        if self.address:
+            self.heartbeat_socket.bind(self.address)
+
+        self._time = time.time()
+        self._thread = Thread(target=self._beat)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def _beat(self):
+        while True:
+            time.sleep(1)
+            self.heartbeat_socket.send(b'')
 
 
 class Messaging:
@@ -45,6 +65,8 @@ class Messaging:
             self._proxy.bind_mon(self._monitor_address)
 
         self._proxy.start()
+        self._heartbeat.start_beating(context)
+
         self.publish_socket = context.socket(zmq.PUB)
         if self._publish_address:
             self.publish_socket.connect(self._publish_address)

@@ -47,8 +47,19 @@ class RobotModel(Base):
     id = Column(Integer, primary_key=True)
     context = Column(String(length=50), unique=True)
     name = Column(String(length=100), default='vexbot')
-    monitor_address = Column(Integer, ForeignKey('zmq_addresses.id'))
-    publish_address = Column(Integer, ForeignKey('zmq_addresses.id'))
+    monitor_address_id = Column(Integer, ForeignKey('zmq_addresses.id'))
+    publish_address_id = Column(Integer, ForeignKey('zmq_addresses.id'))
+    heartbeat_address_id = Column(Integer, ForeignKey('zmq_addresses.id'))
+
+    monitor_address = relationship('ZmqAddress',
+                                   foreign_keys=[monitor_address_id])
+
+    publish_address = relationship('ZmqAddress',
+                                   foreign_keys=[publish_address_id])
+
+    heartbeat_address = relationship('ZmqAddress',
+                                     foreign_keys=[heartbeat_address_id])
+
     subscribe_addresses = relationship('ZmqAddress', secondary=robot_address)
     startup_adapters = relationship('Adapter', secondary=startup_adapters_assoc)
 
@@ -63,6 +74,12 @@ class RobotModel(Base):
         if not self.publish_address:
             return None
         return self.publish_address.zmq_address
+
+    @property
+    def zmq_heartbeat_address(self):
+        if not self.heartbeat_address:
+            return None
+        return self.heartbeat_address.zmq_address
 
     @property
     def zmq_subscription_addresses(self):

@@ -1,4 +1,4 @@
-from vexbot.adapters.shell.shell import Shell
+from vexbot.adapters.shell.shell import PromptShell
 from vexbot.adapters.shell.controller import ShellController
 from vexbot.adapters.shell.command_manager import ShellCommand
 
@@ -15,10 +15,22 @@ def main(controller_kwargs=None,
         command_kwargs = {}
 
     # command manager is going to manage the messaging... for now
-    command = ShellCommand()
+    command = ShellCommand(**shell_kwargs)
     messaging = command.messaging
+    messaging.listen_for_heartbeats()
+
     # shell is the de-facto view
-    shell = Shell(command, **shell_kwargs)
+    shell = PromptShell(command, **shell_kwargs)
+
+    def no_bot(*args, **kwargs):
+        shell.set_bot_prompt_no()
+
+    def bot(*args, **kwargs):
+        shell.set_bot_prompt_yes()
+
+    messaging._heartbeat.set_false_callback(no_bot)
+    messaging._heartbeat.set_true_callback(bot)
+
     controller = ShellController(shell, messaging, **controller_kwargs)
     return controller.cmdloop()
 

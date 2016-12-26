@@ -35,7 +35,8 @@ class Robot:
         self.messaging = Messaging(context,
                                    robot_model.zmq_publish_address,
                                    robot_model.zmq_subscription_addresses,
-                                   robot_model.zmq_monitor_address)
+                                   robot_model.zmq_monitor_address,
+                                   robot_model.zmq_heartbeat_address)
 
         # create the plugin manager
         self.plugin_manager = pluginmanager.PluginInterface()

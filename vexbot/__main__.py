@@ -26,4 +26,5 @@ def main(settings=None):
 
 
 if __name__ == "__main__":
-    main()
+    debug = {'kill_on_exit': True}
+    main(debug)

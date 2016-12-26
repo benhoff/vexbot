@@ -35,6 +35,7 @@ class ShellCommand(_Command):
         self.messaging.start_messaging()
         self.settings_manager = _SettingsManager(context=context)
         self._text_interface = VexTextInterface(self.settings_manager)
+        self._robot_name = 'vexbot'
 
         self._context = context
         self.do_context(context)
@@ -108,6 +109,8 @@ class ShellCommand(_Command):
 
             self.messaging._pub_address = settings.zmq_publish_address
             self.messaging._sub_address = settings.zmq_subscription_addresses
+            self.messaging._heartbeat._address = settings.zmq_heartbeat_address
+            self._robot_name = settings.name
             self.messaging.update_messaging()
             self._context = arg
         else:

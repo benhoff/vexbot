@@ -1,59 +1,88 @@
 import cmd as _cmd
 import atexit as _atexit
 
+from prompt_toolkit import AbortAction, CommandLineInterface
+from prompt_toolkit.shortcuts import create_prompt_application, create_eventloop, create_output
+from prompt_toolkit.token import Token
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.contrib.completers import WordCompleter
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
+
 from vexbot import __version__
 
 
-class Shell(_cmd.Cmd):
+class PromptShell:
+    _NO_BOT = '<no bot detected>'
     def __init__(self,
                  command_manager,
-                 prompt_name='vexbot',
-                 already_running=False,
                  history_filepath=None):
 
-        super().__init__()
+        self._bot = self._NO_BOT
         self.command_manager = command_manager
-        self._set_readline_helper(history_filepath)
-        self.prompt = prompt_name + ': '
-        self.running = False
-        # FIXME
-        self.misc_header = "Commands"
 
-        self.stdout.write('Vexbot {}\n'.format(__version__))
-        if already_running:
-            self.stdout.write('vexbot already running\n')
-        self.stdout.write("    Type \"help\" for command line help or "
-                          "\"commands\" for bot commands\n    NOTE: "
-                          "\"commands\" will only work if bot is running\n\n")
+        history = None
+        if history_filepath is not None:
+            history = FileHistory(history_filepath)
+
+        self._history = history
+        # NOTE: there's a sentence option here that might be interesting to explore
+        self._completer = WordCompleter([], ignore_case=True)
+
+        def _get_prompt_tokens(*args):
+            return [(Token.Prompt, self.prompt)]
+
+        def _get_rprompt_tokens(*args):
+            return [(Token.RPrompt, self._bot)]
+
+        self.app = create_prompt_application(history=self._history,
+                                             auto_suggest=AutoSuggestFromHistory(),
+                                             get_prompt_tokens=_get_prompt_tokens,
+                                             get_rprompt_tokens=_get_rprompt_tokens,
+                                             enable_history_search=True,
+                                             on_abort=AbortAction.RETRY)
+
+        self.eventloop = create_eventloop()
+        self.cli = CommandLineInterface(application=self.app,
+                                        eventloop=self.eventloop,
+                                        output=create_output(true_color=False))
+
+        self._patch_context = self.cli.patch_stdout_context()
+
+    @property
+    def prompt(self):
+        context = self.command_manager._context
+        name = self.command_manager._robot_name
+        return '{}[{}]: '.format(name, context)
 
     def cmdloop(self, intro=None):
-        self.running = True
-        super().cmdloop(intro)
+        if intro:
+            print(intro, flush =True)
+        while True:
+            try:
+                with self._patch_context:
+                    result = self.cli.run()
+                    self.command_manager.handle_command(result.text)
+            except EOFError:
+                break
+        self.eventloop.close()
 
-    def default(self, arg):
-        self.command_manager.handle_command(arg)
+    def set_bot_prompt_no(self):
+        if not self._bot == self._NO_BOT:
+            self._bot = self._NO_BOT
+            self.cli.request_redraw()
 
-    def _set_readline_helper(self, history_file=None):
-        try:
-            import readline
-        except ImportError:
-            return
+    def set_bot_prompt_yes(self):
+        if not self.prompt == '':
+            self._bot = ''
+            self.cli.request_redraw()
 
-        try:
-            readline.read_history_file(history_file)
-        except IOError:
-            pass
-        readline.set_history_length(1000)
-        _atexit.register(readline.write_history_file, history_file)
-
-    def _create_command_function(self, command):
-        """
-        used to help add completions
-        """
-        def resulting_function(arg):
-            self.default(' '.join((command, arg)))
-
-        return resulting_function
+    """
+    self.stdout.write('Vexbot {}\n'.format(__version__))
+    self.stdout.write("    Type \"help\" for command line help or "
+                      "\"commands\" for bot commands\n    NOTE: "
+                      "\"commands\" will only work if bot is running\n\n")
+    """
 
     def get_names(self):
         names = dir(self)
@@ -95,11 +124,6 @@ class Shell(_cmd.Cmd):
         setattr(self,
                 'do_{}'.format(command),
                 self._create_command_function(command))
-
-    def do_EOF(self, arg):
-        self.stdout.write('\n')
-        self.running = False
-        return True
 
 
 def main(**kwargs):

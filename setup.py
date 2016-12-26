@@ -61,6 +61,7 @@ setup(
         'sqlalchemy',
         # TODO: move as optional
         'urwid',
+        'prompt_toolkit',
         ],
 
     extras_require={
