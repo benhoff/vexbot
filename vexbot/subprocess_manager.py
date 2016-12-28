@@ -91,11 +91,11 @@ class SubprocessManager:
 
     # TODO: add this functionality
     """
-    def start_one(self, key, context=None):
+    def start_one(self, key, profile=None):
         pass
     """
 
-    def start(self, keys: list, context=None):
+    def start(self, keys: list, profile=None):
         """
         starts subprocesses. Can pass in multiple subprocess to start
         """
@@ -111,7 +111,7 @@ class SubprocessManager:
             setting_values = {}
             if settings_class is not None:
                 get_adapter_settings = self._settings_manager.get_adapter_settings
-                setting_values = get_adapter_settings(settings_class, context)
+                setting_values = get_adapter_settings(settings_class, profile)
                 if setting_values is None or not setting_values:
                     continue
 

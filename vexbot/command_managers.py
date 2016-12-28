@@ -202,7 +202,7 @@ class BotCommandManager(CommandManager):
         sys.exit()
 
     def _context(self, msg):
-        return self._robot.settings_manager.context
+        return self._robot.settings_manager.profile
 
     def _alive(self, msg):
         """

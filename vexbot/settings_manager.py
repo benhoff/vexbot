@@ -23,7 +23,7 @@ def _create_session(filepath):
 
 
 class SettingsManager:
-    def __init__(self, filepath=None, context='default'):
+    def __init__(self, filepath=None, profile='default'):
         self._logger = logging.getLogger(__name__)
         default_filepath = False
         if filepath is None:
@@ -42,29 +42,29 @@ class SettingsManager:
             sys.exit(1)
 
         self.session = _create_session(filepath)
-        self._context = context
+        self._profile = profile 
         try:
-            self._context_settings = self.get_robot_model(context)
+            self._profile_settings = self.get_robot_model(profile)
         except _alchy.exc.OperationalError:
-            self._context_settings = None
+            self._profile_settings = None
 
     @property
-    def context(self):
-        return self._context
+    def profile(self):
+        return self._profile
 
-    @context.setter
-    def context(self, context):
-        settings = self.get_robot_model(context)
-        self._context_settings = settings
+    @profile.setter
+    def profile(self, profile):
+        settings = self.get_robot_model(profile)
+        self._profile_settings = settings
 
-    def get_all_contexts(self):
-        return self.session.query(RobotModel.context)[0]
+    def get_all_profiles(self):
+        return self.session.query(RobotModel.profile)[0]
 
     def get_all_addresses(self):
         return self.session.query(ZmqAddress.address)[0]
 
-    def get_startup_adapters(self, context=None):
-        model = self.get_robot_model(context)
+    def get_startup_adapters(self, profile=None):
+        model = self.get_robot_model(profile)
         adapters = model.startup_adapters
         return adapters
 
@@ -72,7 +72,7 @@ class SettingsManager:
         pub = self.get_or_create_address('127.0.0.1:4001')
         heartbeat = self.get_or_create_address('127.0.0.1:4002')
 
-        model = RobotModel(context='default',
+        model = RobotModel(profile='default',
                            name='vexbot',
                            publish_address=pub,
                            heartbeat_address=heartbeat)
@@ -104,15 +104,15 @@ class SettingsManager:
         self.session.add(instance)
         self.session.commit()
 
-    def get_robot_model(self, context=None):
+    def get_robot_model(self, profile=None):
         """
         Can return `None`
         """
-        if context is None:
-            return self._context_settings
+        if profile is None:
+            return self._profile_settings
 
         settings = self.session.query(RobotModel).\
-                filter(RobotModel.context == context).first()
+                filter(RobotModel.profile==profile).first()
 
         return settings
 

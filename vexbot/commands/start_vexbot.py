@@ -3,7 +3,7 @@ from os import path
 from subprocess import Popen
 
 
-def start_vexbot(context='default'):
+def start_vexbot(profile='default'):
     """
     starts up an instance of vexbot
     """
@@ -15,7 +15,7 @@ def start_vexbot(context='default'):
     # Start the subprocess
     main_robot_args = [sys.executable,
                        robot_filepath,
-                       context]
+                       profile]
 
     process = Popen(main_robot_args)
 

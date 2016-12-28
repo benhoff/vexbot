@@ -51,9 +51,9 @@ class PromptShell:
 
     @property
     def prompt(self):
-        context = self.command_manager._context
+        profile = self.command_manager._profile
         name = self.command_manager._robot_name
-        return '{}[{}]: '.format(name, context)
+        return '{}[{}]: '.format(name, profile)
 
     def cmdloop(self, intro=None):
         if intro:

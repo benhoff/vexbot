@@ -19,20 +19,20 @@ from vexbot.subprocess_manager import SubprocessManager
 
 
 class Robot:
-    def __init__(self, context='default'):
+    def __init__(self, profile='default'):
         name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = logging.getLogger(name)
-        self.settings_manager = SettingsManager(context=context)
+        self.settings_manager = SettingsManager(profile=profile)
         robot_model = self.settings_manager.get_robot_model()
         if robot_model is None:
-            s = textwrap.dedent('The context: `{}` was not found in settings. Be sure to '
+            s = textwrap.dedent('The profile: `{}` was not found in settings. Be sure to '
                                 'create this using `create_robot_settings` in the shell adapter, or another '
-                                'fashion, and relaunch vexbot. Exiting robot now.'.format(context))
+                                'fashion, and relaunch vexbot. Exiting robot now.'.format(profile))
 
             self._logger.warn(textwrap.fill(s, initial_indent='', subsequent_indent='    '))
             sys.exit(1)
 
-        self.messaging = Messaging(context,
+        self.messaging = Messaging(profile,
                                    robot_model.zmq_publish_address,
                                    robot_model.zmq_subscription_addresses,
                                    robot_model.zmq_heartbeat_address)
@@ -94,7 +94,7 @@ class Robot:
 
 def _get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('context', default='default', nargs='?')
+    parser.add_argument('profile', default='default', nargs='?')
     args = parser.parse_args()
     return args
 

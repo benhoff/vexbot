@@ -13,7 +13,7 @@ from vexbot.adapters.shell.tui import VexTextInterface
 class ShellCommand(_Command):
     identchars = _cmd.IDENTCHARS
     def __init__(self,
-                 context='default',
+                 profile='default',
                  messaging=None,
                  stdin=None,
                  stdout=None):
@@ -33,12 +33,12 @@ class ShellCommand(_Command):
 
         self.messaging = messaging
         self.messaging.start_messaging()
-        self.settings_manager = _SettingsManager(context=context)
+        self.settings_manager = _SettingsManager(profile=profile)
         self._text_interface = VexTextInterface(self.settings_manager)
         self._robot_name = 'vexbot'
 
-        self._context = context
-        self.do_context(context)
+        self._profile = profile
+        self.do_profile(profile)
         for method in dir(self):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
@@ -55,10 +55,10 @@ class ShellCommand(_Command):
                                         args=argument,
                                         line=line)
 
-            if self._context is None:
-                self.stdout.write('\nNo context set! Use `contexts` to see '
-                                  'stored robot contexts and the `context` '
-                                  'command to set the shell context\n\n')
+            if self._profile is None:
+                self.stdout.write('\nNo profile set! Use `profiles` to see '
+                                  'stored robot profiles and the `profile` '
+                                  'command to set the shell profile\n\n')
 
     def _parseline(self, line):
         """Parse the line into a command name and a string containing
@@ -82,18 +82,18 @@ class ShellCommand(_Command):
 
     def do_start_bot(self, arg):
         if arg == '':
-            arg = self._context
+            arg = self._profile
         _start_vexbot(arg)
 
-    def do_context(self, arg):
+    def do_profile(self, arg):
         if arg:
-            return self.do_contexts(arg)
-        context = self._context
-        if context is None:
-            context = 'NONE SET'
-        self.stdout.write('\n' + context + '\n\n')
+            return self.do_profiles(arg)
+        profile = self._profile
+        if profile is None:
+            profile = 'NONE SET'
+        self.stdout.write('\n' + profile + '\n\n')
 
-    def do_contexts(self, arg):
+    def do_profiles(self, arg):
         if arg:
             # Do this first for now, in case our user messes up
             settings = self.settings_manager.get_robot_model(arg)
@@ -111,22 +111,22 @@ class ShellCommand(_Command):
                                             heartbeat_addr)
 
             self._robot_name = settings.name
-            self._context = arg
+            self._profile = arg
         else:
-            contexts = self.settings_manager.get_robot_contexts()
+            profiles = self.settings_manager.get_robot_profiles()
             self.stdout.write('\n')
-            self.print_topics('contexts',
-                              contexts,
+            self.print_topics('profiles',
+                              profiles,
                               15,
                               80)
 
-    def _get_old_settings(self, setting_manager, context):
+    def _get_old_settings(self, setting_manager, profile):
         """
         returns settings minus the `_sa_instance_state`
         used in `do_create_robot_settings` and changes the
         adapters to just be their names.
         """
-        old_settings = self.settings_manager.get_robot_model(context)
+        old_settings = self.settings_manager.get_robot_model(profile)
         if old_settings is None:
             return dict()
         adapters = [x.name for x in old_settings.startup_adapters]

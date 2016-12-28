@@ -12,12 +12,12 @@ from vexmessage import create_vex_message, decode_vex_message
 class Messaging:
     # TODO: add an `update_messaging` command
     def __init__(self,
-                 context,
+                 profile,
                  publish_address=None,
                  subscribe_address=None,
                  heartbeat_address=None):
 
-        self._service_name = context
+        self._service_name = profile 
         self.address = {'publish': publish_address,
                         'subscriptions': subscribe_address,
                         'heartbeat': heartbeat_address}
