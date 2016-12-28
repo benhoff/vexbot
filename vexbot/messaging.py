@@ -1,13 +1,12 @@
 import sys
 import time
 import logging
-from threading import Thread
 from contextlib import ContextDecorator
 
 import zmq
 import zmq.devices
 
-from vexmessage import create_vex_message
+from vexmessage import create_vex_message, decode_vex_message
 
 
 class Messaging:
@@ -23,46 +22,48 @@ class Messaging:
                         'subscriptions': subscribe_address,
                         'heartbeat': heartbeat_address}
 
-        # NOTE: Subscription socket managed by robot NOT tracked here
+        self.subscription_socket = None
+        self.publish_socket = None
+
+        # NOTE: Since Sub & Pub socket managed by robot
+        # NOT tracked here in self.socket
         self.socket = {'publish': None,
                        'subscribe': None,
                        'heartbeat': None}
 
         self._poller = zmq.Poller()
-        self._thread = None
         self.running = False
-
-        self.subscription_socket = None
-        self.publish_socket = None
 
     def start(self, zmq_context=None):
         context = zmq_context or zmq.Context()
 
-        # subscription & publish socket managed by robot
-        self.subscription_socket = context.socket(zmq.SUB)
-        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        # Publish socket managed by robot
         self.publish_socket = context.socket(zmq.PUB)
 
         self._poller = zmq.Poller()
 
-        # out type
+        self.subscription_socket = context.socket(zmq.SUB)
+        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        self._poller.register(self.subscription_socket, zmq.POLLIN)
+
+        # XPUB socket, IN type
         pub = context.socket(zmq.XPUB)
         addresses = self.address['subscriptions']
 
-        _sub_failures = 0
         if addresses:
             for addr in addresses:
                 try:
                     pub.bind(addr)
                 except zmq.error.ZMQError:
-                    _sub_failures += 1
+                    pass
 
+                # NOTE: still in the for loop here
                 self.subscription_socket.connect(addr)
 
         self.socket['publish'] = pub
         self._poller.register(pub, zmq.POLLIN)
 
-        # in type
+        # XSUB socket, IN type
         sub = context.socket(zmq.XSUB)
         sub_addr = self.address['publish']
         if sub_addr:
@@ -84,41 +85,46 @@ class Messaging:
         self.socket['heartbeat'] = heartbeat
         self._poller.register(heartbeat, zmq.POLLIN)
 
-        def run():
-            self.running = True
-            time_start = time.time()
-            while True:
-                socks = dict(self._poller.poll(timeout=500))
-                socks = dict(socks)
-                time_now = time.time()
-                time_delta = time_now - time_start
-                if sub in socks:
-                    try:
-                        msg = sub.recv_multipart(zmq.NOBLOCK)
-                        pub.send_multipart(msg)
-                    except zmq.error.Again:
-                        pass
-                if pub in socks:
-                    try:
-                        msg = pub.recv_multipart(zmq.NOBLOCK)
-                        sub.send_multipart(msg)
-                    except zmq.error.Again:
-                        pass
+    def run(self):
+        self.running = True
+        pub = self.socket['publish']
+        sub = self.socket['subscribe']
+        heartbeat = self.socket['heartbeat']
 
-                if heartbeat in socks:
+        while True:
+            socks = dict(self._poller.poll(timeout=500))
+            socks = dict(socks)
+            if sub in socks:
+                try:
+                    msg = sub.recv_multipart(zmq.NOBLOCK)
+                    pub.send_multipart(msg)
+                except zmq.error.Again:
+                    pass
+            if pub in socks:
+                try:
+                    msg = pub.recv_multipart(zmq.NOBLOCK)
+                    sub.send_multipart(msg)
+                except zmq.error.Again:
+                    pass
+
+            if heartbeat in socks:
+                try:
+                    msg = heartbeat.recv_multipart(zmq.NOBLOCK)
+                    heartbeat.send_multipart([msg[0], b''], zmq.NOBLOCK)
+                except zmq.error.Again:
+                    pass
+
+            if self.subscription_socket in socks:
+                try:
+                    msg = self.subscription_socket.recv_multipart(zmq.NOBLOCK)
                     try:
-                        msg = heartbeat.recv_multipart(zmq.NOBLOCK)
-                        hearbeat.send_multipart([msg[0], b''], zmq.NOBLOCK)
-                    except zmq.error.Again:
+                        msg = decode_vex_message(msg)
+                    except Exception:
                         pass
-
-        self._thread = Thread(target=run)
-        self._thread.daemon = True
-        self._thread.start()
-
-    def subscription_active(self):
-        # FIXME: add in actual parsing
-        return True
+                    else:
+                        yield msg
+                except zmq.error.Again:
+                    pass
 
     def _create_frame(self, type, target='', **contents):
         return create_vex_message(target, 'robot', type, **contents)

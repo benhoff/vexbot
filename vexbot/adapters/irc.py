@@ -99,25 +99,18 @@ def create_irc_bot(nick,
 
 
 async def _check_subscription(bot):
-    while True:
-        await asyncio.sleep(1)
-        msg = None
-        try:
-            msg = bot.messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
-        except zmq.error.Again:
-            pass
-        if msg:
-            msg = decode_vex_message(msg)
-            if msg.type == 'CMD':
-                bot.command_parser.parse_commands(msg)
-            elif msg.type == 'RSP':
-                channel = msg.contents.get('channel')
-                message = msg.contents.get('response')
-                bot.privmsg(channel, message)
-                bot.messaging.send_message(author=bot.nick,
-                                           message=message,
-                                           channel=channel)
+    for msg in bot.messaging.run(250):
+        if msg.type == 'CMD':
+            bot.command_parser.parse_commands(msg)
+        elif msg.type == 'RSP':
+            channel = msg.contents.get('channel')
+            message = msg.contents.get('response')
+            bot.privmsg(channel, message)
+            bot.messaging.send_message(author=bot.nick,
+                                       message=message,
+                                       channel=channel)
 
+        await asyncio.sleep(1)
 
 def _default(*args, **kwargs):
     pass

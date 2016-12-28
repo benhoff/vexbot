@@ -1,8 +1,6 @@
 import zmq
-import time
-from threading import Thread
 
-from vexmessage import create_vex_message
+from vexmessage import create_vex_message, decode_vex_message
 
 
 class ZmqMessaging:
@@ -32,32 +30,56 @@ class ZmqMessaging:
         except ImportError:
             pass
 
+    def run(self, timeout=None):
+        while True:
+            socks = dict(self.poller.poll(timeout))
+            if self._heartbeat in socks:
+                try:
+                    msg = self._heartbeat.recv_multipart(zmq.NOBLOCK)
+                    # FIXME: parse and send back
+                    self._heartbeat.send(msg)
+                except zmq.error.Again:
+                    pass
+            if self.sub_socket in socks:
+                try:
+                    msg = self.sub_socket.recv_multipart(zmq.NOBLOCK)
+                    try:
+                        yield decode_vex_message(msg)
+                    except Exception:
+                        pass
+                except zmq.error.Again:
+                    pass
+
     def start_messaging(self):
         if self._messaging_started:
             self.update_messaging()
             return
 
         context = zmq.Context()
-        self.pub_socket = context.socket(zmq.PUB)
-        self.sub_socket = context.socket(zmq.SUB)
-        self._heartbeat = context.socket(zmq.DEALER)
+
         pub_addr = self._address['pub']
+        self.pub_socket = context.socket(zmq.PUB)
         if pub_addr:
             self.pub_socket.connect(pub_addr)
 
-            if self._socket_filter is not None:
-                self.set_socket_filter(self._socket_filter)
-
         sub_addresses = self._address['sub']
+        self.sub_socket = context.socket(zmq.SUB)
+        self.poller.register(self.sub_socket, zmq.POLLIN)
         if sub_addresses:
             for addr in sub_addresses:
                 self.sub_socket.connect(addr)
-                self.poller.register(self.sub_socket, zmq.POLLIN)
 
         heart_addr = self._address['heart']
+        self._heartbeat = context.socket(zmq.DEALER)
+        self.poller.register(self._heartbeat, zmq.POLLIN)
+
+        if self._socket_filter is not None:
+            self.set_socket_filter(self._socket_filter)
+            self._heartbeat.setsockopt_string(zmq.IDENTITY,
+                                              self._socket_filter)
+
         if heart_addr:
             self._heartbeat.connect(heart_addr)
-            self.poller.register(self.sub_socket, zmq.POLLIN)
 
         self._messaging_started = True
 
@@ -66,6 +88,9 @@ class ZmqMessaging:
                          sub_addresses=None,
                          heartbeat_address=None,
                          disconnect_old_addr=True):
+
+        # if not self._messaging_started:
+        #    self.start_messaging()
 
         if pub_address:
             if disconnect_old_addr:
@@ -79,7 +104,6 @@ class ZmqMessaging:
                 self.disconnect_sub_socket(self._address['sub'])
             for s in sub_addresses:
                 self.sub_socket.connect(s)
-            self.set_socket_filter(self._socket_filter)
             self._address['sub'] = sub_addresses
 
         if heartbeat_address:

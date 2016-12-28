@@ -65,9 +65,7 @@ class XMPPBot(ClientXMPP):
         self._thread.start()
 
     def run(self):
-        while True:
-            frame = self.messaging.sub_socket.recv_multipart()
-            message = decode_vex_message(frame)
+        for message in self.messaging.run():
             if message.type == 'CMD':
                 self.command_manager.parse_commands(message)
             elif message.type == 'RSP':

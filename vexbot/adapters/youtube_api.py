@@ -38,25 +38,17 @@ if _GOOGLE_API_INSTALLED:
 async def _run(messaging, live_chat_messages, live_chat_id, ):
     command_manager = AdapterCommandManager(messaging)
     frame = None
-    while True:
-        try:
-            frame = messaging.sub_socket.recv_multipart(zmq.NOBLOCK)
-        except zmq.error.ZMQError:
-            pass
-        if frame:
-            message = decode_vex_message(frame)
-            if message.type == 'CMD':
-                command_manager.parse_commands(message)
-            elif message.type == 'RSP':
-                message = message.contents.get('response')
-                body={'snippet':{'type': 'textmessageEvent',
-                                 'liveChatId': live_chat_id,
-                                 'textMessageDetails': {'messageText': message}}}
+    for message in messaging.run(250):
+        if message.type == 'CMD':
+            command_manager.parse_commands(message)
+        elif message.type == 'RSP':
+            message = message.contents.get('response')
+            body={'snippet':{'type': 'textmessageEvent',
+                             'liveChatId': live_chat_id,
+                             'textMessageDetails': {'messageText': message}}}
 
-                live_chat_messages.insert(part='snippet',
-                                          body=body).execute()
-
-            frame = None
+            live_chat_messages.insert(part='snippet',
+                                      body=body).execute()
 
         await asyncio.sleep(1)
 

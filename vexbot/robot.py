@@ -51,10 +51,10 @@ class Robot:
 
         # self.plugin_manager.add_entry_points(('vexbot.plugins',))
 
-        adapters = collect_ep(return_dict=True)
+        adapters = collect_ep(('vexbot.adapters',), return_dict=True)
         self.settings_manager.update_modules(adapters.keys())
         for name, adapter in adapters.items():
-            adapters[name] = value.__file__
+            adapters[name] = adapter.__file__
 
             self.subprocess_manager.register(name,
                                              sys.executable,
@@ -82,38 +82,14 @@ class Robot:
 
     def run(self):
         self.messaging.start()
-        """
-        # if not self.messaging.subscription_active():
-        if True:
-            logging.error('Subscription socket not set for context, check/set before running robot')
-            return
-        """
-        while True and self.messaging.running:
-            frame = self.messaging.subscription_socket.recv_multipart()
-            msg = None
-            try:
-                msg = decode_vex_message(frame)
-            except Exception:
-                pass
-            if msg and self.messaging.running():
-                # Right now this is hardcoded into being only
-                # the shell adapter
-                # change this to some kind of auth code
-                if ((msg.source == 'shell' or
-                     msg.source == 'command_line') and msg.type == 'CMD'):
+        for msg in self.messaging.run():
+            # Right now this is hardcoded into being only
+            # the shell adapter
+            # change this to some kind of auth code
+            if ((msg.source == 'shell' or
+                 msg.source == 'command_line') and msg.type == 'CMD'):
 
-                    self.command_manager.parse_commands(msg)
-
-        if not self.messaging.running():
-            s = textwrap.fill('Could not bind the ports. Either another '
-                              'instance of vexbot is running or another '
-                              'program is bound to the address. Exiting this'
-                              ' bot',
-                              initial_indent='',
-                              subsequent_indent='    ')
-
-            self._logger.error(s)
-            sys.exit()
+                self.command_manager.parse_commands(msg)
 
 
 def _get_args():
