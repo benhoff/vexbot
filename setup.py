@@ -54,10 +54,9 @@ setup(
 
     packages= find_packages(), # exclude=['docs', 'tests']
     install_requires=[
-        'pluginmanager',
+        'pluginmanager>=0.4.1',
         'pyzmq',
         'vexmessage',
-        'pyyaml',
         'sqlalchemy',
         # TODO: move as optional
         'urwid',

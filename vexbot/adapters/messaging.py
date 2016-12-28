@@ -21,7 +21,7 @@ class ZmqMessaging:
         self._service_name = service_name
         self._address = {'pub': pub_address,
                          'sub': sub_address,
-                         'heart': hearbeat_address}
+                         'heart': heartbeat_address}
 
         self._socket_filter = socket_filter
         self._messaging_started = False
@@ -61,23 +61,38 @@ class ZmqMessaging:
 
         self._messaging_started = True
 
-    def update_messaging(self):
-        if self._pub_address:
-            self.pub_socket.connect(self._pub_address)
-        if self._sub_address:
-            for s in self._sub_address:
+    def update_messaging(self,
+                         pub_address=None,
+                         sub_addresses=None,
+                         heartbeat_address=None,
+                         disconnect_old_addr=True):
+
+        if pub_address:
+            if disconnect_old_addr:
+                self.disconnect_pub_socket(self._address['pub'])
+
+            self.pub_socket.connect(pub_address)
+            self._address['pub'] = pub_address
+
+        if sub_addresses:
+            if disconnect_old_addr:
+                self.disconnect_sub_socket(self._address['sub'])
+            for s in sub_addresses:
                 self.sub_socket.connect(s)
-                self.set_socket_filter(self._socket_filter)
-        if self._heartbeat._address:
-            self._heartbeat._socket.connect(self._heartbeat._address)
+            self.set_socket_filter(self._socket_filter)
+            self._address['sub'] = sub_addresses
+
+        if heartbeat_address:
+            if disconnect_old_addr:
+                self.disconnect_heartbeat_socket(self._address['heart'])
+            self._heartbeat.connect(heartbeat_address)
+            self._address['heart'] = heartbeat_address
 
     def set_socket_filter(self, filter_):
         self._socket_filter = filter_
 
         if self.sub_socket:
             self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
-        if self._heartbeat:
-            self._heartbeat.setsockopt_string(zmq.SUBSCRIBE, filter_)
 
     def send_message(self, target='', **msg):
         frame = create_vex_message(target, self._service_name, 'MSG', **msg)
@@ -99,3 +114,32 @@ class ZmqMessaging:
                                    **command)
 
         self.pub_socket.send_multipart(frame)
+
+    def disconnect_sub_socket(self, addresses=None):
+        if addresses is None:
+            addresses = self._address['sub']
+
+        if not addresses:
+            return
+        for addr in addresses:
+            self.sub_socket.disconnect(addr)
+
+    def disconnect_heartbeat_socket(self, address=None):
+        self._disconnect_socket(self._heartbeat, 'heart', address)
+
+    def disconnect_pub_socket(self, address=None):
+        self._disconnect_socket(self.pub_socket, 'pub', address)
+
+    def _disconnect_socket(self, socket, socket_name, address=None):
+        if address is None:
+            address = self._address[socket_name]
+
+        # can have `None` for value
+        if not address:
+            return
+        try:
+            socket.disconnect(address)
+        except zmq.error.ZMQError:
+            pass
+
+        self._address[socket_name] = None

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 import atexit
 
+try:
+    import setproctitle
+except ImportError:
+    setproctitle = False
+
 from vexbot.commands.start_vexbot import start_vexbot
 from vexbot.adapters.shell.__main__ import main as shell_main
 
@@ -28,4 +33,6 @@ def main(settings=None):
 
 if __name__ == "__main__":
     debug = {'kill_on_exit': True}
+    if setproctitle:
+        setproctitle.setproctitle('vexshell')
     main(debug)

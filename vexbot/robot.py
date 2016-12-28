@@ -6,7 +6,7 @@ import argparse
 try:
     import setproctitle
 except ImportError:
-    pass
+    setproctitle = False
 
 import pluginmanager
 
@@ -77,10 +77,8 @@ class Robot:
 
         self.name = robot_model.name
         self.command_manager = BotCommandManager(robot=self)
-        try:
+        if setproctitle:
             setproctitle.setproctitle(robot_model.name)
-        except NameError: # this will happen if setproctitil is not installed
-            pass
 
     def run(self):
         self.messaging.start()

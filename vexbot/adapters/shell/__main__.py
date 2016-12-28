@@ -17,7 +17,6 @@ def main(controller_kwargs=None,
     # command manager is going to manage the messaging... for now
     command = ShellCommand(**shell_kwargs)
     messaging = command.messaging
-    messaging.listen_for_heartbeats()
 
     # shell is the de-facto view
     shell = PromptShell(command, **shell_kwargs)
@@ -27,9 +26,6 @@ def main(controller_kwargs=None,
 
     def bot(*args, **kwargs):
         shell.set_bot_prompt_yes()
-
-    messaging._heartbeat.set_false_callback(no_bot)
-    messaging._heartbeat.set_true_callback(bot)
 
     controller = ShellController(shell, messaging, **controller_kwargs)
     return controller.cmdloop()

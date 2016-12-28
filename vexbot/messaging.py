@@ -59,8 +59,6 @@ class Messaging:
 
                 self.subscription_socket.connect(addr)
 
-        if _sub_failures == len(
-
         self.socket['publish'] = pub
         self._poller.register(pub, zmq.POLLIN)
 

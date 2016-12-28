@@ -99,19 +99,18 @@ class ShellCommand(_Command):
             settings = self.settings_manager.get_robot_model(arg)
             if settings is None:
                 return
-            m = self.messaging
-            # FIXME----
-            if m._pub_address:
-                m.pub_socket.disconnect(m._pub_address)
-            if m._sub_address:
-                m.sub_socket.disconnect(m._sub_address)
-            # ------
+            self.messaging.disconnect_pub_socket()
+            self.messaging.disconnect_sub_socket()
+            self.messaging.disconnect_heartbeat_socket()
 
-            self.messaging._pub_address = settings.zmq_publish_address
-            self.messaging._sub_address = settings.zmq_subscription_addresses
-            self.messaging._heartbeat._address = settings.zmq_heartbeat_address
+            pub_addr = settings.zmq_publish_address
+            sub_addr = settings.zmq_subscription_addresses
+            heartbeat_addr = settings.zmq_heartbeat_address
+            self.messaging.update_messaging(pub_addr,
+                                            sub_addr,
+                                            heartbeat_addr)
+
             self._robot_name = settings.name
-            self.messaging.update_messaging()
             self._context = arg
         else:
             contexts = self.settings_manager.get_robot_contexts()
