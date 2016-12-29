@@ -23,19 +23,29 @@ def _create_session(filepath):
 
 
 class SettingsManager:
-    def __init__(self, filepath=None, profile='default'):
+    def __init__(self,
+                 filepath=None,
+                 profile='default',
+                 config_settings=None):
+
         self._logger = logging.getLogger(__name__)
         default_filepath = False
         if filepath is None:
             filepath = get_settings_database_filepath()
             default_filepath = True
 
+        if config_settings is None:
+            config_settings = dict()
+
+        self._config_settings = config_settings
+
         if not os.path.isfile(filepath):
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
-                s = s + (' Please run `$ vexbot_create_database` from the cmd line to create settings database. '
-                         'Then run `create_robot_models` from the shell adapter. '
-                         'Alternatively run `$ vexbot_quickstart`')
+                s = s + (' Please run `$ vexbot_create_database` from the cmd '
+                         'line to create settings database. Then run `create_r'
+                         'obot_models` from the shell adapter. Alternatively r'
+                         'un `$ vexbot_quickstart`')
 
             s = textwrap.fill(s, initial_indent='', subsequent_indent='    ')
             self._logger.error(s)
@@ -80,7 +90,10 @@ class SettingsManager:
         sub = self.get_or_create_address('127.0.0.1:4000')
         model.subscribe_addresses.append(sub)
         self.session.add(model)
-        self.session.commit()
+        try:
+            self.session.commit()
+        except _alchy.exc.IntegrityError:
+            self._logger.warn('Default profile already created!')
 
         return True
 

@@ -5,11 +5,11 @@ from vexbot.models import Base
 import vexbot.adapters.models
 
 
-from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
+from vexbot.util.get_settings_database_filepath import get_settings_database_filepath as _get_settings_database_filepath
 
 
 def create_database():
-    database_filepath = get_settings_database_filepath()
+    database_filepath = _get_settings_database_filepath()
     directory = os.path.dirname(database_filepath)
     if not os.path.isdir(directory):
         os.mkdir(directory)

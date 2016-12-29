@@ -174,16 +174,12 @@ class BotCommandManager(CommandManager):
         # alias for pep8
         s_manager = robot.subprocess_manager
 
-        # Store a reference to the subprocess settings for the `alive` command
-        self._subprocess_settings = s_manager._settings
         subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
-        # subprocess['set-settings'] = msg_unpack_args(s_manager.update, 3)
 
         self._commands['subprocess'] = subprocess
 
         self._commands['killall'] = no_arguments(s_manager.killall)
         self._commands['restart_bot'] = no_arguments(_restart_bot)
-        self._commands['alive'] = self._alive
 
         self._commands['start'] = msg_list_wrapper(s_manager.start)
         registered = s_manager.registered_subprocesses
@@ -200,37 +196,6 @@ class BotCommandManager(CommandManager):
         Kills the instance of vexbot
         """
         sys.exit()
-
-    def _context(self, msg):
-        return self._robot.settings_manager.profile
-
-    def _alive(self, msg):
-        """
-        queries the subprocesses to check their status using messaging.
-
-        can also use the `running` command to see what's running locally
-        """
-        # FIXME
-        values = list(self._commands['subprocesses'](msg))
-
-        process_names = []
-        for value in values:
-            setting = self._subprocess_settings.get(value)
-            process_name = None
-            if setting:
-                if setting.get('--service_name'):
-                    process_name = setting['--service_name']
-            if process_name is None:
-                process_name = value
-            process_names.append(process_name)
-        if process_names:
-            try:
-                process_names.remove(msg.source)
-            except ValueError:
-                pass
-            for process_name in process_names:
-                self._messaging.send_command(target=process_name,
-                                             command='alive')
 
 
 class AdapterCommandManager(CommandManager):

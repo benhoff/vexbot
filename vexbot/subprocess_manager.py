@@ -21,6 +21,32 @@ class SubprocessManager:
         self.blacklist = ['shell', ]
         self._settings_manager = settings_manager
 
+    def _register_subprocesses(self):
+        plugin_manager = pluginmanager.PluginInterface()
+        collect_ep = plugin_manager.collect_entry_point_plugins
+        plugin_settings = collect_ep('vexbot.adapter_settings',
+                                     return_dict=True)
+
+        subprocesses = collect_ep(('vexbot.subprocesses',), return_dict=True)
+        self.settings_manager.update_modules(subprocesses.keys())
+        for name, subprocess in subprocesses.items():
+            subprocesses[name] = adapter.__file__
+            self.register(name,
+                          sys.executable,
+                          {'filepath': subprocess.__file__})
+
+        try:
+            # using convention to snag plugin settings.
+            # expect that settings will be in the form of
+            # `adapter_name` + `_settings`
+            # I.E. `irc_settings` for adapter `irc`
+            setting_name = name + '_settings'
+            setting_class = plugin_settings[setting_name]
+        except KeyError:
+            setting_class = None
+
+        self.set_settings_class(name, setting_class)
+
     def _handle_close_signal(self, signum=None, frame=None):
         self._close_subprocesses()
         sys.exit()
