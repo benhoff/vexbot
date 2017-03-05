@@ -3,13 +3,13 @@ import atexit
 import signal
 from subprocess import Popen, DEVNULL
 
+import pluginmanager
+
 from sqlalchemy import inspect as _sql_inspect
-import sqlalchemy as _alchy
-import sqlalchemy.orm as _orm
 
 
 class SubprocessManager:
-    def __init__(self, settings_manager=None):
+    def __init__(self, settings_manager: 'vexbot.SettingsManager'=None):
         # this is going to be a list of filepaths
         self._registered = {}
         self._settings = {}
@@ -28,9 +28,9 @@ class SubprocessManager:
                                      return_dict=True)
 
         subprocesses = collect_ep(('vexbot.subprocesses',), return_dict=True)
-        self.settings_manager.update_modules(subprocesses.keys())
+        self._settings_manager.update_modules(subprocesses.keys())
         for name, subprocess in subprocesses.items():
-            subprocesses[name] = adapter.__file__
+            subprocesses[name] = subprocess.__file__
             self.register(name,
                           sys.executable,
                           {'filepath': subprocess.__file__})
@@ -108,18 +108,12 @@ class SubprocessManager:
 
         for attribute in _sql_inspect(kls).attrs:
             key = attribute.key
-            if not key in ('filepath', 'args'):
+            if key not in ('filepath', 'args'):
                 key = '--' + key
 
             result[attribute.key] = attribute.value
 
         return result
-
-    # TODO: add this functionality
-    """
-    def start_one(self, key, profile=None):
-        pass
-    """
 
     def start(self, keys: list, profile=None):
         """
@@ -149,7 +143,7 @@ class SubprocessManager:
             if args:
                 dict_list.extend(args)
 
-            # NOTE: want to make sure I'm not messing with the state of 
+            # NOTE: want to make sure I'm not messing with the state of
             # the original dict that's tracked by the subprocess manager
             # TODO: check if recreating dict is neccesairy
             settings = dict(settings)

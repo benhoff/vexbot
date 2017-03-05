@@ -9,12 +9,12 @@ class YoutubeSettings(Adapter):
     __tablename__ = 'youtube_settings'
     id = Column(Integer, primary_key=True)
     adapter_id = Column(Integer,
-                       ForeignKey('adapters.id'),
-                       nullable=False)
+                        ForeignKey('adapters.id'),
+                        nullable=False)
 
     adapter = relationship("Adapter")
     client_secret_filepath = Column(String(length=4096))
-    __mapper_args__ = {'concrete':True}
+    __mapper_args__ = {'concrete': True}
 
 
 class IrcSettings(Adapter):
@@ -29,7 +29,7 @@ class IrcSettings(Adapter):
     channel = Column(String(length=30))
     nick = Column(String(length=30))
     host = Column(String(length=50))
-    __mapper_args__ = {'concrete':True}
+    __mapper_args__ = {'concrete': True}
 
 
 class XMPPSettings(Adapter):
@@ -46,7 +46,7 @@ class XMPPSettings(Adapter):
     room = Column(String(length=30))
     domain = Column(String(length=50))
 
-    __mapper_args__ = {'concrete':True}
+    __mapper_args__ = {'concrete': True}
 
 
 class SocketIOSettings(Adapter):
@@ -55,12 +55,13 @@ class SocketIOSettings(Adapter):
     adapter_id = Column(Integer,
                         ForeignKey('adapters.id'),
                         nullable=False)
+
     adapter = relationship("Adapter")
     service_name = Column(String(length=50))
     streamer_name = Column(String(length=50))
     namespace = Column(String(length=20))
     website_url = Column(String(length=200))
-    __mapper_args__ = {'concrete':True}
+    __mapper_args__ = {'concrete': True}
 
 
 class ShellSettings(Adapter):
@@ -71,4 +72,5 @@ class ShellSettings(Adapter):
     adapter_id = Column(Integer,
                         ForeignKey('adapters.id'),
                         nullable=False)
-    __mapper_args__ = {'concrete':True}
+
+    __mapper_args__ = {'concrete': True}

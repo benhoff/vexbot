@@ -3,9 +3,10 @@ from os import path
 from subprocess import Popen
 
 
-def start_vexbot(profile='default'):
+def start_vexbot(profile: str='default'):
     """
     starts up an instance of vexbot
+    Returns: an instance of Popen
     """
     process = None
 

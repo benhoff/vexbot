@@ -15,7 +15,9 @@ def main(controller_kwargs=None,
 
     command = ShellCommand(**shell_kwargs)
     messaging = command.messaging
+
     shell = PromptShell(command, **shell_kwargs)
+    messaging.set_pong_callback(shell.set_bot_prompt_yes)
 
     return shell.cmdloop_and_start_messaging()
 

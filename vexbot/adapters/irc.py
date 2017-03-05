@@ -6,9 +6,7 @@ import argparse
 import logging
 import pkg_resources
 
-import zmq
 from zmq import ZMQError
-from vexmessage import decode_vex_message
 
 from vexbot.command_managers import AdapterCommandManager
 from vexbot.adapters.messaging import ZmqMessaging
@@ -111,6 +109,7 @@ async def _check_subscription(bot):
                                        channel=channel)
 
         await asyncio.sleep(1)
+
 
 def _default(*args, **kwargs):
     pass

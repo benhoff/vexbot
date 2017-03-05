@@ -8,6 +8,8 @@ def get_config(filepath=None):
         filepath = _get_config_filepath()
     config = _ConfigParser()
     config.read(filepath)
-    config_dict = {s:dict(config.items(s)) for s in config.sections()}
+    config_dict = {s: dict(config.items(s))
+                   for s
+                   in config.sections()}
 
     return config_dict

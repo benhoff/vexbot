@@ -1,8 +1,5 @@
 import sys
-import time
 import logging
-import traceback
-from contextlib import ContextDecorator
 
 import zmq
 import zmq.devices
@@ -13,13 +10,12 @@ from vexmessage import create_vex_message, decode_vex_message
 class Messaging:
     # TODO: add an `update_messaging` command
     def __init__(self,
-                 profile,
-                 publish_address=None,
-                 subscribe_address=None,
-                 heartbeat_address=None):
+                 profile: str,
+                 publish_address: str=None,
+                 subscribe_address: str=None,
+                 heartbeat_address: str=None):
 
-        # NOTE: currently not used
-        self._service_name = profile 
+        self._service_name = profile
         # Store the addresses of publish, subscription, and heartbeat sockets
         self.address = {'publish': publish_address,
                         'subscriptions': subscribe_address,
@@ -41,7 +37,7 @@ class Messaging:
         self.running = False
         self._logger = logging.getLogger(__name__)
 
-    def start(self, zmq_context=None):
+    def start(self, zmq_context: 'zmq.Context'=None):
         """
         starts/instantiates the messaging
         """
@@ -89,7 +85,6 @@ class Messaging:
                 sys.exit(1)
             self.publish_socket.connect(sub_addr)
 
-
         # heartbeat
         heartbeat = context.socket(zmq.ROUTER)
         self._poller.register(heartbeat, zmq.POLLIN)
@@ -98,7 +93,6 @@ class Messaging:
         hb_addr = self.address['heartbeat']
         if hb_addr:
             heartbeat.bind(hb_addr)
-
 
     def run(self):
         self.running = True
@@ -124,7 +118,15 @@ class Messaging:
             if heartbeat in socks:
                 try:
                     msg = heartbeat.recv_multipart(zmq.NOBLOCK)
-                    heartbeat.send_multipart([msg[0], b''], zmq.NOBLOCK)
+                    if msg[1] == b'PING':
+                        pong_response = [msg[0],
+                                         self._service_name.encode('ascii'),
+                                         b'PONG']
+
+                        heartbeat.send_multipart(pong_response, zmq.NOBLOCK)
+                    elif msg[1] == b'PONG':
+                        # TODO: Implement
+                        logging.warn('PONG in robot messaging not implemented')
                 except zmq.error.Again:
                     pass
 
@@ -141,21 +143,21 @@ class Messaging:
                 except zmq.error.Again:
                     pass
 
-    def _create_frame(self, type, target='', **contents):
-        return create_vex_message(target, 'robot', type, **contents)
-
-    def send_message(self, target='', **msg):
+    def send_message(self, target: str='', **msg: dict):
         frame = self._create_frame('MSG', target=target, **msg)
         self.publish_socket.send_multipart(frame)
 
-    def send_command(self, target='', **cmd):
+    def send_command(self, target: str='', **cmd: dict):
         frame = self._create_frame('CMD', target=target, **cmd)
         self.publish_socket.send_multipart(frame)
 
-    def send_response(self, target, original, **rsp):
+    def send_response(self, target: str, original: str, **rsp: dict):
         frame = self._create_frame('RSP',
                                    target=target,
                                    original=original,
                                    **rsp)
 
         self.publish_socket.send_multipart(frame)
+
+    def _create_frame(self, type_, target='', **contents):
+        return create_vex_message(target, 'robot', type_, **contents)

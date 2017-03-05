@@ -7,4 +7,3 @@ def get_config_filepath():
     vexdir = _get_vexdir_filepath()
     config_filepath = path.join(vexdir, 'config.ini')
     return config_filepath
-

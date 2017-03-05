@@ -1,7 +1,7 @@
 from os import path, mkdir
 
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath as _get_vexdir_filepath
-
+from vexbot.util.get_vexdir_filepath import _get_config_dir
 
 
 def create_vexdir():

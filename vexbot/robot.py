@@ -8,10 +8,6 @@ try:
 except ImportError:
     setproctitle = False
 
-import pluginmanager
-
-from vexmessage import decode_vex_message
-
 from vexbot.messaging import Messaging
 from vexbot.settings_manager import SettingsManager
 from vexbot.command_managers import BotCommandManager
@@ -31,18 +27,12 @@ class Robot:
         self.messaging = messaging
 
         self.command_manager = BotCommandManager(robot=self)
-        if setproctitle:
-            setproctitle.setproctitle(name)
 
     def run(self):
         self.messaging.start()
         for msg in self.messaging.run():
-            # Right now this is hardcoded into being only
-            # the shell adapter
-            # change this to some kind of auth code
-            if ((msg.source == 'shell' or
-                 msg.source == 'command_line') and msg.type == 'CMD'):
-
+            # TODO: add in authentication
+            if msg.type == 'CMD':
                 self.command_manager.parse_commands(msg)
 
 
@@ -54,14 +44,13 @@ def _get_args():
     return args
 
 
-def setup_robot():
-    settings = get_config()
-    vexbot_settings = settings.get('vexbot', {'profile': 'default'})
+def setup_robot(configuration):
+    vexbot_settings = configuration.get('vexbot', {'profile': 'default'})
     profile = vexbot_settings.get('profile', 'default')
 
     # setting the profile interfaces with the database
     settings_manager = SettingsManager(profile=profile,
-                                       config_settings=settings)
+                                       config_settings=configuration)
 
     robot_model = settings_manager.get_robot_model()
 
@@ -84,12 +73,14 @@ def setup_robot():
                           robot_model.zmq_heartbeat_address)
 
     subprocess_manager = SubprocessManager(settings_manager)
-
-    # Note: pluginmanager should probably return a `dict` instead of
-    # two lists. Should probably fix
+    # FIXME: Figure out a public API for this that makes sense
+    # This runs `plugingmanager` and grabs all of our registered subprocesses
+    subprocess_manager._register_subprocesses()
 
     startup_adapters = settings_manager.get_startup_adapters()
     subprocess_manager.start(startup_adapters)
+    if setproctitle:
+        setproctitle.setproctitle(name)
 
     robot = Robot(subprocess_manager=subprocess_manager,
                   messaging=messaging)
@@ -99,5 +90,10 @@ def setup_robot():
 
 if __name__ == '__main__':
     args = vars(_get_args())
-    robot = setup_robot()
+    configuration = get_config()
+    vexbot_settings = configuration.get('vexbot', {'name': 'vexbot'})
+    name = vexbot_settings.get('name', 'vexbot')
+    if setproctitle:
+        setproctitle.setproctitle(name)
+    robot = setup_robot(configuration)
     robot.run()

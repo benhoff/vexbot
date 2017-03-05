@@ -14,6 +14,7 @@ class ZmqMessaging:
         self.pub_socket = None
         self.sub_socket = None
         self._heartbeat = None
+        self._pong_callback = None
         self.poller = zmq.Poller()
 
         self._service_name = service_name
@@ -30,14 +31,27 @@ class ZmqMessaging:
         except ImportError:
             pass
 
+    def set_pong_callback(self, function):
+        self._pong_callback = function
+
+    def _handle_pong(self, sender: str):
+        if self._pong_callback is not None:
+            self._pong_callback(sender)
+
     def run(self, timeout=None):
         while True:
             socks = dict(self.poller.poll(timeout))
             if self._heartbeat in socks:
                 try:
                     msg = self._heartbeat.recv_multipart(zmq.NOBLOCK)
-                    # FIXME: parse and send back
-                    self._heartbeat.send(msg)
+                    if msg[1] == b'PING':
+                        pong_response = [msg[0],
+                                         self._service_name.encode('ascii'),
+                                         b'PONG']
+
+                        self._heartbeat.send_multipart(pong_response)
+                    elif msg[1] == b'PONG':
+                        self._handle_pong(msg[0].decode('ascii'))
                 except zmq.error.Again:
                     pass
             if self.sub_socket in socks:
@@ -138,6 +152,10 @@ class ZmqMessaging:
                                    **command)
 
         self.pub_socket.send_multipart(frame)
+
+    def send_ping(self):
+        # TODO: Think about putting a service here?
+        self._heartbeat.send(b'PING')
 
     def disconnect_sub_socket(self, addresses=None):
         if addresses is None:

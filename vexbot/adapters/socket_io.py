@@ -82,7 +82,7 @@ class WebSocket(WebSocketApp):
                          on_error=self.on_error)
 
     def handle_subscription(self):
-        for msg in self.messaging.run():
+        for message in self.messaging.run():
             if message.type == 'CMD':
                 self.command_manager.parse_commands(message)
             if message.type == 'RSP':

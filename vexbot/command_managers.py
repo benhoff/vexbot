@@ -10,7 +10,7 @@ from vexbot.util.function_wrapers import (msg_list_wrapper,
 
 
 class CommandManager:
-    def __init__(self, messaging):
+    def __init__(self, messaging: 'vexbot.messaging:Messaging'):
         # NOTE: commands is a dict of dicts and there is nested parsing
         self._commands = {}
         self._messaging = messaging
@@ -55,7 +55,6 @@ class CommandManager:
 
         if callback:
             results = callback(msg)
-            # logging.error('{} {}'.format(results, command))
 
             if results:
                 self._messaging.send_response(target=msg.source,
@@ -150,7 +149,7 @@ class CommandManager:
                                       response='Command not found',
                                       original=original)
 
-    def _help(self, args=None):
+    def _help(self, args: list=None):
         if not args:
             return self._commands.keys()
         else:
@@ -165,7 +164,7 @@ class CommandManager:
 
 
 class BotCommandManager(CommandManager):
-    def __init__(self, robot):
+    def __init__(self, robot: 'vebot.robot:Robot'):
         super().__init__(robot.messaging)
         self._robot = robot
         # nested command dict
@@ -191,7 +190,7 @@ class BotCommandManager(CommandManager):
         running = s_manager.running_subprocesses
         self._commands['running'] = no_arguments(running)
 
-    def _kill_bot(self, msg):
+    def _kill_bot(self, *args, **kwargs):
         """
         Kills the instance of vexbot
         """
@@ -199,7 +198,7 @@ class BotCommandManager(CommandManager):
 
 
 class AdapterCommandManager(CommandManager):
-    def __init__(self, messaging):
+    def __init__(self, messaging: 'vexbot.messaging:Messaging'):
         super().__init__(messaging)
         self._commands['alive'] = no_arguments(self._alive)
 

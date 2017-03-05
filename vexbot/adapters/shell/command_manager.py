@@ -1,13 +1,14 @@
 import sys as _sys
 import cmd as _cmd
 import textwrap as _textwrap
+import logging
 
 from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.command_managers import CommandManager as _Command
 from vexbot.settings_manager import SettingsManager as _SettingsManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
-from vexbot.adapters.shell.tui import VexTextInterface
+from vexbot.adapters.tui import VexTextInterface
 
 
 class ShellCommand(_Command):
@@ -51,17 +52,18 @@ class ShellCommand(_Command):
     def set_no_bot_callback(self, callback):
         self._no_bot_callback = callback
 
+    def check_for_bot(self):
+        self.messaging.send_ping()
+
     def handle_command(self, arg):
         # FIXME: Hack to stop crashing
         if arg == 'help':
-            pass
+            logging.warn('Help command not implemented. Find me in `vexbot.adadpters.shell.command_manager:handle_command`')
         elif self.is_command(arg, call_command=True):
             # NOTE: since `call_command=True`, command will already be called
             pass
         else:
             command, argument, line = self._parseline(arg)
-            print(command, argument)
-
             self.messaging.send_command(command=command,
                                         args=argument,
                                         line=line)

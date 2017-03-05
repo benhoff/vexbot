@@ -1,4 +1,3 @@
-import sqlalchemy as _alchy
 from sqlalchemy import String, Integer, Column, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
@@ -27,13 +26,15 @@ adapter_address = Table('adapter_address',
                                ForeignKey('zmq_addresses.id')))
 
 startup_adapters_assoc = Table('startup_adapters',
-                         Base.metadata,
-                         Column('robot_model_id',
-                                Integer,
-                                ForeignKey('robot_models.id')),
+                               Base.metadata,
+                               Column('robot_model_id',
+                                      Integer,
+                                      ForeignKey('robot_models.id')),
+
                         Column('adapter_id',
                                Integer,
                                ForeignKey('adapters.id')))
+
 
 def _zmq_address_stripper(address):
     if address.startswith('tcp://'):

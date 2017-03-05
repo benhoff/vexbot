@@ -34,4 +34,5 @@ if __name__ == "__main__":
     debug = {'kill_on_exit': True}
     if setproctitle:
         setproctitle.setproctitle('vexshell')
+
     main(debug)

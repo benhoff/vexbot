@@ -1,19 +1,18 @@
-import os
-import sys
-import textwrap
-import logging
+import sys as _sys
+import logging as _logging
+import textwrap as _textwrap
 
+from os import path as _path
 import sqlalchemy as _alchy
 import sqlalchemy.orm as _orm
 
 from sqlalchemy import create_engine as _create_engine
 
 from vexbot.models import Base, RobotModel, Adapter, Module, ZmqAddress
-import vexbot.adapters.models
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
 
-def _create_session(filepath):
+def _create_session(filepath: str):
     engine = _create_engine('sqlite:///{}'.format(filepath))
     Base.metadata.bind = engine
     # TODO: decide if this is the best place to do this?
@@ -24,22 +23,23 @@ def _create_session(filepath):
 
 class SettingsManager:
     def __init__(self,
-                 filepath=None,
-                 profile='default',
-                 config_settings=None):
+                 filepath: str=None,
+                 profile: str='default',
+                 config_settings: dict=None):
 
-        self._logger = logging.getLogger(__name__)
-        default_filepath = False
+        self._logger = _logging.getLogger(__name__)
         if filepath is None:
             filepath = get_settings_database_filepath()
             default_filepath = True
+        else:
+            default_filepath = False
 
         if config_settings is None:
             config_settings = dict()
 
         self._config_settings = config_settings
 
-        if not os.path.isfile(filepath):
+        if not _path.isfile(filepath):
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
                 s = s + (' Please run `$ vexbot_create_database` from the cmd '
@@ -47,12 +47,12 @@ class SettingsManager:
                          'obot_models` from the shell adapter. Alternatively r'
                          'un `$ vexbot_quickstart`')
 
-            s = textwrap.fill(s, initial_indent='', subsequent_indent='    ')
+            s = _textwrap.fill(s, initial_indent='', subsequent_indent='    ')
             self._logger.error(s)
-            sys.exit(1)
+            _sys.exit(1)
 
         self.session = _create_session(filepath)
-        self._profile = profile 
+        self._profile = profile
         try:
             self._profile_settings = self.get_robot_model(profile)
         except _alchy.exc.OperationalError:
@@ -63,7 +63,7 @@ class SettingsManager:
         return self._profile
 
     @profile.setter
-    def profile(self, profile):
+    def profile(self, profile: str):
         settings = self.get_robot_model(profile)
         self._profile_settings = settings
 
@@ -73,7 +73,7 @@ class SettingsManager:
     def get_all_addresses(self):
         return self.session.query(ZmqAddress.address)[0]
 
-    def get_startup_adapters(self, profile=None):
+    def get_startup_adapters(self, profile: str=None):
         model = self.get_robot_model(profile)
         adapters = model.startup_adapters
         return adapters
@@ -97,8 +97,7 @@ class SettingsManager:
 
         return True
 
-
-    def get_or_create_address(self, address):
+    def get_or_create_address(self, address: str):
         if address.startswith('tcp://'):
             # TODO: CHECK that this works
             address = address[6:]
@@ -117,7 +116,7 @@ class SettingsManager:
         self.session.add(instance)
         self.session.commit()
 
-    def get_robot_model(self, profile=None):
+    def get_robot_model(self, profile: str=None):
         """
         Can return `None`
         """
