@@ -38,13 +38,24 @@ class ShellCommand(_Command):
         self._robot_name = 'vexbot'
 
         self._profile = profile
+        self._bot_callback = None
+        self._no_bot_callback = None
         self.do_profile(profile)
         for method in dir(self):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
 
+    def set_on_bot_callback(self, callback):
+        self._bot_callback = callback
+
+    def set_no_bot_callback(self, callback):
+        self._no_bot_callback = callback
+
     def handle_command(self, arg):
-        if self.is_command(arg, call_command=True):
+        # FIXME: Hack to stop crashing
+        if arg == 'help':
+            pass
+        elif self.is_command(arg, call_command=True):
             # NOTE: since `call_command=True`, command will already be called
             pass
         else:
