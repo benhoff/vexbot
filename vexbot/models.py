@@ -25,16 +25,6 @@ adapter_address = Table('adapter_address',
                                Integer,
                                ForeignKey('zmq_addresses.id')))
 
-startup_adapters_assoc = Table('startup_adapters',
-                               Base.metadata,
-                               Column('robot_model_id',
-                                      Integer,
-                                      ForeignKey('robot_models.id')),
-
-                        Column('adapter_id',
-                               Integer,
-                               ForeignKey('adapters.id')))
-
 
 def _zmq_address_stripper(address):
     if address.startswith('tcp://'):
@@ -46,7 +36,6 @@ def _zmq_address_stripper(address):
 class RobotModel(Base):
     __tablename__ = 'robot_models'
     id = Column(Integer, primary_key=True)
-    profile = Column(String(length=50), unique=True)
     name = Column(String(length=100), default='vexbot')
     publish_address_id = Column(Integer, ForeignKey('zmq_addresses.id'))
     heartbeat_address_id = Column(Integer,
@@ -59,7 +48,6 @@ class RobotModel(Base):
                                      foreign_keys=[heartbeat_address_id])
 
     subscribe_addresses = relationship('ZmqAddress', secondary=robot_address)
-    startup_adapters = relationship('Adapter', secondary=startup_adapters_assoc)
 
     @property
     def zmq_publish_address(self):

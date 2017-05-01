@@ -1,7 +1,8 @@
 # TODO: check to see if we can run concurrent using the prompt toolkit lib
 # We've got two event loops: the communication poller and the response loop
-from threading import Thread as _Thread
 import logging
+import pprint
+from threading import Thread as _Thread
 
 from prompt_toolkit import AbortAction, CommandLineInterface
 from prompt_toolkit.shortcuts import create_prompt_application, create_eventloop, create_output
@@ -89,9 +90,7 @@ class PromptShell:
     def _handle_response(self, message):
         header = message.contents.get('original', 'Response')
         contents = message.contents.get('response', None)
-        logging.warn('Response Handeling in shell adapter unfinished')
-        # print(header)
-        print(contents)
+        pprint.pprint(contents, compact=True)
 
     def set_bot_prompt_no(self):
         if not self._bot == self._NO_BOT:

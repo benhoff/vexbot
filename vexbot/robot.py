@@ -11,19 +11,15 @@ except ImportError:
 from vexbot.messaging import Messaging
 from vexbot.settings_manager import SettingsManager
 from vexbot.command_managers import BotCommandManager
-from vexbot.subprocess_manager import SubprocessManager
 from vexbot.util.get_config import get_config
 
 
 class Robot:
-    def __init__(self,
-                 subprocess_manager=None,
-                 messaging=None):
-
+    def __init__(self, settings_manager=None, messaging=None):
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = logging.getLogger(log_name)
 
-        self.subprocess_manager = subprocess_manager
+        self.settings_manager = settings_manager 
         self.messaging = messaging
 
         self.command_manager = BotCommandManager(robot=self)
@@ -39,23 +35,19 @@ class Robot:
 def _get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('name', default='vexbot', nargs='?')
-    parser.add_argument('profile', default='default', nargs='?')
     args = parser.parse_args()
     return args
 
 
 def setup_robot(configuration):
-    vexbot_settings = configuration.get('vexbot', {'profile': 'default'})
-    profile = vexbot_settings.get('profile', 'default')
+    vexbot_settings = configuration.get('vexbot', {})
 
-    # setting the profile interfaces with the database
-    settings_manager = SettingsManager(profile=profile,
-                                       config_settings=configuration)
-
+    # setting the interfaces with the database
+    settings_manager = SettingsManager(config_settings=configuration)
     robot_model = settings_manager.get_robot_model()
 
+    # FIXME: fix the instructions
     if robot_model is None:
-        # FIXME: fix the instructions
         s = textwrap.dedent('The profile: `{}` was not found in the settings database'
                             'Be sure to create this using `create_robot_se'
                             'ttings` in the shell adapter, or running `$ vexbot_quickstart` from the terminal.'
@@ -67,18 +59,13 @@ def setup_robot(configuration):
 
         sys.exit(1)
 
-    messaging = Messaging(profile,
+    messaging = Messaging('vexbot',
                           robot_model.zmq_publish_address,
                           robot_model.zmq_subscription_addresses,
                           robot_model.zmq_heartbeat_address)
 
-    subprocess_manager = SubprocessManager(settings_manager)
-    # FIXME: Figure out a public API for this that makes sense
-    # This runs `plugingmanager` and grabs all of our registered subprocesses
-    subprocess_manager._register_subprocesses()
+    settings_manager.start_startup_adapters()
 
-    startup_adapters = settings_manager.get_startup_adapters()
-    subprocess_manager.start(startup_adapters)
     if setproctitle:
         setproctitle.setproctitle(name)
 

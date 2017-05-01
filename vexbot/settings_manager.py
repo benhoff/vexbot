@@ -8,6 +8,7 @@ import sqlalchemy.orm as _orm
 
 from sqlalchemy import create_engine as _create_engine
 
+from vexbot.subprocess_manager import SubprocessManager
 from vexbot.models import Base, RobotModel, Adapter, Module, ZmqAddress
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
 
@@ -21,15 +22,31 @@ def _create_session(filepath: str):
     return DBSession()
 
 
-class SettingsManager:
-    def __init__(self,
-                 filepath: str=None,
-                 profile: str='default',
-                 config_settings: dict=None):
+"""
+plugin_manager = pluginmanager.PluginInterface()
+collect = plugin_manager.collect_entry_point_plugins
+plugin_settings = collect('vexbot.adapter_settings',
+                          return_dict=True)
 
+self._settings_manager.update_modules(subprocesses.keys())
+try:
+    # using convention to snag plugin settings.
+    # expect that settings will be in the form of
+    # `adapter_name` + `_settings`
+    # I.E. `irc_settings` for adapter `irc`
+    setting_name = name + '_settings'
+    setting_class = plugin_settings[setting_name
+except KeyError:
+    setting_class = None
+"""
+
+
+class SettingsManager:
+    def __init__(self, database_filepath: str=None)
         self._logger = _logging.getLogger(__name__)
-        if filepath is None:
-            filepath = get_settings_database_filepath()
+        self.subprocess_manager = SubprocessManager()
+        if database_filepath is None:
+            database_filepath = get_settings_database_filepath()
             default_filepath = True
         else:
             default_filepath = False
@@ -37,9 +54,7 @@ class SettingsManager:
         if config_settings is None:
             config_settings = dict()
 
-        self._config_settings = config_settings
-
-        if not _path.isfile(filepath):
+        if not _path.isfile(database_filepath):
             s = 'Database filepath: {} not found.'.format(filepath)
             if default_filepath:
                 s = s + (' Please run `$ vexbot_create_database` from the cmd '
@@ -51,8 +66,7 @@ class SettingsManager:
             self._logger.error(s)
             _sys.exit(1)
 
-        self.session = _create_session(filepath)
-        self._profile = profile
+        self.session = _create_session(database_filepath)
         try:
             self._profile_settings = self.get_robot_model(profile)
         except _alchy.exc.OperationalError:
@@ -73,10 +87,13 @@ class SettingsManager:
     def get_all_addresses(self):
         return self.session.query(ZmqAddress.address)[0]
 
-    def get_startup_adapters(self, profile: str=None):
-        model = self.get_robot_model(profile)
-        adapters = model.startup_adapters
-        return adapters
+    def get_adapter_settings(self, adapter_names: list, profile: str=None):
+        raise NotImplemented('Fixme, please')
+
+    def start_startup_adapters(self, profile: str=None):
+        adapters = self.get_startup_adapters(profile)
+        adapter_settings = self.get_adapter_settings(adapters, profile)
+        self.subprocess_manager.start(adapters, adapter_settings)
 
     def create_default(self):
         pub = self.get_or_create_address('127.0.0.1:4001')
@@ -127,22 +144,6 @@ class SettingsManager:
                 filter(RobotModel.profile==profile).first()
 
         return settings
-
-    def _handle_startup_adapters(self,
-                                 model: RobotModel,
-                                 startup_adapters: list):
-
-        for adapter in startup_adapters:
-            if isinstance(adapter, Adapter):
-                model.startup_adapters.append(adapter)
-            else:
-                adapter = self.session.query(Adapter).\
-                        filter(Adapter.name==adapter).first()
-
-                print(adapter, bool(adapter))
-
-                if adapter:
-                    model.startup_adapters.append(adapter)
 
     def update_modules(self, modules: list):
         for module in modules:

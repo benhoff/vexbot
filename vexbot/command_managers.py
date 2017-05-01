@@ -173,7 +173,8 @@ class BotCommandManager(CommandManager):
         # alias for pep8
         s_manager = robot.subprocess_manager
 
-        subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
+        # FIXME: use the settings manager instead of subprocess manager
+        # subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
 
         self._commands['subprocess'] = subprocess
 
@@ -181,12 +182,12 @@ class BotCommandManager(CommandManager):
         self._commands['restart_bot'] = no_arguments(_restart_bot)
 
         self._commands['start'] = msg_list_wrapper(s_manager.start)
+        self._commands['stop'] = msg_list_wrapper(s_manager.stop)
         registered = s_manager.registered_subprocesses
         self._commands['subprocesses'] = no_arguments(registered)
         self._commands['restart'] = msg_list_wrapper(s_manager.restart)
         self._commands['kill'] = msg_list_wrapper(s_manager.kill)
         self._commands['kill_bot'] = self._kill_bot
-        self._commands['terminate'] = msg_list_wrapper(s_manager.terminate)
         running = s_manager.running_subprocesses
         self._commands['running'] = no_arguments(running)
 

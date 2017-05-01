@@ -10,22 +10,26 @@ from vexmessage import create_vex_message, decode_vex_message
 class Messaging:
     # TODO: add an `update_messaging` command
     def __init__(self,
-                 profile: str,
-                 publish_address: str=None,
-                 subscribe_address: str=None,
-                 heartbeat_address: str=None):
+                 botname: str='',
+                 ip_address: str='',
+                 publish_port: int=None,
+                 subscribe_port: int=None,
+                 heartbeat_port: int=None,
+                 control_port: int=None):
 
-        self._service_name = profile
+        self._service_name = botname
         # Store the addresses of publish, subscription, and heartbeat sockets
-        self.address = {'publish': publish_address,
-                        'subscriptions': subscribe_address,
-                        'heartbeat': heartbeat_address}
+        self.address = {'publish': publish_port,
+                        'subscriptions': subscribe_port,
+                        'heartbeat': heartbeat_port,
+                        'control': control_port}
 
         # The XPub and xSub sockets acts as a pass through
         # they are stored in `socket` since we don't need access to them
         self.socket = {'publish': None,
                        'subscribe': None,
-                       'heartbeat': None}
+                       'heartbeat': None,
+                       'control': None}
 
         # The subscription socket and publish socket are what the robot uses
         # to communicate. Separate from the proxy XPUB/XSUB

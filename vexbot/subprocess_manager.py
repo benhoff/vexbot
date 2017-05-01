@@ -1,62 +1,32 @@
 import sys
 import atexit
 import signal
+import logging
 from subprocess import Popen, DEVNULL
 
 import pluginmanager
 
-from sqlalchemy import inspect as _sql_inspect
-
 
 class SubprocessManager:
-    def __init__(self, settings_manager: 'vexbot.SettingsManager'=None):
-        # this is going to be a list of filepaths
+    def __init__(self):
+        # Don't let the subprocess manager start the shell
+        self.blacklist = ['shell', ]
         self._registered = {}
-        self._settings = {}
-        # these will be subprocesses
         self._subprocess = {}
+
         atexit.register(self._close_subprocesses)
         signal.signal(signal.SIGINT, self._handle_close_signal)
         signal.signal(signal.SIGTERM, self._handle_close_signal)
-        self.blacklist = ['shell', ]
-        self._settings_manager = settings_manager
 
-    def _register_subprocesses(self):
+    def register_subprocesses(self, entry_point='vexbot.subprocesses'):
         plugin_manager = pluginmanager.PluginInterface()
-        collect_ep = plugin_manager.collect_entry_point_plugins
-        plugin_settings = collect_ep('vexbot.adapter_settings',
-                                     return_dict=True)
-
-        subprocesses = collect_ep(('vexbot.subprocesses',), return_dict=True)
-        self._settings_manager.update_modules(subprocesses.keys())
+        subprocesses = collect_ep((entry_point,), return_dict=True)
         for name, subprocess in subprocesses.items():
-            subprocesses[name] = subprocess.__file__
-            self.register(name,
-                          sys.executable,
-                          {'filepath': subprocess.__file__})
+            if name in self.blacklist:
+                continue
 
-        try:
-            # using convention to snag plugin settings.
-            # expect that settings will be in the form of
-            # `adapter_name` + `_settings`
-            # I.E. `irc_settings` for adapter `irc`
-            setting_name = name + '_settings'
-            setting_class = plugin_settings[setting_name]
-        except KeyError:
-            setting_class = None
-
-        self.set_settings_class(name, setting_class)
-
-    def _handle_close_signal(self, signum=None, frame=None):
-        self._close_subprocesses()
-        sys.exit()
-
-    def _close_subprocesses(self):
-        """
-        signum and frame are part of the signal lib
-        """
-        for process in self._subprocess.values():
-            process.terminate()
+            self._registered[name] = {'executable': sys.executable,
+                                      'filepath': subprocess.__file__}
 
     def registered_subprocesses(self):
         """
@@ -64,76 +34,27 @@ class SubprocessManager:
         """
         return tuple(self._registered.keys())
 
-    def register(self, key: str, value, settings: dict=None):
+    """
+    # This is what we're aiming for.
+        process = Popen(dict_list, stdout=DEVNULL)
+        return_code = process.poll()
+        if return_code is None:
+            self._subprocess[key] = process
+    """
+    def start(self, keys: list, settings: list):
+        # Cover the case where there are no settings passed in
         if settings is None:
-            settings = {}
-        if self._settings.get(key):
-            self._settings[key].update(settings)
-        else:
-            self._settings[key] = settings
-        if key in self.blacklist:
-            return
-        self._registered[key] = value
-
-    def set_settings_class(self, name, kls):
-        update_dict = {'settings_class': kls}
-        if self._settings.get(name):
-            self._settings[name].update(update_dict)
-        else:
-            self._settings[name] = update_dict
-
-    # FIXME: API broken
-    def update_setting_value(self,
-                             name: str,
-                             setting_name: str,
-                             setting_value):
-
-        try:
-            self._settings[name][setting_name] = setting_value
-        except KeyError:
-            pass
-
-    def get_settings(self, key: str):
-        """
-        trys to get the settings information for a given subprocess. Passes
-        silently when there is no information
-        """
-        settings = self._settings.get(key)
-        return settings
-
-    def _get_dict_from_settings(self, kls=None, configuration=None):
-        result = {}
-        if configuration is None or kls is None:
-            return result
-
-        for attribute in _sql_inspect(kls).attrs:
-            key = attribute.key
-            if key not in ('filepath', 'args'):
-                key = '--' + key
-
-            result[attribute.key] = attribute.value
-
-        return result
-
-    def start(self, keys: list, profile=None):
-        """
-        starts subprocesses. Can pass in multiple subprocess to start
-        """
-        for key in keys:
-            executable = self._registered.get(key)
-            if executable is None:
+            settings = []
+        # iterate through each of the keys and the settings
+        for key, setting in zip(keys, settings):
+            if registered_dict is None:
                 continue
 
             dict_list = [executable, ]
             settings = self._settings.get(key)
-            # TODO: Find better way todo this
-            settings_class = settings.pop('settings_class')
+
+            settings_class = settings.get('settings_class')
             setting_values = {}
-            if settings_class is not None:
-                get_adapter_settings = self._settings_manager.get_adapter_settings
-                setting_values = get_adapter_settings(settings_class, profile)
-                if setting_values is None or not setting_values:
-                    continue
 
             filepath = settings.get('filepath')
             if filepath:
@@ -143,10 +64,6 @@ class SubprocessManager:
             if args:
                 dict_list.extend(args)
 
-            # NOTE: want to make sure I'm not messing with the state of
-            # the original dict that's tracked by the subprocess manager
-            # TODO: check if recreating dict is neccesairy
-            settings = dict(settings)
             # Not sure if this will work
             settings.update(setting_values)
 
@@ -158,10 +75,6 @@ class SubprocessManager:
                 dict_list.append(k)
                 dict_list.append(v)
 
-            process = Popen(dict_list, stdout=DEVNULL)
-            return_code = process.poll()
-            if return_code is None:
-                self._subprocess[key] = process
 
     def restart(self, values: list):
         """
@@ -188,7 +101,7 @@ class SubprocessManager:
                 continue
             process.kill()
 
-    def terminate(self, values: list):
+    def stop(self, values: list):
         for value in values:
             try:
                 process = self._subprocess[value]
@@ -219,3 +132,15 @@ class SubprocessManager:
             for killed_subprocess in killed:
                 self._subprocess.pop(killed_subprocess)
         return results
+
+    def _handle_close_signal(self, signum=None, frame=None):
+        self._close_subprocesses()
+        sys.exit()
+
+    def _close_subprocesses(self):
+        """
+        signum and frame are part of the signal lib
+        """
+        for process in self._subprocess.values():
+            process.terminate()
+
