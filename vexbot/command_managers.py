@@ -171,7 +171,8 @@ class BotCommandManager(CommandManager):
         subprocess = {}
 
         # alias for pep8
-        s_manager = robot.subprocess_manager
+        # FIXME: Should probably access this a better way
+        s_manager = robot.settings_manager.subprocess_manager
 
         # FIXME: use the settings manager instead of subprocess manager
         # subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)

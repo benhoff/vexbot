@@ -33,42 +33,6 @@ def _zmq_address_stripper(address):
     return address
 
 
-class RobotModel(Base):
-    __tablename__ = 'robot_models'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(length=100), default='vexbot')
-    publish_address_id = Column(Integer, ForeignKey('zmq_addresses.id'))
-    heartbeat_address_id = Column(Integer,
-                                  ForeignKey('zmq_addresses.id'))
-
-    publish_address = relationship('ZmqAddress',
-                                   foreign_keys=[publish_address_id])
-
-    heartbeat_address = relationship('ZmqAddress',
-                                     foreign_keys=[heartbeat_address_id])
-
-    subscribe_addresses = relationship('ZmqAddress', secondary=robot_address)
-
-    @property
-    def zmq_publish_address(self):
-        if not self.publish_address:
-            return None
-        return self.publish_address.zmq_address
-
-    @property
-    def zmq_heartbeat_address(self):
-        if not self.heartbeat_address:
-            return None
-        return self.heartbeat_address.zmq_address
-
-    @property
-    def zmq_subscription_addresses(self):
-        if self.subscribe_addresses:
-            return [x.zmq_address for x in self.subscribe_addresses]
-        else:
-            return list()
-
-
 class ZmqAddress(Base):
     __tablename__ = 'zmq_addresses'
     id = Column(Integer, primary_key=True)

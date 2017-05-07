@@ -14,7 +14,6 @@ from vexbot.adapters.tui import VexTextInterface
 class ShellCommand(_Command):
     identchars = _cmd.IDENTCHARS
     def __init__(self,
-                 profile='default',
                  messaging=None,
                  stdin=None,
                  stdout=None):
@@ -34,14 +33,12 @@ class ShellCommand(_Command):
 
         self.messaging = messaging
         self.messaging.start_messaging()
-        self.settings_manager = _SettingsManager(profile=profile)
+        self.settings_manager = _SettingsManager()
         self._text_interface = VexTextInterface(self.settings_manager)
         self._robot_name = 'vexbot'
 
-        self._profile = profile
         self._bot_callback = None
         self._no_bot_callback = None
-        self.do_profile(profile)
         for method in dir(self):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
@@ -68,11 +65,6 @@ class ShellCommand(_Command):
                                         args=argument,
                                         line=line)
 
-            if self._profile is None:
-                self.stdout.write('\nNo profile set! Use `profiles` to see '
-                                  'stored robot profiles and the `profile` '
-                                  'command to set the shell profile\n\n')
-
     def _parseline(self, line):
         """Parse the line into a command name and a string containing
         the arguments.  Returns a tuple containing (command, args, line).
@@ -98,40 +90,6 @@ class ShellCommand(_Command):
             arg = self._profile
         _start_vexbot(arg)
 
-    def do_profile(self, arg):
-        if arg:
-            return self.do_profiles(arg)
-        profile = self._profile
-        if profile is None:
-            profile = 'NONE SET'
-        self.stdout.write('\n' + profile + '\n\n')
-
-    def do_profiles(self, arg):
-        if arg:
-            # Do this first for now, in case our user messes up
-            settings = self.settings_manager.get_robot_model(arg)
-            if settings is None:
-                return
-            self.messaging.disconnect_pub_socket()
-            self.messaging.disconnect_sub_socket()
-            self.messaging.disconnect_heartbeat_socket()
-
-            pub_addr = settings.zmq_publish_address
-            sub_addr = settings.zmq_subscription_addresses
-            heartbeat_addr = settings.zmq_heartbeat_address
-            self.messaging.update_messaging(pub_addr,
-                                            sub_addr,
-                                            heartbeat_addr)
-
-            self._robot_name = settings.name
-            self._profile = arg
-        else:
-            profiles = self.settings_manager.get_robot_profiles()
-            self.stdout.write('\n')
-            self.print_topics('profiles',
-                              profiles,
-                              15,
-                              80)
 
     def _get_old_settings(self, setting_manager, profile):
         """

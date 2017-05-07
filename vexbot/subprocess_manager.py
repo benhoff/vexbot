@@ -9,85 +9,31 @@ import pluginmanager
 
 class SubprocessManager:
     def __init__(self):
-        # Don't let the subprocess manager start the shell
-        self.blacklist = ['shell', ]
-        self._registered = {}
         self._subprocess = {}
 
         atexit.register(self._close_subprocesses)
         signal.signal(signal.SIGINT, self._handle_close_signal)
         signal.signal(signal.SIGTERM, self._handle_close_signal)
 
-    def register_subprocesses(self, entry_point='vexbot.subprocesses'):
-        plugin_manager = pluginmanager.PluginInterface()
-        subprocesses = collect_ep((entry_point,), return_dict=True)
-        for name, subprocess in subprocesses.items():
-            if name in self.blacklist:
-                continue
-
-            self._registered[name] = {'executable': sys.executable,
-                                      'filepath': subprocess.__file__}
-
-    def registered_subprocesses(self):
-        """
-        returns all possible subprocesses that can be launched
-        """
-        return tuple(self._registered.keys())
-
-    """
-    # This is what we're aiming for.
-        process = Popen(dict_list, stdout=DEVNULL)
+    def start(self, name: str, arguments: list):
+        process = Popen(arguments, stdout=DEVNULL)
         return_code = process.poll()
+        # TODO: Check and return error code
         if return_code is None:
-            self._subprocess[key] = process
-    """
-    def start(self, keys: list, settings: list):
-        # Cover the case where there are no settings passed in
-        if settings is None:
-            settings = []
-        # iterate through each of the keys and the settings
-        for key, setting in zip(keys, settings):
-            if registered_dict is None:
-                continue
+            self._subprocess[name] = process
 
-            dict_list = [executable, ]
-            settings = self._settings.get(key)
-
-            settings_class = settings.get('settings_class')
-            setting_values = {}
-
-            filepath = settings.get('filepath')
-            if filepath:
-                dict_list.append(filepath)
-
-            args = settings.get('args', [])
-            if args:
-                dict_list.extend(args)
-
-            # Not sure if this will work
-            settings.update(setting_values)
-
-            for k, v in settings.items():
-                if k in ('filepath', '_sa_instance_state', 'id', 'robot_id'):
-                    continue
-                if not k[2:] == '--':
-                    k = '--' + k
-                dict_list.append(k)
-                dict_list.append(v)
-
-
-    def restart(self, values: list):
+    def restart(self, name: str, arguments: list):
         """
         restarts subprocesses managed by the subprocess manager
         """
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
+        try:
+            process = self._subprocess[name]
+        except KeyError:
+            continue
 
             process.terminate()
-            self.start((value, ))
+
+        self.start(name, arguments)
 
     def kill(self, values: list):
         """
@@ -143,4 +89,3 @@ class SubprocessManager:
         """
         for process in self._subprocess.values():
             process.terminate()
-

@@ -11,13 +11,16 @@ except ImportError:
 from vexbot.messaging import Messaging
 from vexbot.settings_manager import SettingsManager
 from vexbot.command_managers import BotCommandManager
-from vexbot.util.get_config import get_config
+import vexbot.util as util
+from vexbot.util.get_config import get_config as _get_config
 
 
 class Robot:
     def __init__(self, settings_manager=None, messaging=None):
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = logging.getLogger(log_name)
+        if settings_manager is None:
+            settings_manager = SettingsManager()
 
         self.settings_manager = settings_manager 
         self.messaging = messaging
@@ -34,53 +37,42 @@ class Robot:
 
 def _get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('name', default='vexbot', nargs='?')
+    parser.add_argument('robot_name', default='vexbot', nargs='?')
+    parser.add_argument('configuration_filepath', nargs='?')
     args = parser.parse_args()
     return args
 
 
-def setup_robot(configuration):
-    vexbot_settings = configuration.get('vexbot', {})
+def _setup_messaging(botname, configuration):
+    messaging = Messaging(botname,
+                          protocol,
+                          ip_address,
+                          command_publish_port,
+                          command_subscribe_port,
+                          heartbeat_port,
+                          control_port)
 
-    # setting the interfaces with the database
-    settings_manager = SettingsManager(config_settings=configuration)
-    robot_model = settings_manager.get_robot_model()
+    return messaging
 
-    # FIXME: fix the instructions
-    if robot_model is None:
-        s = textwrap.dedent('The profile: `{}` was not found in the settings database'
-                            'Be sure to create this using `create_robot_se'
-                            'ttings` in the shell adapter, or running `$ vexbot_quickstart` from the terminal.'
-                            'Exiting robot now.'.format(profile))
 
-        logging.warn(textwrap.fill(s,
-                     initial_indent='',
-                     subsequent_indent='    '))
+def main(**kwargs):
+    """
+    `configuration_filepath`
+    """
+    args = vars(_get_args())
+    config_filepath = args.get('configuration_filepath')
+    configuration = util.get_config.get_config(filepath=config_filepath)
 
-        sys.exit(1)
-
-    messaging = Messaging('vexbot',
-                          robot_model.zmq_publish_address,
-                          robot_model.zmq_subscription_addresses,
-                          robot_model.zmq_heartbeat_address)
-
-    settings_manager.start_startup_adapters()
-
+    vexbot_settings = configuration.get('vexbot', {'robot_name': 'Vexbot'})
+    robot_name = vexbot_settings.get('robot_name', 'Vexbot')
     if setproctitle:
-        setproctitle.setproctitle(name)
+        setproctitle.setproctitle('vexbot')
 
-    robot = Robot(subprocess_manager=subprocess_manager,
-                  messaging=messaging)
-
-    return robot
+    port_config = configuration.get('vexbot_ports', {})
+    messaging = Messaging(robot_name, kwargs=port_config)
+    robot = Robot(messaging=messaging)
+    robot.run()
 
 
 if __name__ == '__main__':
-    args = vars(_get_args())
-    configuration = get_config()
-    vexbot_settings = configuration.get('vexbot', {'name': 'vexbot'})
-    name = vexbot_settings.get('name', 'vexbot')
-    if setproctitle:
-        setproctitle.setproctitle(name)
-    robot = setup_robot(configuration)
-    robot.run()
+    main()

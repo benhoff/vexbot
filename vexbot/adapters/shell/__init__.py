@@ -64,7 +64,7 @@ class PromptShell:
 
     def cmdloop_and_start_messaging(self):
         self._thread.start()
-        return self.cmdloop()
+        self.cmdloop()
 
     def cmdloop(self, intro=None):
         if intro is None:
