@@ -165,24 +165,28 @@ class CommandManager:
 
 class BotCommandManager(CommandManager):
     def __init__(self, robot: 'vebot.robot:Robot'):
+        # Need to pass in messaging in order to access commands
+        # Alternatively, could pass in some sort of interface
         super().__init__(robot.messaging)
-        self._robot = robot
         # nested command dict
         subprocess = {}
 
+        adapter_interface = robot.adapter_interface
+
         # alias for pep8
         # FIXME: Should probably access this a better way
-        s_manager = robot.settings_manager.subprocess_manager
+        s_manager = adapter_interface.get_subprocess_manager()
 
         # FIXME: use the settings manager instead of subprocess manager
         # subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
 
         self._commands['subprocess'] = subprocess
 
-        self._commands['killall'] = no_arguments(s_manager.killall)
+        self._commands['killall'] = no_arguments(adapter_interface.killall)
         self._commands['restart_bot'] = no_arguments(_restart_bot)
 
-        self._commands['start'] = msg_list_wrapper(s_manager.start)
+        # TODO: check if want this to be `start_adapters` or `start_adapter`
+        self._commands['start'] = msg_list_wrapper(adapter_interface.start_adapters)
         self._commands['stop'] = msg_list_wrapper(s_manager.stop)
         registered = s_manager.registered_subprocesses
         self._commands['subprocesses'] = no_arguments(registered)

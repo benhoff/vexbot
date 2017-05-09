@@ -19,8 +19,17 @@ class AdapterInterface:
         self.adapters = {}
         self.adapter_blacklist = ['shell', ]
 
+    def get_settings_manager(self):
+        return self.settings_manager
+
+    def get_subprocess_manager(self):
+        return self.subprocess_manager
+
     def get_adapters(self):
         return self.adapters.keys()
+
+    def get_adapter_settings(self, name, profile):
+        return self.settings_manager.get_adapter_settings(name)
 
     def start_adapter(self):
         pass
@@ -58,14 +67,14 @@ class AdapterInterface:
     def start_adapters(self):
         pass
 
-    def restart(self):
+    def restart(self, name):
         pass
 
-    def kill(self):
-        pass
+    def kill(self, names: list):
+        self.subprocess_manager.kill(names)
 
     def killall(self):
-        pass
+        self.subprocess_manager.killall()
 
     def setup(self,
               settings_entry_point='vexbot.adapter_settings',

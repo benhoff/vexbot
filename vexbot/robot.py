@@ -1,31 +1,41 @@
 import sys
 import logging
 import textwrap
-import argparse
 
 try:
     import setproctitle
 except ImportError:
     setproctitle = False
 
+import vexbot.util as util
+
 from vexbot.messaging import Messaging
 from vexbot.settings_manager import SettingsManager
 from vexbot.command_managers import BotCommandManager
-import vexbot.util as util
-from vexbot.util.get_config import get_config as _get_config
+from vexbot.adapter_interface import AdapterInterface
+from vexbot.subprocess_manager import SubprocessManager
 
 
 class Robot:
-    def __init__(self, settings_manager=None, messaging=None):
-        log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
-        self._logger = logging.getLogger(log_name)
-        if settings_manager is None:
-            settings_manager = SettingsManager()
+    def __init__(self,
+                 messaging: Messaging=None,
+                 adapter_interface: AdapterInterface=None,
+                 command_manager: BotCommandManager=None):
 
-        self.settings_manager = settings_manager 
+        # Messaging is too complex to setup as default
         self.messaging = messaging
+        if adapter_interface is None:
+            adapter_interface = AdapterInterface(SettingsManager(),
+                                                 SubprocessManager())
 
-        self.command_manager = BotCommandManager(robot=self)
+        if command_manager is None:
+            command_manager = BotCommandManager(robot=self)
+
+        self.adapter_interface = adapter_interface
+        self.command_manager = command_manager
+
+        log_name = self._get_log_name()
+        self._logger = logging.getLogger(log_name)
 
     def run(self):
         self.messaging.start()
@@ -34,43 +44,37 @@ class Robot:
             if msg.type == 'CMD':
                 self.command_manager.parse_commands(msg)
 
-
-def _get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('robot_name', default='vexbot', nargs='?')
-    parser.add_argument('configuration_filepath', nargs='?')
-    args = parser.parse_args()
-    return args
-
-
-def _setup_messaging(botname, configuration):
-    messaging = Messaging(botname,
-                          protocol,
-                          ip_address,
-                          command_publish_port,
-                          command_subscribe_port,
-                          heartbeat_port,
-                          control_port)
-
-    return messaging
+    def _get_log_name(self):
+        return __name__ if __name__ != '__main__' else 'vexbot.robot'
 
 
 def main(**kwargs):
     """
     `configuration_filepath`
     """
-    args = vars(_get_args())
+    # Get the command line arguments
+    args = vars(util.get_args.get_args())
+
+    # Get the configuration filepath
     config_filepath = args.get('configuration_filepath')
+    # Get the configuration (possibly the default configuration)
     configuration = util.get_config.get_config(filepath=config_filepath)
 
     vexbot_settings = configuration.get('vexbot', {'robot_name': 'Vexbot'})
     robot_name = vexbot_settings.get('robot_name', 'Vexbot')
-    if setproctitle:
-        setproctitle.setproctitle('vexbot')
 
     port_config = configuration.get('vexbot_ports', {})
     messaging = Messaging(robot_name, kwargs=port_config)
-    robot = Robot(messaging=messaging)
+
+    settings_manager = SettingsManager(port_configuration)
+
+    adapter_interface = AdapterInterface(settings_manager,
+                                         SubprocessManager())
+
+    if setproctitle:
+        setproctitle.setproctitle('vexbot')
+
+    robot = Robot(messaging, adapter_interface)
     robot.run()
 
 
