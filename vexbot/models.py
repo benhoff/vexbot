@@ -11,11 +11,14 @@ Base = _declarative_base()
 class Profile(Base):
     __tablename__ = 'profiles'
     id = Column(Integer, primary_key=True)
-    name = Colummn(String(50), nullable=False, unique=True)
+    name = Column(String(50), nullable=False, unique=True)
 
 
 class Adapter(Base):
+    # See http://stackoverflow.com/questions/1337095/sqlalchemy-inheritance
     __tablename__ = 'adapters'
     id = Column(Integer, primary_key=True)
+    adapter_type = Column(String(32), nullable=False)
     service_name = Column(String(100), nullable=False)
     profile = Column(Integer, ForeignKey('profiles.id'))
+    __mapper_args__ = {'polymorphic_on': adapter_type}

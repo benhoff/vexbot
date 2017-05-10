@@ -15,6 +15,9 @@ from prompt_toolkit.key_binding.bindings.completion import display_completions_l
 from vexbot import __version__
 
 
+VEXBOT_SETTINGS_NAME = 'vexbot_shell'
+
+
 class PromptShell:
     _NO_BOT = '<no bot detected>'
     def __init__(self,

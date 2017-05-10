@@ -41,9 +41,7 @@ setup(
                                           'socket_io = vexbot.adapters.socket_io',
                                           'youtube = vexbot.adapters.youtube_api'],
 
-                  'vexbot.settings': ['shell = vexbot.adapters.models:ShellSettings',
-                                      'irc = vexbot.adapters.models:IrcSettings',
-                                      'youtube = vexbot.adapters.models:YoutubeSettings',
+                  'vexbot.settings': ['irc = vexbot.adapters.models:IrcSettings',
                                       'xmpp = vexbot.adapters.models:XMPPSettings',
                                       'socket_io = vexbot.adapters.models:SocketIOSettings'],
 

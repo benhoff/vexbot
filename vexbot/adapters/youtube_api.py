@@ -34,6 +34,7 @@ if _GOOGLE_API_INSTALLED:
     from oauth2client.file import Storage
     from oauth2client.tools import run_flow, argparser
 
+VEXBOT_SETTINGS_NAME = 'youtube'
 
 async def _run(messaging, live_chat_messages, live_chat_id, ):
     command_manager = AdapterCommandManager(messaging)
