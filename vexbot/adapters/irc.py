@@ -65,35 +65,40 @@ if _IRC3_INSTALLED:
                                             channel=target)
 
 
-def create_irc_bot(nick,
-                   password,
-                   host=None,
-                   port=6667,
-                   realname=None,
-                   channel=None):
+    def create_irc_bot(nick,
+                       password,
+                       host=None,
+                       port=6667,
+                       realname=None,
+                       channel=None):
 
-    config = dict(ssl=False,
-                  includes=['irc3.plugins.core',
-                            'irc3.plugins.command',
-                            'irc3.plugins.human',
-                            __name__])
+        config = dict(ssl=False,
+                      includes=['irc3.plugins.core',
+                                'irc3.plugins.command',
+                                'irc3.plugins.human',
+                                __name__])
 
-    if realname is None:
-        realname = nick
-    if channel is None:
-        channel = nick
+        if realname is None:
+            realname = nick
+        if channel is None:
+            channel = nick
 
-    config['nick'] = nick
-    config['password'] = password
-    config['host'] = host
-    config['port'] = port
-    config['username'] = realname
-    config['autojoins'] = channel
-    config['level'] = 30
+        config['nick'] = nick
+        config['password'] = password
+        config['host'] = host
+        config['port'] = port
+        config['username'] = realname
+        config['autojoins'] = channel
+        config['level'] = 30
 
-    bot = irc3.IrcBot.from_config(config)
+        bot = irc3.IrcBot.from_config(config)
 
-    return bot
+        return bot
+
+# irc3 is not installed
+else:
+    def create_irc_bot(*args, **kwargs):
+        pass
 
 
 async def _check_subscription(bot):
@@ -148,6 +153,8 @@ def main(nick,
         logging.error('irc requires `irc3` to be installed. Please install '
                       'using `pip install irc3`')
 
+        sys.exit(1)
+
     irc_client = create_irc_bot(nick,
                                 password,
                                 host,
@@ -187,10 +194,8 @@ def main(nick,
     handle_close = _handle_close(messaging, event_loop)
     signal.signal(signal.SIGINT, handle_close)
     signal.signal(signal.SIGTERM, handle_close)
-    try:
-        event_loop.run_forever()
-    except KeyboardInterrupt:
-        pass
+    # TODO: determine if this needs a try/except KeyboardInterrupt around it
+    event_loop.run_forever()
     event_loop.close()
     sys.exit()
 

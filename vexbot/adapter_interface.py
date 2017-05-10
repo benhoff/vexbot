@@ -1,3 +1,5 @@
+import sys
+
 import pluginmanager
 
 
@@ -15,9 +17,9 @@ class AdapterInterface:
 
         self.plugin_manager = plugin_manager
 
-        # Don't let the subprocess manager start the shell
         self.adapters = {}
-        self.adapter_blacklist = ['shell', ]
+        self.adapter_blacklist = []
+        self.setup_adapters()
 
     def get_settings_manager(self):
         return self.settings_manager
@@ -28,8 +30,21 @@ class AdapterInterface:
     def get_adapters(self):
         return self.adapters.keys()
 
-    def get_adapter_settings(self, name, profile):
-        return self.settings_manager.get_adapter_settings(name)
+    def start_profile(self, profile='default'):
+        settings = self.settings_manager.get_adapter_settings(profile)
+        for name, adapter_settings in settings.items():
+            adapter = self.adapters.get(name)
+            if adapter is None:
+                continue
+            new_settings = []
+            new_settings.append(adapter['executable'])
+            new_settings.append(adapter['filepath'])
+
+            for k, v in adapter_settings:
+                new_settings.append('--' + k)
+                new_settings.append(v)
+            self.subprocess_manager.start(name, new_settings)
+
 
     def start_adapter(self):
         pass
@@ -64,12 +79,6 @@ class AdapterInterface:
                 dict_list.append(v)
         """
 
-    def start_adapters(self):
-        pass
-
-    def restart(self, name):
-        pass
-
     def kill(self, names: list):
         self.subprocess_manager.kill(names)
 
@@ -89,17 +98,9 @@ class AdapterInterface:
                                return_dict=True,
                                store_collected_plugins=False)
 
-        for name, subprocess in subprocesses.items():
-            if name in self.blacklist:
+        for name, subprocess in adapters.items():
+            if name in self.adapter_blacklist:
                 continue
 
             self.adapters[name] = {'executable': sys.executable,
-                                   'filepath': adapters.__file__}
-                               
-    def setup_settings(self):
-        collect_epp = self.plugin_manager.collect_entry_point_plugins
-        plugin_settings = collect_epp(('vexbot.adapter_settings',),
-                                      return_dict=True,
-                                      store_collected_plugins=False)
-
-        self.settings_manager.settings.update(plugin_settings)
+                                   'filepath': subprocess.__file__}

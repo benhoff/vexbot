@@ -210,6 +210,7 @@ if __name__ == '__main__':
     kwargs = _get_kwargs()
     # OAuth2 lib has some argparse functionality that conflicts with ours
     # delete ours for ease of programming
+    # FIXME: does not work if the google api is not installed
     for _ in range(6):
         del sys.argv[1]
     main(**kwargs)

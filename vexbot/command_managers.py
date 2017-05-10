@@ -186,10 +186,10 @@ class BotCommandManager(CommandManager):
         self._commands['restart_bot'] = no_arguments(_restart_bot)
 
         # TODO: check if want this to be `start_adapters` or `start_adapter`
-        self._commands['start'] = msg_list_wrapper(adapter_interface.start_adapters)
+        # self._commands['start'] = msg_list_wrapper(adapter_interface.start_adapters)
         self._commands['stop'] = msg_list_wrapper(s_manager.stop)
-        registered = s_manager.registered_subprocesses
-        self._commands['subprocesses'] = no_arguments(registered)
+        # registered = s_manager.registered_subprocesses
+        # self._commands['subprocesses'] = no_arguments(registered)
         self._commands['restart'] = msg_list_wrapper(s_manager.restart)
         self._commands['kill'] = msg_list_wrapper(s_manager.kill)
         self._commands['kill_bot'] = self._kill_bot

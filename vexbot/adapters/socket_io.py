@@ -178,6 +178,7 @@ class WebSocket(WebSocketApp):
 
 
 def _get_args():
+    # FIXME: need to ensure that these values are passed in
     parser = argparse.ArgumentParser()
     parser.add_argument('--streamer_name')
     parser.add_argument('--namespace')
@@ -202,6 +203,8 @@ def _send_disconnect(messaging):
 
 
 def main():
+    # TODO: Combine these error messages so that if both libs aren't install
+    # you get the messages simulationously
     if not _REQUESTS_INSTALLED:
         logging.error('Socket IO needs `requests` installed. Please run `pip '
                       'install requests`')

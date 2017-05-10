@@ -29,8 +29,8 @@ class SubprocessManager:
         try:
             process = self._subprocess[name]
         except KeyError:
-            continue
-
+            process = None
+        if process:
             process.terminate()
 
         self.start(name, arguments)

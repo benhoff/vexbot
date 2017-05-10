@@ -6,6 +6,7 @@ from os import path as _path
 
 import sqlalchemy.orm as _orm
 from sqlalchemy import create_engine as _create_engine
+from sqlalchemy import inspect as _inspect
 
 from vexbot.models import Base, Adapter, Profile
 from vexbot.util.get_settings_database_filepath import get_settings_database_filepath
@@ -39,8 +40,29 @@ class SettingsManager:
             settings = {}
         self.settings = settings
 
-    def get_adapter_settings(self, name: str, profile: str='default'):
-        return self.db_session.query(Adapter).filter(Adapter.profile == profile).all()
+    def get_adapter_settings(self, profile: str='default'):
+        result = {}
+        adapters = self.db_session.query(Adapter).filter(Adapter.profile == profile).all()
+        for adapter in adapters:
+            # TODO: put in a fallback?
+            adapter_name = adapter.module_name
+            # See http://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict/37350445#37350445
+            adapter_settings = {c.key: getattr(adapter, c.key)
+                                for c in _inspect(adapter).mapper.column_attrs}
+
+            # FIXME: Figure out how to make argparse accept random values in the scripts
+            adapter_settings.pop('id', None)
+            adapter_settings.pop('adapter_id', None)
+            result[adapter_name] = adapter_settings
+
+        for name, settings in self.settings.items():
+            if settings.get('profile') == profile:
+                # going to pop off the profile, so create a copy real quick
+                settings = dict(settings)
+                settings.pop('profile')
+                result[name] = settings
+
+        return result
 
     def _database_filepath_helper(self, database_filepath: str=None):
         if database_filepath is None:

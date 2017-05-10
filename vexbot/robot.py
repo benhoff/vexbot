@@ -5,7 +5,9 @@ try:
 except ImportError:
     _setproctitle = False
 
-import vexbot.util as _util
+
+from vexbot.util import get_kwargs as _get_kwargs
+from vexbot.util import get_config as _get_config
 
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.settings_manager import SettingsManager as _SettingsManager
@@ -16,21 +18,22 @@ from vexbot.subprocess_manager import SubprocessManager as _SubprocessManager
 
 class Robot:
     def __init__(self,
-                 messaging: Messaging=None,
-                 adapter_interface: AdapterInterface=None,
-                 command_manager: BotCommandManager=None):
+                 messaging: _Messaging=None,
+                 adapter_interface: _AdapterInterface=None,
+                 command_manager: _BotCommandManager=None):
 
         # Messaging and adapter_interface are too complex to setup defaults
         self.messaging = messaging
         self.adapter_interface = adapter_interface
 
         if command_manager is None:
-            command_manager = BotCommandManager(robot=self)
+            command_manager = _BotCommandManager(robot=self)
 
         self.command_manager = command_manager
 
         log_name = self._get_log_name()
         self._logger = _logging.getLogger(log_name)
+        self.adapter_interface.start_profile()
 
     def run(self):
         self.messaging.start()
@@ -81,14 +84,14 @@ def main(**kwargs):
     `configuration_filepath`
     """
     # Get the command line arguments
-    command_line_kwargs = _util.get_kwargs.get_kwargs()
+    command_line_kwargs = _get_kwargs.get_kwargs()
     # Overwrite the function kwargs with the command line kwargs 
     kwargs.update(command_line_kwargs)
 
     # Get the configuration filepath
     config_filepath = kwargs.get('configuration_filepath')
     # Get the configuration (possibly the default configuration)
-    configuration = _util.get_config.get_config(filepath=config_filepath)
+    configuration = _get_config.get_config(filepath=config_filepath)
 
     # setup some sane defaults
     default_vex_name = 'Vexbot'
@@ -101,14 +104,14 @@ def main(**kwargs):
     # Get the port configuration
     port_config = _port_configuration_helper(configuration)
 
-    messaging = Messaging(robot_name, kwargs=port_config)
+    messaging = _Messaging(robot_name, kwargs=port_config)
 
     settings = _get_settings_helper(configuration)
 
     # create the settings manager using the port config
-    settings_manager = _SettingsManager(configuration=port_configuration, settings=settings)
-    adapter_interface = AdapterInterface(settings_manager,
-                                         SubprocessManager())
+    settings_manager = _SettingsManager(configuration=port_config, settings=settings)
+    adapter_interface = _AdapterInterface(settings_manager,
+                                         _SubprocessManager())
 
     if _setproctitle:
         _setproctitle.setproctitle('vexbot')
