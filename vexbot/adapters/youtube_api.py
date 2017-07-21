@@ -5,6 +5,7 @@ import signal
 import logging
 import asyncio
 import argparse
+from argparse import Namespace
 import tempfile
 import pkg_resources
 from time import sleep
@@ -179,6 +180,7 @@ def _youtube_authentication(client_filepath, youtube_scope=_READ_ONLY):
 
     dir = os.path.abspath(__file__)
     filepath = "{}-oauth2.json".format(dir)
+    # TODO: Determine if removing file is needed
     # remove old oauth files to be safe
     if os.path.isfile(filepath):
         os.remove(filepath)
@@ -186,7 +188,12 @@ def _youtube_authentication(client_filepath, youtube_scope=_READ_ONLY):
     storage = Storage(filepath)
     credentials = storage.get()
     if credentials is None or credentials.invalid:
-        credentials = run_flow(flow, storage, argparser.parse_args())
+        args = Namespace(auth_host_name='localhost',
+                         auth_host_port=[8080, 8090],
+                         noauth_local_webserver=False,
+                         logging_level='ERROR')
+
+        credentials = run_flow(flow, storage, args)
         return build(_YOUTUBE_API_SERVICE_NAME,
                      _YOUTUBE_API_VERSION,
                      http=credentials.authorize(httplib2.Http()))
@@ -208,9 +215,5 @@ def _get_youtube_link(client_secrets_filepath):
 
 if __name__ == '__main__':
     kwargs = _get_kwargs()
-    # OAuth2 lib has some argparse functionality that conflicts with ours
-    # delete ours for ease of programming
     # FIXME: does not work if the google api is not installed
-    for _ in range(6):
-        del sys.argv[1]
     main(**kwargs)
