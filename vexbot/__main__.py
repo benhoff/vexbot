@@ -7,7 +7,7 @@ try:
 except ImportError:
     _setproctitle = False
 
-from vexbot import _port_configuration_helper, _get_settings_helper
+from vexbot import _port_configuration_helper, _get_adapter_settings_helper
 
 # from vexbot.commands.start_vexbot import start_vexbot
 # from vexbot.adapters.shell.__main__ import main as shell_main
@@ -22,28 +22,19 @@ from vexbot.subprocess_manager import SubprocessManager as _SubprocessManager
 from vexbot.adapter_interface import AdapterInterface as _AdapterInterface
 
 
-def _create_settings_manager(port_configuration: dict,
-                             settings: dict) -> _SettingsManager:
-
-    settings_manager = _SettingsManager(configuration=port_configuration,
-                                        settings=settings)
-
-    return settings_manager
-
-
-def _update_with_command_line_arguments(**kwargs):
+def _update_kwargs_with_command_line_arguments(**kwargs):
     command_line_kwargs = _get_kwargs.get_kwargs()
     kwargs.update(command_line_kwargs)
     return kwargs
 
 
-def _get_configuration(**settings):
-    config_filepath = settings.get('configuration_filepath')
+def _get_configuration_from_file(**kwargs):
+    config_filepath = kwargs.get('configuration_filepath')
     configuration = _get_config.get_config(filepath=config_filepath)
     return configuration
 
 
-def _sane_defaults(configuration: dict) -> (dict, str):
+def _configuration_sane_defaults(configuration: dict) -> (dict, str):
     default_vex_name = 'Vexbot'
     default_vexbot_settings = {'robot_name': default_vex_name}
     # Get the settings out of the configuration, falling back on the defaults
@@ -56,25 +47,34 @@ def _sane_defaults(configuration: dict) -> (dict, str):
 
 def main(*args, **kwargs):
     """
-    `configuration_filepath`
+    `kwargs`:
+
+        `configuration_filepath`: filepath for the `ini` configuration
     """
-    kwargs = _update_with_command_line_arguments(kwargs=kwargs)
-    configuration = _get_configuration(settings=kwargs)
+    # Update kwargs with command line arguments
+    kwargs = _update_kwargs_with_command_line_arguments(kwargs=kwargs)
+
+    # configuration is from an `ini` file
+    # NOTE: we are done with kwargs from this point on.
+    configuration = _get_configuration_from_file(kwargs=kwargs)
 
     # setup some sane defaults
-    vexbot_settings, robot_name = _sane_defaults(configuration)
+    # FIXME: `vexbot_settings` not used
+    _, robot_name = _configuration_sane_defaults(configuration)
 
-    # Get the port configuration
+    # Get the port configuration out of the configuration
     port_config = _port_configuration_helper(configuration)
 
+    # create the messaging
     messaging = _Messaging(robot_name, kwargs=port_config)
-    settings = _get_settings_helper(configuration)
-    # TODO: Fix this api. Confusing
-    settings_manager = _create_settings_manager(port_config,
-                                                settings)
+    # get the adapter settings
+    adapter_settings = _get_adapter_settings_helper(configuration)
+
+    # TODO: Fix the SettingsManager API. Confusing
+    settings_manager = _SettingsManager(configuration=port_config,
+                                        settings=adapter_settings)
 
     # create the settings manager using the port config
-
     adapter_interface = _AdapterInterface(settings_manager,
                                           _SubprocessManager())
 

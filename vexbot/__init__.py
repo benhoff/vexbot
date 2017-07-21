@@ -21,7 +21,7 @@ def _port_configuration_helper(configuration: dict) -> dict:
     return port_config
 
 
-def _get_settings_helper(configuration: dict) -> dict:
+def _get_adapter_settings_helper(configuration: dict) -> dict:
     vexbot = configuration.get('vexbot', {})
     vexbot_adapters = vexbot.get('vexbot_adapters', [])
     settings = {}
