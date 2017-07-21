@@ -19,7 +19,7 @@ class AdapterInterface:
 
         self.adapters = {}
         self.adapter_blacklist = []
-        self.setup_adapters()
+        self.setup()
 
     def get_settings_manager(self):
         return self.settings_manager
@@ -30,7 +30,7 @@ class AdapterInterface:
     def get_adapters(self):
         return self.adapters.keys()
 
-    def start_profile(self, profile='default'):
+    def start_profile(self, profile: str='default') -> None:
         settings = self.settings_manager.get_adapter_settings(profile)
         for name, adapter_settings in settings.items():
             adapter = self.adapters.get(name)
@@ -40,44 +40,15 @@ class AdapterInterface:
             new_settings.append(adapter['executable'])
             new_settings.append(adapter['filepath'])
 
+            # TODO: add in ability to pass in args?
             for k, v in adapter_settings:
                 new_settings.append('--' + k)
                 new_settings.append(v)
+
             self.subprocess_manager.start(name, new_settings)
 
-
-    def start_adapter(self):
+    def start_adapter(self, name, filter_, value):
         pass
-        """
-        for key, setting in zip(keys, settings):
-            if registered_dict is None:
-                continue
-
-            dict_list = [executable, ]
-            settings = self._settings.get(key)
-
-            settings_class = settings.get('settings_class')
-            setting_values = {}
-
-            filepath = settings.get('filepath')
-            if filepath:
-                dict_list.append(filepath)
-
-            args = settings.get('args', [])
-            if args:
-                dict_list.extend(args)
-
-            # Not sure if this will work
-            settings.update(setting_values)
-
-            for k, v in settings.items():
-                if k in ('filepath', '_sa_instance_state', 'id', 'robot_id'):
-                    continue
-                if not k[2:] == '--':
-                    k = '--' + k
-                dict_list.append(k)
-                dict_list.append(v)
-        """
 
     def kill(self, names: list):
         self.subprocess_manager.kill(names)
@@ -85,14 +56,7 @@ class AdapterInterface:
     def killall(self):
         self.subprocess_manager.killall()
 
-    def setup(self,
-              settings_entry_point='vexbot.adapter_settings',
-              adapter_entry_point='vexbot.subprocesses'):
-
-        self._setup_adapters(settings_entry_point)
-        self._setup_settings(adapter_entry_point)
-
-    def setup_adapters(self, entry_point='vexbot.subprocesses'):
+    def setup(self, entry_point='vexbot.subprocesses'):
         collect_epp = self.plugin_manager.collect_entry_point_plugins
         adapters = collect_epp((entry_point,),
                                return_dict=True,
@@ -102,5 +66,6 @@ class AdapterInterface:
             if name in self.adapter_blacklist:
                 continue
 
+            # TODO: Add option to start with something other than python interp
             self.adapters[name] = {'executable': sys.executable,
                                    'filepath': subprocess.__file__}

@@ -1,4 +1,5 @@
 from vexbot.adapters.shell import PromptShell
+from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.adapters.shell.command_manager import ShellCommand
 
 
@@ -13,7 +14,17 @@ def main(controller_kwargs=None,
     if command_kwargs is None:
         command_kwargs = {}
 
+    messaging_defaults = {'service_name': 'shell'}
+    # command publish
+    # command subscribe
+    # heartbeat port
+    # control port
+    # chatter port
+
+    messaging = _Messaging('shell', )
+
     command = ShellCommand(**shell_kwargs)
+    # TODO: messaging should maybe be separate?
     messaging = command.messaging
 
     shell = PromptShell(command, **shell_kwargs)
