@@ -5,7 +5,7 @@ from vexbot.models import Adapter
 
 
 class IrcSettings(Adapter):
-    __tablename__ = 'irc_settings'
+    __tablename__ = 'irc'
     adapter = relationship("Adapter")
     adapter_id = Column(Integer,
                         ForeignKey('adapters.id'),
@@ -21,7 +21,7 @@ class IrcSettings(Adapter):
 
 
 class XMPPSettings(Adapter):
-    __tablename__ = 'xmpp_settings'
+    __tablename__ = 'xmpp'
     adapter = relationship("Adapter")
     adapter_id = Column(Integer,
                         ForeignKey('adapters.id'),
@@ -38,7 +38,7 @@ class XMPPSettings(Adapter):
 
 
 class SocketIOSettings(Adapter):
-    __tablename__ = 'socket_io_settings'
+    __tablename__ = 'socket_io'
     adapter = relationship("Adapter")
     adapter_id = Column(Integer,
                         ForeignKey('adapters.id'),
