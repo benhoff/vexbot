@@ -10,6 +10,15 @@ from vexmessage import create_vex_message, decode_vex_message
 
 
 class Messaging:
+    """
+    Current class responsabilities:
+        configuration
+        socket initialization
+        decode
+        yield
+        control
+    """
+
     # TODO: add an `update_messaging` command
     def __init__(self, botname: str='Vexbot', **kwargs):
         """
@@ -30,7 +39,6 @@ class Messaging:
         self._service_name = botname
         self.protocol = configuration['protocol']
         self.ip_address = configuration['ip_address']
-        self._zmq_address = '{}://{}:{}'
 
         # Store the addresses of publish, subscription, and heartbeat sockets
         self.configuration = configuration 
@@ -60,17 +68,20 @@ class Messaging:
         command_address = self.configuration['command_port']
         command_address = self._address_helper(command_address)
         # bind command socket to it's address
-        self.command_socket.bind(command_address)
+        try:
+            self.command_socket.bind(command_address)
+        except zmq.error.ZMQError:
+            self._handle_bind_error_by_log(command_address, 'command')
 
         # control socket address
         control_address = self.configuration['control_port']
-        command_address = self._address_helper(command_address)
+        control_address = self._address_helper(control_address)
 
         # bind control socket to it's address
         try:
-            self.control_socket.bind(command_address)
+            self.control_socket.bind(control_address)
         except zmq.error.ZMQError:
-            self._handle_bind_error_by_exit(command_address)
+            self._handle_bind_error_by_exit(control_address, 'control')
 
         request_address = self.configuration['request_port']
         request_address = self._address_helper(request_address)
@@ -79,7 +90,7 @@ class Messaging:
             # TODO: verify that you can do bind a dealer
             self.request_socket.bind(request_address)
         except zmq.error.ZMQError:
-            self._handle_bind_error_by_log(request_address)
+            self._handle_bind_error_by_log(request_address, 'request')
 
         self._poller.register(self.command_socket, zmq.POLLIN)
         self._poller.register(self.control_socket, zmq.POLLIN)
@@ -100,14 +111,17 @@ class Messaging:
 
         # Can subscribe to multiple addresses
         for addr in addresses:
-            ip_address = self._zmq_address.format(self.protocol,
-                                                  self.ip_address,
-                                                  addr)
+            # NOTE: handle case of a different IP address being passed in
+            # TODO: make this much more robust
+            if isinstance(addr, int):
+                ip_address = self._address_helper(addr) 
+            else:
+                ip_address = addr
 
             try:
                 self.subscription_socket.bind(ip_address)
             except zmq.error.ZMQError:
-                self._handle_bind_error_by_log(ip_address)
+                self._handle_bind_error_by_log(ip_address, 'subscription')
 
         # XSUB socket
         # publish socket is an XSUB socket
@@ -124,7 +138,7 @@ class Messaging:
         try:
             self.publish_socket.bind(sub_addr)
         except zmq.error.ZMQError:
-            self._handle_bind_error_by_exit(sub_addr)
+            self._handle_bind_error_by_exit(sub_addr, 'publish')
 
     def run(self):
         self.running = True
@@ -158,11 +172,23 @@ class Messaging:
                     yield msg
 
             if self.request_socket in socks:
-                msg = self._
+                msg = self._get_message_helper(self.request_socket)
+                if msg:
+                    yield msg
 
-    def send_message(self, target: str='', **msg: dict):
-        frame = self._create_frame(target=target, **msg)
-        self.sub.send_multipart(frame)
+    def send_request(self, target: str, **request: dict):
+        pass
+
+    def send_heartbeat(self, target: str=''):
+        frame = self._create_frame('PING', target)
+        self.publish_socket.send_multipart(frame)
+
+    def send_chatter(self, target: str='', **chatter: dict):
+        frame = self._create_frame('CHATTER',
+                                   target=target,
+                                   contents=chatter) 
+
+        self.subscription_socket.send_multipart(frame)
 
     # NOTE: not really implemented?
     """
@@ -188,7 +214,15 @@ class Messaging:
         self.command_socket.send_multipart(frame)
 
     def _get_message_helper(self, socket):
-        pass
+        try:
+            msg = socket.recv_multipart(zmq.NOBLOCK)
+            try:
+                msg = decode_vex_message(msg)
+            except Exception as e:
+                # FIXME: log error
+                pass
+        except zmq.error.Again:
+            pass
 
     def _create_frame(self, type_, target='', **contents):
         return create_vex_message(target, self._service_name, type_, **contents)
@@ -197,17 +231,20 @@ class Messaging:
         """
         returns a zmq address
         """
-        return self._zmq_address.format(self.protocol,
-                                        self.ip_address,
-                                        port)
+        zmq_address = '{}://{}:{}'
+        return zmq_address.format(self.protocol,
+                                  self.ip_address,
+                                  port)
 
-    def _handle_bind_error_by_log(self, ip_address):
+    def _handle_bind_error_by_log(self, ip_address, socket_type):
         s = 'Address bind attempt fail. Address tried: {}'
         s = s.format(ip_address)
         self._logger.error(s)
+        self._logger.error('socket type: {}'.format(socket_type))
 
-    def _handle_bind_error_by_exit(self, ip_address):
+    def _handle_bind_error_by_exit(self, ip_address, socket_type):
         s = 'Address bind attempt fail. Address tried: {}'
         s = s.format(ip_address)
         self._logger.error(s)
+        self._logger.error('socket type: {}'.format(socket_type))
         sys.exit(1)
