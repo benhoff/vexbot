@@ -140,42 +140,6 @@ class Messaging:
         except zmq.error.ZMQError:
             self._handle_bind_error_by_exit(sub_addr, 'publish')
 
-    def run(self):
-        self.running = True
-
-        while True:
-            socks = dict(self._poller.poll(timeout=500))
-            if self.control_socket in socks:
-                msg = self._get_message_helper(self.control_socket)
-                if msg is not None:
-                    yield msg
-
-            if self.publish_socket in socks:
-                try:
-                    msg = self.publish_socket.recv_multipart(zmq.NOBLOCK)
-                    self.subscription_socket.send_multipart(msg)
-                except zmq.error.Again:
-                    pass
-
-            if self.subscription_socket in socks:
-                try:
-                    msg = self.subscription_socket.recv_multipart(zmq.NOBLOCK)
-                    self.publish_socket.send_multipart(msg)
-                    # TODO: check me to make sure I yield from here
-                    yield msg
-                except zmq.error.Again:
-                    pass
-
-            if self.command_socket in socks:
-                msg = self._get_message_helper(self.command_socket)
-                if msg:
-                    yield msg
-
-            if self.request_socket in socks:
-                msg = self._get_message_helper(self.request_socket)
-                if msg:
-                    yield msg
-
     def send_request(self, target: str, **request: dict):
         pass
 
