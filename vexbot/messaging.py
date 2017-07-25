@@ -42,6 +42,7 @@ class Messaging:
 
         # Store the addresses of publish, subscription, and heartbeat sockets
         self.configuration = configuration 
+
         self.subscription_socket = None
         self.publish_socket = None
         self.command_socket = None
@@ -63,6 +64,10 @@ class Messaging:
         self.command_socket = context.socket(zmq.ROUTER)
         self.control_socket = context.socket(zmq.ROUTER)
         self.request_socket = context.socket(zmq.DEALER)
+        # subscription socket is a XPUB socket
+        self.subscription_socket = context.socket(zmq.XPUB)
+        # publish socket is an XSUB socket
+        self.publish_socket = context.socket(zmq.XSUB)
 
         # command address
         command_address = self.configuration['command_port']
@@ -97,35 +102,26 @@ class Messaging:
         # TODO: verify that dealer sockets are `zmq.POLLOUT` 
         self._poller.register(self.request_socket, zmq.POLLIN)
 
-        # subscription socket is a XPUB socket
-        self.subscription_socket = context.socket(zmq.XPUB)
         # IN type for the poll registration
         self._poller.register(self.subscription_socket, zmq.POLLIN)
 
         # get all addresses
         addresses = self.configuration['chatter_subscription_port']
         # validate the addresses real quick
-        if isinstance(addresses, str):
+        if isinstance(addresses, (str, int)):
             # TODO: verify this works.
             addresses = tuple(addresses,)
 
         # Can subscribe to multiple addresses
         for addr in addresses:
-            # NOTE: handle case of a different IP address being passed in
-            # TODO: make this much more robust
-            if isinstance(addr, int):
-                ip_address = self._address_helper(addr) 
-            else:
-                ip_address = addr
+            ip_address = self._address_helper(addr) 
 
+            # TODO: verify that this shouldn't be like a connect
             try:
                 self.subscription_socket.bind(ip_address)
             except zmq.error.ZMQError:
                 self._handle_bind_error_by_log(ip_address, 'subscription')
 
-        # XSUB socket
-        # publish socket is an XSUB socket
-        self.publish_socket = context.socket(zmq.XSUB)
         # information comes in for poller purposes
         self._poller.register(self.publish_socket, zmq.POLLIN)
 
@@ -195,6 +191,11 @@ class Messaging:
         """
         returns a zmq address
         """
+        # check to see if user passed in a string
+        # if they did, they want to use that instead
+        if isinstance(port, str) and len(port) > 6:
+            return port
+
         zmq_address = '{}://{}:{}'
         return zmq_address.format(self.protocol,
                                   self.ip_address,
