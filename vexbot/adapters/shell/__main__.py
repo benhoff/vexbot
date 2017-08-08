@@ -21,17 +21,11 @@ def main(controller_kwargs=None,
     # control port
     # chatter port
 
-    messaging = _Messaging('shell', )
-
     command = ShellCommand(**shell_kwargs)
-    # TODO: messaging should maybe be separate?
-    messaging = command.messaging
-
     shell = PromptShell(command, **shell_kwargs)
-    messaging.set_pong_callback(shell.set_bot_prompt_yes)
+    command.messaging.set_pong_callback(shell.set_bot_prompt_yes)
 
     return shell.cmdloop_and_start_messaging()
-
 
 
 if __name__ == '__main__':

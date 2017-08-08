@@ -1,5 +1,6 @@
 import zmq
 import logging
+import pickle
 
 from vexbot import _get_default_port_config
 
@@ -7,11 +8,8 @@ from vexmessage import create_vex_message, decode_vex_message
 
 
 class ZmqMessaging:
-    def __init__(self, service_name: str, socket_filter: str, **kwargs):
+    def __init__(self, service_name: str, **kwargs):
         """
-        `socket_filter`: is used for the chatter pub/sub sockets. Can be set to
-                         all using an empty string `str()`
-
         `kwargs`:
             protocol:   'tcp'
             ip_address: '127.0.0.1'
@@ -26,6 +24,9 @@ class ZmqMessaging:
         # update the default port configurations with the kwargs
         configuration.update(kwargs)
 
+        self.protocol = configuration['protocol']
+        self.ip_address = configuration['ip_address']
+
         self.publish_socket = None
         self.subscription_socket = None
         self.command_socket = None
@@ -39,7 +40,7 @@ class ZmqMessaging:
         self._service_name = service_name
         self._configuration = configuration
 
-        self._socket_filter = socket_filter
+        # self._socket_filter = socket_filter
         self._messaging_started = False
         self._logger = logging.getLogger(self._service_name)
 
@@ -59,33 +60,18 @@ class ZmqMessaging:
     def run(self, timeout=None):
         while True:
             socks = dict(self.poller.poll(timeout))
-            if self._heartbeat in socks:
-                try:
-                    msg = self._heartbeat.recv_multipart(zmq.NOBLOCK)
-                    if msg[1] == b'PING':
-                        pong_response = [msg[0],
-                                         self._service_name.encode('ascii'),
-                                         b'PONG']
+            if self.command_socket in socks:
+                msg = self.command_socket.recv_multipart()
+                if msg[0] == b'PONG':
+                    self._handle_pong(None)
 
-                        self._heartbeat.send_multipart(pong_response)
-                    elif msg[1] == b'PONG':
-                        self._handle_pong(msg[0].decode('ascii'))
-                except zmq.error.Again:
-                    pass
-            if self.sub_socket in socks:
-                try:
-                    msg = self.sub_socket.recv_multipart(zmq.NOBLOCK)
-                    try:
-                        yield decode_vex_message(msg)
-                    except Exception:
-                        pass
-                except zmq.error.Again:
-                    pass
 
     def start_messaging(self, zmq_context: 'zmq.Context'=None):
         if self._messaging_started:
-            s = ' {} messaging already started! Use `update_messaging` '
-                'instead of start'.format(self._service_name)
+            s = (' {} messaging already started! Use `update_messaging` '
+                'instead of start')
+
+            s = s.format(self._service_name)
 
             self._logger.warn(s)
             return
@@ -128,7 +114,7 @@ class ZmqMessaging:
 
         # Get the chatter publish socket address
         chatter_pub_address = self._configuration['chatter_publish_port']
-        chatter_pub_address = self._address_helper(chatter_publish_address)
+        chatter_pub_address = self._address_helper(chatter_pub_address)
 
         # connect the publish socket to it's address
         self.publish_socket.connect(chatter_pub_address)
@@ -147,6 +133,7 @@ class ZmqMessaging:
             self.subscription_socket.connect(addr)
         # register the subscription socket to the poller
         self.poller.register(self.subscription_socket, zmq.POLLIN)
+        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
         # TODO: add in the socket filter logic where applicable
         """
@@ -197,31 +184,39 @@ class ZmqMessaging:
         if self.subscription_socket:
             self.subscription_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
 
-    def send_message(self, target='', **msg):
+    def send_chatter(self, target: str='', **msg):
         frame = create_vex_message(target, self._service_name, 'MSG', **msg)
-        self.pub_socket.send_multipart(frame)
+        self.publish_socket.send_multipart(frame)
 
-    def send_status(self, status, target='', **kwargs):
+    def send_command(self, command: str, **kwargs):
+        """
+        For request bot to perform some action
+        """
+        command = command.encode('ascii')
+        kwargs = pickle.dumps(kwargs)
+        self.command_socket.send_multipart((b'', command, kwargs))
+
+    def send_control(self, control, **kwargs):
+        """
+        Time critical commands
+        """
+        # frame = create_vex_message()
+        self.command_socket.send_multipart(frame)
+
+    def send_response(self, status, target='', **kwargs):
+        # FIXME
+        """
         frame = create_vex_message(target,
                                    self._service_name,
                                    'STATUS',
                                    status=status,
                                    **kwargs)
+        """
 
-        self.pub_socket.send_multipart(frame)
-
-    def send_command(self, target='', **command):
-        frame = create_vex_message(target,
-                                   self._service_name,
-                                   'CMD',
-                                   **command)
-
-        self.pub_socket.send_multipart(frame)
+        self.request_socket.send_multipart(frame)
 
     def send_ping(self):
-        # TODO: Think about putting a service here?
-        # TODO: nowait?
-        self._heartbeat.send(b'PING', zmq.NOBLOCK)
+        self.command_socket.send_multipart((b'', b'PING'))
 
     def _disconnect_socket(self, socket, socket_name, address=None):
         if address is None:

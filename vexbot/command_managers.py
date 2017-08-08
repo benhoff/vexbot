@@ -61,12 +61,21 @@ class CommandManager:
                                               original=command,
                                               response=results)
 
+    def process_command(self, message):
+        gcr = self._get_callback_recursively
+        callback, command, args = gcr(message.command, message.args)
+
+        if callback:
+            results = callback(message)
+
+        return results
+
     def _get_callback_recursively(self,
                                   command: str,
-                                  args: (list,
-                                         str)=None) -> (_collections.Callable,
-                                                        str,
-                                                        list):
+                                  *args,
+                                  **kwargs) -> (_collections.Callable,
+                                                str,
+                                                list):
         """
         returns callback, command string, and args
         """

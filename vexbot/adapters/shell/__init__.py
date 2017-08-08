@@ -61,7 +61,8 @@ class PromptShell:
 
     @property
     def prompt(self):
-        profile = self.command_manager._profile
+        # profile = self.command_manager._profile
+        profile = 'default'
         name = self.command_manager._robot_name
         return '{}[{}]: '.format(name, profile)
 
@@ -77,6 +78,7 @@ class PromptShell:
             try:
                 if self._bot == self._NO_BOT:
                     self.command_manager.check_for_bot()
+                    pass
 
                 with self._patch_context:
                     result = self.cli.run(True)

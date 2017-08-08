@@ -92,7 +92,6 @@ class Messaging:
         request_address = self._address_helper(request_address)
 
         try:
-            # TODO: verify that you can do bind a dealer
             self.request_socket.bind(request_address)
         except zmq.error.ZMQError:
             self._handle_bind_error_by_log(request_address, 'request')
