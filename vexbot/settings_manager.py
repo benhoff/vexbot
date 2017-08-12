@@ -27,6 +27,9 @@ class SettingsManager:
                  database_filepath: str=None,
                  configuration: dict=None,
                  settings: dict=None):
+        # error logger 
+        self._logger = _logging.getLogger(__name__)
+
         database_filepath = self._database_filepath_helper(database_filepath)
         self.db_session = _create_session(database_filepath)
 
@@ -34,8 +37,6 @@ class SettingsManager:
             configuration = {}
 
         self._configuration = configuration
-        # error logger 
-        self._logger = _logging.getLogger(__name__)
         if settings is None:
             settings = {}
         self.settings = settings
@@ -72,7 +73,7 @@ class SettingsManager:
             default_filepath = False
 
         if not _path.isfile(database_filepath):
-            s = 'Database filepath: {} not found.'.format(filepath)
+            s = ' Database filepath: {} not found.'.format(database_filepath)
             if default_filepath:
                 s = s + (' Please run `$ vexbot_create_database` from the cmd '
                          'line to create settings database. Then run `create_r'

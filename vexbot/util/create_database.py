@@ -12,6 +12,6 @@ def create_database():
     database_filepath = _get_settings_database_filepath()
     directory = os.path.dirname(database_filepath)
     if not os.path.isdir(directory):
-        os.mkdir(directory)
+        os.makedirs(directory)
     engine = _create_engine('sqlite:///{}'.format(database_filepath))
     Base.metadata.create_all(engine)
