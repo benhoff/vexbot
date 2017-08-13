@@ -1,7 +1,9 @@
-import zmq
+import sys
 import pickle
-
 import logging as _logging
+
+import zmq
+
 from vexmessage import Request
 
 from vexbot.messaging import Messaging as _Messaging
@@ -24,7 +26,7 @@ class Robot:
 
         self.command_manager = command_manager
 
-        self.adapter_interface.start_profile('default')
+        # self.adapter_interface.start_profile('default')
 
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = _logging.getLogger(log_name)
@@ -93,7 +95,12 @@ class Robot:
         self.messaging.start()
         self.running = True
         while self.running:
-            socks = dict(self.messaging._poller.poll(timeout=500))
+            try:
+                socks = dict(self.messaging._poller.poll(timeout=500))
+            except KeyboardInterrupt:
+                socks = {}
+                self.running = False
+
             if self.messaging.control_socket in socks:
                 # msg = self.messaging._get_message_helper(self.control_socket)
                 msg = self.messaging.control_socket.recv_multipart()

@@ -3,95 +3,50 @@ import atexit
 import signal
 import logging
 
-import dbus
-from dbus import SystemBus, SessionBus
+from pydbus import SessionBus
 
 import pluginmanager
 
 
 class SubprocessManager:
     def __init__(self):
-        self.bus = SystemBus()
-        self.systemd = bus.get_object('org.freedesktop.systemd1', 
-                                      '/org/freedesktop/systemd1')
+        self.bus = SessionBus()
+        # self.systemd = self.bus.get('.systemd1')
 
-        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
+        # atexit.register(self._close_subprocesses)
+        # signal.signal(signal.SIGINT, self._handle_close_signal)
+        # signal.signal(signal.SIGTERM, self._handle_close_signal)
 
-        atexit.register(self._close_subprocesses)
-        signal.signal(signal.SIGINT, self._handle_close_signal)
-        signal.signal(signal.SIGTERM, self._handle_close_signal)
+    def start(self, name: str, mode: str='replace'):
+        self.systemd.StartUnit(name, mode)
 
-    def start(self, name: str, arguments: list):
-        process = Popen(arguments, stdout=DEVNULL)
-        return_code = process.poll()
-        # TODO: Check and return error code
-        if return_code is None:
-            self._subprocess[name] = process
+    def restart(self, name: str, mode: str='replace'):
+        self.systemd.ReloadOrRestart(name, mode)
 
-    def restart(self, name: str, arguments: list):
-        """
-        restarts subprocesses managed by the subprocess manager
-        """
-        try:
-            process = self._subprocess[name]
-        except KeyError:
-            process = None
-        if process:
-            process.terminate()
+    def stop(self, name: str, mode: str='replace'):
+        self.systemd.StopUnit(name, mode)
 
-        self.start(name, arguments)
+    """
+    def mask(self, name: str):
+        pass
 
-    def kill(self, values: list):
-        """
-        kills subprocess that is managed by the subprocess manager.
-        If value does not match, quietly passes for now
-        """
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
-            process.kill()
-
-    def stop(self, values: list):
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
-            process.terminate()
+    def unmask(self, name: str):
+        pass
+    """
 
     def killall(self):
         """
         Kills every registered subprocess
         """
-        for subprocess in self._subprocess.values():
-            subprocess.kill()
-
-    def running_subprocesses(self):
-        """
-        returns all running subprocess names
-        """
-        results = []
-        killed = []
-        for name, subprocess in self._subprocess.items():
-            poll = subprocess.poll()
-            if poll is None:
-                results.append(name)
-            else:
-                killed.append(name)
-        if killed:
-            for killed_subprocess in killed:
-                self._subprocess.pop(killed_subprocess)
-        return results
+        pass
 
     def _handle_close_signal(self, signum=None, frame=None):
-        self._close_subprocesses()
-        sys.exit()
+        # self._close_subprocesses()
+        # sys.exit()
+        pass
 
     def _close_subprocesses(self):
         """
         signum and frame are part of the signal lib
         """
-        for process in self._subprocess.values():
-            process.terminate()
+        pass

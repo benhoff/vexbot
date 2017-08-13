@@ -105,9 +105,4 @@ def main(**settings):
 
 if __name__ == "__main__":
     debug = {'kill_on_exit': True}
-    """
-    if _setproctitle:
-        _setproctitle.setproctitle('vexshell')
-    """
-
     main(**debug)

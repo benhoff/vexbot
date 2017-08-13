@@ -141,7 +141,7 @@ class BotCommandManager(CommandManager):
         # self._commands['restart'] = msg_list_wrapper(s_manager.restart)
         # self._commands['kill'] = msg_list_wrapper(s_manager.kill)
         # self._commands['kill_bot'] = self._kill_bot
-        running = s_manager.running_subprocesses
+        # running = s_manager.running_subprocesses
         # self._commands['running'] = no_arguments(running)
 
     def _kill_bot(self, *args, **kwargs):

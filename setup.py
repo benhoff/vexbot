@@ -44,8 +44,7 @@ setup(
                                       'xmpp = vexbot.adapters.models:XMPPSettings',
                                       'socket_io = vexbot.adapters.models:SocketIOSettings'],
 
-                  'console_scripts': ['vexbot=vexbot.__main__:main',
-                                      'vexbot_shell=vexbot.adapters.shell.__main__:main',
+                  'console_scripts': ['vexbot=vexbot.adapters.shell.__main__:main',
                                       'vexbot_quickstart=vexbot.util.quickstart:quickstart',
                                       'vexbot_create_database=vexbot.util.create_database:create_database']},
 
@@ -62,6 +61,7 @@ setup(
 
     extras_require={
         'dev': ['flake8', 'twine'],
+        'process_manager': ['pydbus'],
         'speechtotext': ['speechtotext'],
         'gui': ['chatimusmaximus'],
         'javascript_webscrapper': ['selenium'],
