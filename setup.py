@@ -53,7 +53,7 @@ setup(
     install_requires=[
         'pluginmanager>=0.4.1',
         'pyzmq',
-        'vexmessage>=0.3.0',
+        # 'vexmessage>=0.3.0',
         'sqlalchemy',
         # TODO: move as optional
         'urwid',

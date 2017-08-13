@@ -1,21 +1,53 @@
 import sys
 import logging # flake8: noqa
 import collections as _collections
+from threading import RLock as _RLock
 
-from vexmessage import Message as VexMessage
+from vexmessage import Request
 
 from vexbot.commands.restart_bot import restart_bot as _restart_bot
 from vexbot.util.function_wrapers import (msg_list_wrapper,
                                           no_arguments)
 
+class Observable:
+    def __init__(self):
+        self.observers = []
+        self.mutex = _RLock()
+        self.changed = False
+
+    def add_observer(self, observer):
+        if observer not in self.obs:
+            self.obs.append(observer)
+
+    def delete_observer(self, observer):
+        self.obs.remove(observer)
+
+    def notify_observers(self, message):
+        for observer in self.observers:
+            observer.update(self, message)
+
+    def delete_observers(self):
+        self.observers = []
+
+    def set_changed(self):
+        self.changed = True
+
+    def clear_changed(self):
+        self.changed = False
+
+    def has_changed(self):
+        return self.changed
+
+    def count_observers(self):
+        return len(self.observers)
+
 
 class CommandManager:
     def __init__(self, messaging: 'vexbot.messaging:Messaging'):
         # NOTE: commands is a dict of dicts and there is nested parsing
-        self._commands = {}
+        self.observers = {}
         self._messaging = messaging
-        self._commands['help'] = msg_list_wrapper(self._help)
-        self._commands['commands'] = self._cmd_commands
+        # self._commands['commands'] = self._cmd_commands
 
     def register_command(self,
                          command: str,
@@ -25,24 +57,7 @@ class CommandManager:
         """
         self._commands[command] = function_or_dict
 
-    def remove_command(self, command: str):
-        try:
-            return self._commands.pop(command)
-        except KeyError:
-            return None
-
-    def is_command(self,
-                   command: str,
-                   call_command: bool=False) -> bool:
-
-        callback, command, args = self._get_callback_recursively(command)
-        if callback and call_command:
-            callback(args)
-            return True
-        else:
-            return bool(callback)
-
-    def parse_commands(self, msg: VexMessage):
+    def parse_commands(self, msg: Request):
         command = msg.contents.get('command')
 
         if not command:
@@ -61,7 +76,7 @@ class CommandManager:
                                               original=command,
                                               response=results)
 
-    def process_command(self, message):
+    def process_command(self, message: Request):
         gcr = self._get_callback_recursively
         callback, command, args = gcr(message.command, message.args)
 
@@ -70,62 +85,7 @@ class CommandManager:
 
         return results
 
-    def _get_callback_recursively(self,
-                                  command: str,
-                                  *args,
-                                  **kwargs) -> (_collections.Callable,
-                                                str,
-                                                list):
-        """
-        returns callback, command string, and args
-        """
-
-        if not command:
-            return None, None, None
-        if isinstance(args, str):
-            args = args.split()
-        elif args is None:
-            args = []
-
-        callback = self._commands.get(command)
-
-        if isinstance(callback, _collections.Callable):
-            return callback, command, args
-        elif isinstance(callback, dict):
-            dict_ = callback
-        elif callback is None:
-            return None, None, None
-        else:
-            s = '{} is not a callable function or a dict'
-            raise TypeError(s.format(command))
-
-        if not args:
-            return None, None, None
-        commands = []
-        commands.append(command)
-
-        # NOTE: Can't iterate None
-        for command_number, command in enumerate(args):
-            callback = dict_.get(command)
-            if callback is None:
-                return None, None, None
-
-            commands.append(command)
-            # dynamically reassigns the `dict_` value to travese nested dicts
-            if isinstance(callback, dict):
-                dict_ = callback
-            elif isinstance(callback, _collections.Callable):
-                break
-            else:
-                s = '{} is not a callable function or a dict'
-                raise TypeError(s.format(callback.__name__))
-
-        command_number += 1
-
-        command_str = ' '.join(commands)
-        return callback, command_str, args[command_number:]
-
-    def _cmd_commands(self, msg: VexMessage):
+    def _cmd_commands(self, msg: Request):
         """
         returns a list of all available commands
         works recursively
@@ -150,27 +110,6 @@ class CommandManager:
 
         return get_commands(self._commands)
 
-    def _send_command_not_found(self, target: str, original: str):
-        """
-        helper method
-        """
-        self._messaging.send_response(target=target,
-                                      response='Command not found',
-                                      original=original)
-
-    def _help(self, args: list=None):
-        if not args:
-            return self._commands.keys()
-        else:
-            docs = []
-            for arg in args:
-                doc = self._commands.get(arg, None).__doc__
-                if doc:
-                    docs.append(doc)
-
-            if docs:
-                return docs
-
 
 class BotCommandManager(CommandManager):
     def __init__(self, robot: 'vebot.robot:Robot'):
@@ -189,21 +128,21 @@ class BotCommandManager(CommandManager):
         # FIXME: use the settings manager instead of subprocess manager
         # subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
 
-        self._commands['subprocess'] = subprocess
+        # self._commands['subprocess'] = subprocess
 
-        self._commands['killall'] = no_arguments(adapter_interface.killall)
-        self._commands['restart_bot'] = no_arguments(_restart_bot)
+        # self._commands['killall'] = no_arguments(adapter_interface.killall)
+        # self._commands['restart_bot'] = no_arguments(_restart_bot)
 
         # TODO: check if want this to be `start_adapters` or `start_adapter`
         # self._commands['start'] = msg_list_wrapper(adapter_interface.start_adapters)
-        self._commands['stop'] = msg_list_wrapper(s_manager.stop)
+        # self._commands['stop'] = msg_list_wrapper(s_manager.stop)
         # registered = s_manager.registered_subprocesses
         # self._commands['subprocesses'] = no_arguments(registered)
-        self._commands['restart'] = msg_list_wrapper(s_manager.restart)
-        self._commands['kill'] = msg_list_wrapper(s_manager.kill)
-        self._commands['kill_bot'] = self._kill_bot
+        # self._commands['restart'] = msg_list_wrapper(s_manager.restart)
+        # self._commands['kill'] = msg_list_wrapper(s_manager.kill)
+        # self._commands['kill_bot'] = self._kill_bot
         running = s_manager.running_subprocesses
-        self._commands['running'] = no_arguments(running)
+        # self._commands['running'] = no_arguments(running)
 
     def _kill_bot(self, *args, **kwargs):
         """

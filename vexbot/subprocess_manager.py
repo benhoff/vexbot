@@ -2,14 +2,20 @@ import sys
 import atexit
 import signal
 import logging
-from subprocess import Popen, DEVNULL
+
+import dbus
+from dbus import SystemBus, SessionBus
 
 import pluginmanager
 
 
 class SubprocessManager:
     def __init__(self):
-        self._subprocess = {}
+        self.bus = SystemBus()
+        self.systemd = bus.get_object('org.freedesktop.systemd1', 
+                                      '/org/freedesktop/systemd1')
+
+        manager = dbus.Interface(systemd1, 'org.freedesktop.systemd1.Manager')
 
         atexit.register(self._close_subprocesses)
         signal.signal(signal.SIGINT, self._handle_close_signal)
