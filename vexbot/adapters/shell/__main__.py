@@ -15,11 +15,6 @@ def main(controller_kwargs=None,
         command_kwargs = {}
 
     messaging_defaults = {'service_name': 'shell'}
-    # command publish
-    # command subscribe
-    # heartbeat port
-    # control port
-    # chatter port
 
     command = ShellCommand(**shell_kwargs)
     shell = PromptShell(command, **shell_kwargs)

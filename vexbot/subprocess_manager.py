@@ -11,7 +11,7 @@ import pluginmanager
 class SubprocessManager:
     def __init__(self):
         self.bus = SessionBus()
-        # self.systemd = self.bus.get('.systemd1')
+        self.systemd = self.bus.get('.systemd1')
 
         # atexit.register(self._close_subprocesses)
         # signal.signal(signal.SIGINT, self._handle_close_signal)

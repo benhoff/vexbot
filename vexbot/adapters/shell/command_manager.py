@@ -3,6 +3,8 @@ import cmd as _cmd
 import textwrap as _textwrap
 import logging
 
+from pydbus import SessionBus
+
 from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.command_managers import CommandManager as _Command
 from vexbot.settings_manager import SettingsManager as _SettingsManager
@@ -19,7 +21,9 @@ class ShellCommand(_Command):
                  stdout=None):
 
         super().__init__(messaging)
-        self.remove_command('commands')
+        self.bus = SessionBus()
+        self.systemd = self.bus.get('.systemd1')
+
         if stdin is None:
             stdin = _sys.stdin
         if stdout is None:
@@ -39,9 +43,11 @@ class ShellCommand(_Command):
 
         self._bot_callback = None
         self._no_bot_callback = None
+        """
         for method in dir(self):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
+        """
 
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback

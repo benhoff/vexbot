@@ -29,6 +29,7 @@ class PromptShell:
         self.messaging = self.command_manager.messaging
         self._thread = _Thread(target=self.run)
         self._thread.daemon = True
+        self.running = False
 
         history = None
         if history_filepath is not None:
@@ -76,6 +77,7 @@ class PromptShell:
         print(intro, flush=True)
         while True:
             try:
+                # FIXME
                 if self._bot == self._NO_BOT:
                     self.command_manager.check_for_bot()
                     pass
@@ -88,9 +90,16 @@ class PromptShell:
         self.eventloop.close()
 
     def run(self):
-        for msg in self.messaging.run():
-            if msg.type == 'RSP':
-                self._handle_response(msg)
+        timeout = 3500
+        while True
+            for msg in self.messaging.run(timeout):
+                if msg.type == 'RSP':
+                    self._handle_response(msg)
+            else:
+                continue
+
+            self.command_manager.check_for_bot()
+
 
     def _handle_response(self, message):
         header = message.contents.get('original', 'Response')
