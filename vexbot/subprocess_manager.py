@@ -2,16 +2,30 @@ import sys
 import atexit
 import signal
 import logging
+# TODO: Determine if there's a better way to import this
+from gi._error import GError
 
-from pydbus import SessionBus
+from pydbus import SessionBus, SystemBus
 
 import pluginmanager
 
 
 class SubprocessManager:
     def __init__(self):
-        self.bus = SessionBus()
-        self.systemd = self.bus.get('.systemd1')
+        self.session_bus_available = True
+        try:
+            self.bus = SessionBus()
+        except GError:
+            # NOTE: no session bus if we're here.
+            self.session_bus_available = False
+            self.system_bus = SystemBus()
+
+        # TODO: Verify that we can start services as the system bus w/o root
+        # permissions
+        if self.session_bus_available:
+            self.systemd = self.bus.get('.systemd1')
+        else:
+            self.systemd = self.system_bus.get('.systemd1')
 
         # atexit.register(self._close_subprocesses)
         # signal.signal(signal.SIGINT, self._handle_close_signal)
