@@ -16,9 +16,15 @@ class SubprocessManager:
         try:
             self.bus = SessionBus()
         except GError:
-            # NOTE: no session bus if we're here.
+            # No session bus if we're here. Depending on linux distro, that's
+            # not surprising
             self.session_bus_available = False
-            self.system_bus = SystemBus()
+
+        # TODO: It's possible that the user is on a system that is not using
+        # systemd, which means that this next call will fail. Should probably
+        # have a try/catch and then just default to not having a subprocess
+        # manager if that happens.
+        self.system_bus = SystemBus()
 
         # TODO: Verify that we can start services as the system bus w/o root
         # permissions

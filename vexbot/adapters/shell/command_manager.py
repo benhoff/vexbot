@@ -3,7 +3,8 @@ import cmd as _cmd
 import textwrap as _textwrap
 import logging
 
-from pydbus import SessionBus
+from gi._error import GError
+from pydbus import SessionBus, SystemBus
 
 from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.command_managers import CommandManager as _Command
@@ -13,16 +14,26 @@ from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 from vexbot.adapters.tui import VexTextInterface
 
 
+# TODO: Verify that need to subclassed
 class ShellCommand(_Command):
-    identchars = _cmd.IDENTCHARS
     def __init__(self,
                  messaging=None,
                  stdin=None,
                  stdout=None):
 
         super().__init__(messaging)
-        self.bus = SessionBus()
-        self.systemd = self.bus.get('.systemd1')
+        self.using_session_bus = True
+        self.shebangs = ['!',]
+        try:
+            self.bus = SessionBus()
+        except GError:
+            self.using_session_bus = False
+        self.system_bus = SystemBus()
+
+        if self.using_session_bus:
+            self.systemd = self.bus.get('.systemd1')
+        else:
+            self.systemd = self.system_bus.get('.systemd1')
 
         if stdin is None:
             stdin = _sys.stdin
@@ -49,6 +60,15 @@ class ShellCommand(_Command):
                 self._commands[method[3:]] = getattr(self, method)
         """
 
+    def is_command(self, text: str):
+        """
+        checks for presence of shebang in the first character of the text
+        """
+        if text[0] in self.shebangs:
+            return True
+
+        return False
+
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback
 
@@ -58,38 +78,33 @@ class ShellCommand(_Command):
     def check_for_bot(self):
         self.messaging.send_ping()
 
-    def handle_command(self, arg):
-        # FIXME: Hack to stop crashing
-        if arg == 'help':
-            logging.warn('Help command not implemented. Find me in `vexbot.adadpters.shell.command_manager:handle_command`')
-        elif self.is_command(arg, call_command=True):
-            # NOTE: since `call_command=True`, command will already be called
+    # TODO: check nomenclature for function. This handles and converts the string argument
+    # it should arguably be part of the shell class
+    def parse_argument(self, arg):
+        return ('', [], {})
+
+    def is_local_command(self, arg: str):
+        """
+        """
+        pass
+
+    def send_command_to_bot(self, arg):
+        pass
+
+    def handle_command(self, arg: str):
+        # strip whitespace
+        arg = arg.lstrip()
+        # consume shebang
+        arg = arg[1:]
+        raise RuntimeError('Not Implemented')
+
+        if self.is_command(arg):
             pass
         else:
             command, argument, line = self._parseline(arg)
             self.messaging.send_command(command=command,
                                         args=argument,
                                         line=line)
-
-    def _parseline(self, line):
-        """Parse the line into a command name and a string containing
-        the arguments.  Returns a tuple containing (command, args, line).
-        'command' and 'args' may be None if the line couldn't be parsed.
-        """
-        line = line.strip()
-        if not line:
-            return None, None, line
-        elif line[0] == '?':
-            line = 'help ' + line[1:]
-        elif line[0] == '!':
-            if hasattr(self, 'do_shell'):
-                line = 'shell ' + line[1:]
-            else:
-                return None, None, line
-        i, n = 0, len(line)
-        while i < n and line[i] in self.identchars: i = i+1
-        cmd, arg = line[:i], line[i:].strip()
-        return cmd, arg, line
 
     def do_start_bot(self, arg):
         if arg == '':

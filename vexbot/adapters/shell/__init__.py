@@ -84,14 +84,17 @@ class PromptShell:
 
                 with self._patch_context:
                     result = self.cli.run(True)
-                    self.command_manager.handle_command(result.text)
+                    if self.command_manager.is_command(result.text):
+                        self.command_manager.handle_command(result.text)
+                    else:
+                        raise RuntimeError('Not implemented')
             except EOFError:
                 break
         self.eventloop.close()
 
     def run(self):
         timeout = 3500
-        while True
+        while True:
             for msg in self.messaging.run(timeout):
                 if msg.type == 'RSP':
                     self._handle_response(msg)
