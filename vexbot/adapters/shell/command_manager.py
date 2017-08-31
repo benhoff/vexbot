@@ -2,6 +2,7 @@ import sys as _sys
 import cmd as _cmd
 import textwrap as _textwrap
 import shlex as _shlex
+import pprint as _pprint
 import logging
 
 from gi._error import GError
@@ -9,7 +10,7 @@ from pydbus import SessionBus, SystemBus
 
 from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.command_managers import CommandManager as _Command
-from vexbot.settings_manager import SettingsManager as _SettingsManager
+from vexbot.subprocess_manager import SubprocessManager
 
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 from vexbot.adapters.tui import VexTextInterface
@@ -23,19 +24,8 @@ class ShellCommand:
                  stdin=None,
                  stdout=None):
 
-        self.using_session_bus = True
         self.shebangs = ['!',]
-        try:
-            self.bus = SessionBus()
-        except GError:
-            self.using_session_bus = False
-
-        self.system_bus = SystemBus()
-
-        if self.using_session_bus:
-            self.systemd = self.bus.get('.systemd1')
-        else:
-            self.systemd = self.system_bus.get('.systemd1')
+        self.subprocess_manager = SubprocessManager()
 
         if stdin is None:
             stdin = _sys.stdin
@@ -50,9 +40,6 @@ class ShellCommand:
 
         self.messaging = messaging
         self.messaging.start_messaging()
-        self.settings_manager = _SettingsManager()
-        self._text_interface = VexTextInterface(self.settings_manager)
-        self._robot_name = 'vexbot'
 
         self._bot_callback = None
         self._no_bot_callback = None
@@ -79,8 +66,8 @@ class ShellCommand:
     def check_for_bot(self):
         self.messaging.send_ping()
 
-    def send_command_to_bot(self, arg):
-        pass
+    def do_ping(self, *args, **kwargs):
+        self.messaging.send_ping()
 
     def handle_command(self, arg: str):
         # consume shebang
@@ -107,31 +94,45 @@ class ShellCommand:
                                     kwargs=kwargs)
         """
 
-    def do_start(self, program, *args, **kwargs):
+    def do_start(self, program: str, *args, **kwargs):
         mode = kwargs.get('mode', 'replace')
-        if program == 'vexbot' or program == 'bot':
-            self.systemd.StartUnit("vexbot.service", mode)
+        # TODO: Better aliasing for more commands
+        if program == 'bot':
+            program = 'vexbot'
+        if (not program.endswith('.service') or
+                not program.endswith('.target') or
+                not program.endswith('.socket')):
+            program = program + '.service'
 
-    def _prompt_helper(self, prompt, default=None):
-        """
-        used in `do_create_robot_settings`
-        creates a prompt for the user and suggests a default value
-        """
-        self.stdout.write(prompt)
-        self.stdout.flush()
-        line = self.stdin.readline()
-        if not len(line):
-            line = 'EOF'
-        else:
-            line = line.rstrip('\r\n')
+        self.subprocess_manager.start(program, mode)
 
-        if line not in ('EOF', 'STOP'):
-            if line == '' and default is not None:
-                line = default
 
-            # TODO: Clean up
-            self.stdout.write('    ' + line + '\n\n')
+    def do_restart(self, program: str, *args, **kwargs):
+        mode = kwargs.get('mode', 'replace')
+        if program == 'bot':
+            program = 'vexbot'
 
-            return line
+        if (not program.endswith('.service') or
+                not program.endswith('.target') or
+                not program.endswith('.socket')):
+            program = program + '.service'
 
-        return None
+        self.subprocess_manager.restart(program, mode)
+
+
+    def do_stop(self, program: str, *args, **kwargs):
+        mode = kwargs.get('mode', 'replace')
+        if program == 'bot':
+            program = 'vexbot'
+
+        if (not program.endswith('.service') or
+                not program.endswith('.target') or
+                not program.endswith('.socket')):
+            program = program + '.service'
+
+        self.subprocess_manager.stop(program, mode)
+
+
+    def do_commands(self, *args, **kwargs):
+        commands = ['!' + x for x in self._commands.keys()]
+        _pprint.pprint(commands)
