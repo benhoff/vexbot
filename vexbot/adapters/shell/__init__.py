@@ -73,7 +73,7 @@ class PromptShell:
 
     def cmdloop(self, intro=None):
         if intro is None:
-            intro = "Vexbot {}\n\n    Type \"help\" for command line help or \"commands\" for bot commands\n    NOTE: \"commands\" will only work if bot is running\n\n".format(__version__)
+            intro = "\nVexbot {}\n\n    Type \"!help\" for command line help or \"!commands\" for bot commands\n    NOTE: \"commands\" will only work if bot is running. \"!start bot\" will start up the bot.\n\n".format(__version__)
         print(intro, flush=True)
         while True:
             try:

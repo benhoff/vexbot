@@ -1,0 +1,14 @@
+[Unit]
+Description=Helper robot
+
+[Service]
+Type=simple
+User=node
+Group=node
+WorkingDirectory=/home/hoff/vexbot
+ExecStart=/home/hoff/vexbot/venv/bin/python /home/hoff/vexbot/vexbot
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

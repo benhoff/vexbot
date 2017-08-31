@@ -29,6 +29,7 @@ class ShellCommand:
             self.bus = SessionBus()
         except GError:
             self.using_session_bus = False
+
         self.system_bus = SystemBus()
 
         if self.using_session_bus:
@@ -55,11 +56,10 @@ class ShellCommand:
 
         self._bot_callback = None
         self._no_bot_callback = None
-        """
+        self._commands = {}
         for method in dir(self):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
-        """
 
     def is_command(self, text: str):
         """
@@ -94,57 +94,23 @@ class ShellCommand:
             return
 
         args, kwargs = parse(args)
-        print(args, kwargs)
+        try:
+            callback = self._commands[command]
+        except KeyError:
+            # TODO: error handling or fallthrough
+            return
+        result = callback(*args, **kwargs)
+
+        """
         self.messaging.send_command(command=command,
                                     args=args,
                                     kwargs=kwargs)
-
-    def do_start_bot(self, arg):
-        if arg == '':
-            arg = self._profile
-        _start_vexbot(arg)
-
-
-    def _get_old_settings(self, setting_manager, profile):
-        """
-        returns settings minus the `_sa_instance_state`
-        used in `do_create_robot_settings` and changes the
-        adapters to just be their names.
-        """
-        old_settings = self.settings_manager.get_robot_model(profile)
-        if old_settings is None:
-            return dict()
-        adapters = [x.name for x in old_settings.startup_adapters]
-        old_settings = dict(old_settings.__dict__)
-        old_settings.pop('_sa_instance_state')
-        old_settings['startup_adapters'] = adapters
-        return old_settings
-
-    def do_robot_settings(self, arg):
-        self._text_interface.robot_settings()
-
-        # TODO: implement
-        """
-        if 'id' in s:
-            self.settings_manager.update_robot_model(s)
-        else:
-            self.settings_manager.create_robot_model(s)
-
-        if s['context'] == self._context:
-            self.do_context(self._context)
         """
 
-    def do_irc_settings(self, arg):
-        irc_settings()
-
-    def do_xmpp_settings(self, arg):
-        xmpp_settings()
-
-    def do_youtube_settings(self, arg):
-        youtube_settings()
-
-    def do_socket_io_settings(self, arg):
-        socket_io_settings()
+    def do_start(self, program, *args, **kwargs):
+        mode = kwargs.get('mode', 'replace')
+        if program == 'vexbot' or program == 'bot':
+            self.systemd.StartUnit("vexbot.service", mode)
 
     def _prompt_helper(self, prompt, default=None):
         """
