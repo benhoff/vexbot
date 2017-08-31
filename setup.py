@@ -45,6 +45,7 @@ setup(
                                       'socket_io = vexbot.adapters.models:SocketIOSettings'],
 
                   'console_scripts': ['vexbot=vexbot.adapters.shell.__main__:main',
+                                      'vexbot_robot=vexbot.__main__:main',
                                       'vexbot_quickstart=vexbot.util.quickstart:quickstart',
                                       'vexbot_create_database=vexbot.util.create_database:create_database']},
 

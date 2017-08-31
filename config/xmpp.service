@@ -4,7 +4,7 @@ Description=Helper robot
 [Service]
 Type=simple
 WorkingDirectory=/home/hoff/vexbot
-ExecStart=/home/hoff/vexbot/venv/bin/python /home/hoff/vexbot/vexbot
+ExecStart=vexbot_xmpp
 StandardOutput=syslog
 StandardError=syslog
 
