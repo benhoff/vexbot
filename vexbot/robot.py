@@ -8,7 +8,7 @@ from vexmessage import Request
 
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.command_managers import BotCommandManager as _BotCommandManager
-from vexbot.adapter_interface import AdapterInterface as _AdapterInterface
+from vexbot._adapter_interface import AdapterInterface as _AdapterInterface
 
 
 class Robot:
@@ -64,7 +64,7 @@ class Robot:
         # TODO: Decide if this is the best place to do this
         if command == 'PING':
             addresses.append(b'PONG')
-            self.messaging.command_socket.send_multipart(address)
+            self.messaging.command_socket.send_multipart(addresses)
             return
 
         args = message.pop(0)
