@@ -84,6 +84,8 @@ class PromptShell:
 
                 with self._patch_context:
                     result = self.cli.run(True)
+                    text = result.text
+                    text = self._clean_text(text)
                     if self.command_manager.is_command(result.text):
                         self.command_manager.handle_command(result.text)
                     else:
@@ -91,6 +93,10 @@ class PromptShell:
             except EOFError:
                 break
         self.eventloop.close()
+
+    def _clean_text(self, text: str):
+        text = text.lstrip()
+        return text
 
     def run(self):
         timeout = 3500

@@ -1,6 +1,7 @@
 import sys as _sys
 import cmd as _cmd
 import textwrap as _textwrap
+import shlex as _shlex
 import logging
 
 from gi._error import GError
@@ -13,15 +14,15 @@ from vexbot.settings_manager import SettingsManager as _SettingsManager
 from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 from vexbot.adapters.tui import VexTextInterface
 
+from vexbot.adapters.shell.parser import parse
 
-# TODO: Verify that need to subclassed
-class ShellCommand(_Command):
+
+class ShellCommand:
     def __init__(self,
                  messaging=None,
                  stdin=None,
                  stdout=None):
 
-        super().__init__(messaging)
         self.using_session_bus = True
         self.shebangs = ['!',]
         try:
@@ -78,33 +79,25 @@ class ShellCommand(_Command):
     def check_for_bot(self):
         self.messaging.send_ping()
 
-    # TODO: check nomenclature for function. This handles and converts the string argument
-    # it should arguably be part of the shell class
-    def parse_argument(self, arg):
-        return ('', [], {})
-
-    def is_local_command(self, arg: str):
-        """
-        """
-        pass
-
     def send_command_to_bot(self, arg):
         pass
 
     def handle_command(self, arg: str):
-        # strip whitespace
-        arg = arg.lstrip()
         # consume shebang
         arg = arg[1:]
-        raise RuntimeError('Not Implemented')
+        # Not sure if `shlex` can handle unicode. If can, this can be done
+        # here rather than having a helper method
+        args = _shlex.split(arg)
+        try:
+            command = args.pop(0)
+        except IndexError:
+            return
 
-        if self.is_command(arg):
-            pass
-        else:
-            command, argument, line = self._parseline(arg)
-            self.messaging.send_command(command=command,
-                                        args=argument,
-                                        line=line)
+        args, kwargs = parse(args)
+        print(args, kwargs)
+        self.messaging.send_command(command=command,
+                                    args=args,
+                                    kwargs=kwargs)
 
     def do_start_bot(self, arg):
         if arg == '':
