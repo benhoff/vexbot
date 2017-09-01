@@ -10,6 +10,7 @@ from pydbus import SessionBus, SystemBus
 import pluginmanager
 
 
+# TODO: think of a better name
 class SubprocessManager:
     def __init__(self):
         self.session_bus_available = True
@@ -52,21 +53,7 @@ class SubprocessManager:
 
     def unmask(self, name: str):
         pass
-    """
 
     def killall(self):
-        """
-        Kills every registered subprocess
-        """
         pass
-
-    def _handle_close_signal(self, signum=None, frame=None):
-        # self._close_subprocesses()
-        # sys.exit()
-        pass
-
-    def _close_subprocesses(self):
-        """
-        signum and frame are part of the signal lib
-        """
-        pass
+    """

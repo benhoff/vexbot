@@ -63,9 +63,10 @@ class PromptShell:
     @property
     def prompt(self):
         # profile = self.command_manager._profile
-        profile = 'default'
-        name = self.command_manager._robot_name
-        return '{}[{}]: '.format(name, profile)
+        # profile = 'default'
+        # name = self.command_manager._robot_name
+        # return '{}[{}]: '.format(name, profile)
+        return 'vexbot: '
 
     def cmdloop_and_start_messaging(self):
         self._thread.start()
@@ -73,7 +74,7 @@ class PromptShell:
 
     def cmdloop(self, intro=None):
         if intro is None:
-            intro = "\nVexbot {}\n\n    Type \"!help\" for command line help or \"!commands\" for bot commands\n    NOTE: \"commands\" will only work if bot is running. \"!start bot\" will start up the bot.\n\n".format(__version__)
+            intro = "\nVexbot {}\n\n    Type \"!help\" for command line help or \"!commands\" for bot commands\n    \"!start bot\" will start up the bot.\n\n".format(__version__)
         print(intro, flush=True)
         while True:
             try:
@@ -99,16 +100,10 @@ class PromptShell:
         return text
 
     def run(self):
-        timeout = 3500
         while True:
-            for msg in self.messaging.run(timeout):
+            for msg in self.messaging.run():
                 if msg.type == 'RSP':
                     self._handle_response(msg)
-            else:
-                continue
-
-            self.command_manager.check_for_bot()
-
 
     def _handle_response(self, message):
         header = message.contents.get('original', 'Response')
@@ -116,14 +111,12 @@ class PromptShell:
         pprint.pprint(contents, compact=True)
 
     def set_bot_prompt_no(self):
-        if not self._bot == self._NO_BOT:
-            self._bot = self._NO_BOT
-            self.cli.request_redraw()
+        self._bot = self._NO_BOT
+        self.cli.request_redraw()
 
     def set_bot_prompt_yes(self, *args, **kwargs):
-        if not self.prompt == '':
-            self._bot = ''
-            self.cli.request_redraw()
+        self._bot = ''
+        self.cli.request_redraw()
 
     def get_names(self):
         names = dir(self)
