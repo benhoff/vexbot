@@ -12,7 +12,6 @@ from vexbot.adapters.messaging import ZmqMessaging as _Messaging
 from vexbot.command_managers import CommandManager as _Command
 from vexbot.subprocess_manager import SubprocessManager
 
-from vexbot.commands.start_vexbot import start_vexbot as _start_vexbot
 from vexbot.adapters.tui import VexTextInterface
 
 from vexbot.adapters.shell.parser import parse

@@ -5,7 +5,6 @@ from threading import RLock as _RLock
 
 from vexmessage import Request
 
-from vexbot.commands.restart_bot import restart_bot as _restart_bot
 from vexbot.util.function_wrapers import (msg_list_wrapper,
                                           no_arguments)
 
