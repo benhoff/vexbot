@@ -5,24 +5,9 @@ import zmq.devices
 
 from vexbot import _get_default_port_config
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
+from vexbot.util.messaging import get_address as _get_address
 
 from vexmessage import create_vex_message, decode_vex_message
-
-
-def _get_address(message: list):
-    # Need the address so that we know who to send the message back to
-    addresses = []
-    # the message is broken by the addresses in the beginning and then the
-    # message, like this: `addresses | '' | message `
-    for address in message:
-        # if we hit a blank string, then we've got all the addresses
-        if address == b'':
-            break
-
-        addresses.append(address)
-
-    return addresses
-
 
 
 class Messaging:
@@ -38,7 +23,7 @@ class Messaging:
     def __init__(self, botname: str='Vexbot', **kwargs):
         """
         `kwargs`:
-            protocol:   'tcp'
+            protocol:   'ipc'
             ip_address: '127.0.0.1'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]
@@ -94,36 +79,44 @@ class Messaging:
         """
         self._close_sockets()
 
-        create_n_bind = self._socket_factory.create_n_bind
+        create_n_conn = self._socket_factory.create_n_connect
         to_address = self._socket_factory.to_address
 
         control_address = to_address(self.configuration['control_port'])
 
         # NOTE: These sockets will cause the program to exit if there's an issue
-        self.control_socket = create_n_bind(zmq.ROUTER,
+        self.control_socket = create_n_conn(zmq.ROUTER,
                                             control_address,
-                                            on_error='exit')
+                                            on_error='exit',
+                                            bind=True,
+                                            socket_name='control socket')
 
         pub_addrs = to_address(self.configuration['chatter_publish_port'])
         # publish socket is an XSUB socket
-        self.publish_socket = create_n_bind(zmq.XSUB,
+        self.publish_socket = create_n_conn(zmq.XSUB,
                                             pub_addrs,
-                                            on_error='exit')
+                                            bind=True,
+                                            on_error='exit',
+                                            socket_name='publish socket')
 
         # NOTE: these sockets will only log an error if there's an issue
         command_address = to_address(self.configuration['command_port'])
-        self.command_socket = create_n_bind(zmq.ROUTER, command_address)
+        self.command_socket = create_n_conn(zmq.ROUTER, command_address, bind=True)
 
         request_address = to_address(self.configuration['request_port']
-        self.request_socket = create_n_bind(zmq.DEALER,
-                                            request_address)
+        self.request_socket = create_n_conn(zmq.DEALER,
+                                            request_address,
+                                            bind=True,
+                                            socket_name='request socket')
 
         iter_ = self._socket_factory.iterate_multiple_addresses
         sub_addresses = iter_(self.configuration['chatter_subscription_port']
         # TODO: verify that this shouldn't be like a connect as the socket factory defaults to bind
         # subscription socket is a XPUB socket
-        self.subscription_socket = create_n_bind(zmq.XPUB,
-                                                 sub_addresses)
+        self.subscription_socket = create_n_conn(zmq.XPUB,
+                                                 sub_addresses,
+                                                 bind=True,
+                                                 socket_name='subscription socket')
 
         self._poller.register(self.command_socket, zmq.POLLIN)
         self._poller.register(self.control_socket, zmq.POLLIN)

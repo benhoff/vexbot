@@ -3,6 +3,8 @@ import logging
 import pickle
 
 from vexbot import _get_default_port_config
+from vexbot.util.socket_factory import SocketFactory as _SocketFactory
+from vexbot.util.messaging import get_address as _get_address
 
 from vexmessage import create_vex_message, decode_vex_message
 
@@ -11,7 +13,7 @@ class ZmqMessaging:
     def __init__(self, service_name: str, **kwargs):
         """
         `kwargs`:
-            protocol:   'tcp'
+            protocol:   'ipc'
             ip_address: '127.0.0.1'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]
@@ -23,10 +25,6 @@ class ZmqMessaging:
         configuration = _get_default_port_config()
         # update the default port configurations with the kwargs
         configuration.update(kwargs)
-
-        self.protocol = configuration['protocol']
-        self.ip_address = configuration['ip_address']
-
         self.publish_socket = None
         self.subscription_socket = None
         self.command_socket = None
@@ -43,6 +41,11 @@ class ZmqMessaging:
         # self._socket_filter = socket_filter
         self._messaging_started = False
         self._logger = logging.getLogger(self._service_name)
+
+        self._socket_factory = _SocketFactory(configuration['ip_address'],
+                                              configuration['protocol'],
+                                              logger=self._logger)
+
 
         try:
             import setproctitle
@@ -76,62 +79,40 @@ class ZmqMessaging:
             self._logger.warn(s)
             return
 
-        context = zmq_context or zmq.Context()
+        create_n_conn = self._socket_factory.create_n_connect
+        to_address = self._socket_factory.to_address
 
         # Instantiate all the sockets
-        self.command_socket = context.socket(zmq.DEALER)
-        self.control_socket = context.socket(zmq.DEALER)
-        self.request_socket = context.socket(zmq.ROUTER)
-        self.publish_socket = context.socket(zmq.PUB)
-        self.subscription_socket = context.socket(zmq.SUB)
+        command_address = to_address(self._configuration['command_port'])
+        self.command_socket = create_n_conn(zmq.DEALER,
+                                            command_address,
+                                            socket_name='command socket')
 
-        # Get the control socket address
-        control_address = self._configuration['control_port']
-        control_address = self._address_helper(control_address)
+        control_address = to_address(self._configuration['control_port'])
+        self.control_socket = create_n_conn(zmq.DEALER,
+                                            control_address,
+                                            socket_name='control socket')
 
-        # connect the control socket to it's address
-        self.control_socket.connect(control_address)
+        request_address = to_address(self._configuration['request_port'])
+        self.request_socket = create_n_conn(zmq.ROUTER,
+                                            request_address,
+                                            socket_name='request socket')
+
+        publish_address = to_address(self._configuration['chatter_publish_port'])
+        self.publish_socket = create_n_conn(zmq.PUB,
+                                            publish_address,
+                                            socket_name='publish socket')
+
+        iter_ = self._socket_factory.iterate_multiple_addresses
+        subscription_address = iter_(self._configuration['chatter_subscrption_port'])
+        self.subscription_socket = create_n_conn(zmq.SUB,
+                                                 subscription_address,
+                                                 socket_name='subscription socket')
+
         # register the control socket to the poller
         self.poller.register(self.control_socket, zmq.POLLIN)
-
-        # Get the command socket address
-        command_address = self._configuration['command_port']
-        command_address = self._address_helper(command_address)
-
-        # connect the command socket to it's address
-        self.command_socket.connect(command_address)
-        # register the command socket to the poller
         self.poller.register(self.command_socket, zmq.POLLIN)
-
-        # Get the request socket address
-        request_address = self._configuration['request_port']
-        request_address = self._address_helper(request_address)
-
-        # connect the request socket to it's address
-        self.request_socket.connect(request_address)
-        # register the request socket
         self.poller.register(self.request_socket, zmq.POLLIN)
-
-        # Get the chatter publish socket address
-        chatter_pub_address = self._configuration['chatter_publish_port']
-        chatter_pub_address = self._address_helper(chatter_pub_address)
-
-        # connect the publish socket to it's address
-        self.publish_socket.connect(chatter_pub_address)
-
-        # Get the chatter subscirption socket addresses
-        chatter_sub_address = self._configuration['chatter_subscription_port']
-        # if they are a single instance (instead of an iterable) convert them
-        # to a tuple
-        if isinstance(chatter_sub_address, (int, str)):
-            chatter_sub_address = (chatter_sub_address,)
-
-        for addr in chatter_sub_address:
-            # Get the subscription address
-            addr = self._address_helper(addr)
-            # connect it to the socket
-            self.subscription_socket.connect(addr)
-        # register the subscription socket to the poller
         self.poller.register(self.subscription_socket, zmq.POLLIN)
         self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
@@ -145,39 +126,6 @@ class ZmqMessaging:
 
         self._messaging_started = True
 
-    # TODO: fix the logic in this method call. Uses old socket names (i.e.
-    # `self.pub_socket`
-    """
-    def update_messaging(self,
-                         pub_address=None,
-                         sub_addresses=None,
-                         heartbeat_address=None,
-                         disconnect_old_addr=True):
-
-        # if not self._messaging_started:
-        #    self.start_messaging()
-
-        if pub_address:
-            if disconnect_old_addr:
-                self.disconnect_pub_socket(self._address['pub'])
-
-            self.pub_socket.connect(pub_address)
-            self._address['pub'] = pub_address
-
-        if sub_addresses:
-            if disconnect_old_addr:
-                self.disconnect_sub_socket(self._address['sub'])
-            for s in sub_addresses:
-                self.sub_socket.connect(s)
-            self._address['sub'] = sub_addresses
-
-        if heartbeat_address:
-            if disconnect_old_addr:
-                self.disconnect_heartbeat_socket(self._address['heart'])
-            self._heartbeat.connect(heartbeat_address)
-            self._address['heart'] = heartbeat_address
-    """
-
     def set_socket_filter(self, filter_):
         self._socket_filter = filter_
 
@@ -188,13 +136,14 @@ class ZmqMessaging:
         frame = create_vex_message(target, self._service_name, 'MSG', **msg)
         self.publish_socket.send_multipart(frame)
 
-    def send_command(self, command: str, **kwargs):
+    def send_command(self, command: str, *args, **kwargs):
         """
         For request bot to perform some action
         """
         command = command.encode('ascii')
+        args = pickle.dumps(args)
         kwargs = pickle.dumps(kwargs)
-        self.command_socket.send_multipart((b'', command, kwargs))
+        self.command_socket.send_multipart((b'', command, args, kwargs))
 
     def send_control(self, control, **kwargs):
         """
@@ -204,16 +153,16 @@ class ZmqMessaging:
         self.command_socket.send_multipart(frame)
 
     def send_response(self, status, target='', **kwargs):
-        # FIXME
         """
         frame = create_vex_message(target,
                                    self._service_name,
                                    'STATUS',
                                    status=status,
                                    **kwargs)
-        """
 
         self.request_socket.send_multipart(frame)
+        """
+        raise RuntimeError('Not implemented')
 
     def send_ping(self):
         self.command_socket.send_multipart((b'', b'PING'))
@@ -231,17 +180,3 @@ class ZmqMessaging:
             pass
 
         self._address[socket_name] = None
-
-    def _address_helper(self, port):
-        """
-        returns a zmq address
-        """
-        # check to see if user passed in a string
-        # if they did, they want to use that instead
-        if isinstance(port, str) and len(port) > 6:
-            return port
-
-        zmq_address = '{}://{}:{}'
-        return zmq_address.format(self.protocol,
-                                  self.ip_address,
-                                  port)

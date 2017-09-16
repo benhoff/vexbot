@@ -10,7 +10,7 @@ class SocketFactory:
     """
     def __init__(self,
                  ip_address: str,
-                 protocol: str='ip',
+                 protocol: str='ipc',
                  context: 'zmq.Context'=None,
                  logger: 'logging.Logger'=None):
 
@@ -19,20 +19,29 @@ class SocketFactory:
         self.context = context or _zmq.Context.instance()
         self.logger = logger
 
-    def create_n_bind(self, type_, address: str, on_error='log'):
+    def create_n_connect(self,
+                         socket_type,
+                         address: str,
+                         bind=False,
+                         on_error='log',
+                         socket_name=''):
         """
-        Creates and binds the sockets
-        tranlates the port to an address
+        Creates and connects or binds the sockets
         on_error: 
             'log': will log error
             'exit': will exit the program
+        socket_name:
+            used for troubleshooting/logging
         """
-        socket = self._create(type_)
-        try:
-            self._bind(socket, port)
-        except _zmq.error.ZMQError:
-            socket = None
-            self._handle_error(on_error, address, type_)
+        socket = self.context.socket(socket_type)
+        if bind:
+            try:
+                socket.bind(address)
+            except _zmq.error.ZMQError:
+                self._handle_error(on_error, address, socket_name)
+                socket = None
+        else: # connect the socket
+            socket.connect(address)
 
         return socket
 
@@ -66,19 +75,16 @@ class SocketFactory:
 
         return result
 
-    def _create(self, type_):
-        pass
+    def _handle_error(self, how_to: str, ip_address: str, socket_name: str):
+        if socket_name == '':
+            socket_name = 'unknown type'
 
-    def _bind(self, socket: 'zmq.Socket', port: str):
-        pass
-
-    def _handle_error(self, how_to: str, ip_address: str, socket_type):
         if how_to == 'exit':
-            self._handle_bind_error_by_exit(ip_address, socket_type)
+            self._handle_bind_error_by_exit(ip_address, socket_name)
         else:
-            self._handle_bind_error_by_log(ip_address, socket_type)
+            self._handle_bind_error_by_log(ip_address, socket_name)
 
-    def _handle_bind_error_by_log(self, ip_address, socket_type):
+    def _handle_bind_error_by_log(self, ip_address: str, socket_name: str):
         if self.logger is None:
             return
         s = 'Address bind attempt fail. Address tried: {}'
@@ -86,7 +92,7 @@ class SocketFactory:
         self.logger.error(s)
         self.logger.error('socket type: {}'.format(socket_type))
 
-    def _handle_bind_error_by_exit(self, ip_address, socket_type):
+    def _handle_bind_error_by_exit(self, ip_address: str, socket_type: str):
         if self.logger is not None:
             s = 'Address bind attempt fail. Address tried: {}'
             s = s.format(ip_address)
