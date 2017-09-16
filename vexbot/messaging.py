@@ -29,7 +29,6 @@ class Messaging:
     """
     Current class responsabilities:
         configuration
-        socket initialization
         decode
         yield
         control
@@ -71,61 +70,69 @@ class Messaging:
         # Socket factory keeps the zmq context, default ip_address and
         # protocol for socket creation.
         self._socket_factory = _SocketFactory(self.configuration['ip_address'],
-                                              self.configuration['protocol'])
+                                              self.configuration['protocol'],
+                                              logger=self._logger)
+
+    def _get_sockets(self) -> tuple:
+        sockets = (self.command_socket,
+                   self.control_socket,
+                   self.publish_socket,
+                   self.request_socket,
+                   self.subscription_socket)
+
+        return sockets
+
+    def _close_sockets(self):
+        sockets = self._get_sockets()
+        for socket in sockets:
+            if socket is not None:
+                socket.close()
 
     def start(self):
         """
         starts/instantiates the messaging
         """
-        # alias for pep8 reasons
-        create_sock = self._socket_factory.create_socket
+        self._close_sockets()
 
-        # let's do the sockets that can cause us to exit first
-        self.control_socket = create_sock(zmq.ROUTER,
-                                          self.configuration['control_port'],
-                                          on_error='exit')
+        create_n_bind = self._socket_factory.create_n_bind
+        to_address = self._socket_factory.to_address
+
+        control_address = to_address(self.configuration['control_port'])
+
+        # NOTE: These sockets will cause the program to exit if there's an issue
+        self.control_socket = create_n_bind(zmq.ROUTER,
+                                            control_address,
+                                            on_error='exit')
+
+        pub_addrs = to_address(self.configuration['chatter_publish_port'])
         # publish socket is an XSUB socket
-        pub_ports = self.configuration['chatter_publish_port']
-        self.publish_socket = create_sock(zmq.XSUB,
-                                          pub_ports,
-                                          on_error='exit')
-        # command and control sockets
-        self.command_socket = create_sock(zmq.ROUTER,
-                                          self.configuration['command_port'])
+        self.publish_socket = create_n_bind(zmq.XSUB,
+                                            pub_addrs,
+                                            on_error='exit')
 
+        # NOTE: these sockets will only log an error if there's an issue
+        command_address = to_address(self.configuration['command_port'])
+        self.command_socket = create_n_bind(zmq.ROUTER, command_address)
 
-        self.request_socket = create_sock(zmq.DEALER,
-                                          self.configuration['request_port'])
+        request_address = to_address(self.configuration['request_port']
+        self.request_socket = create_n_bind(zmq.DEALER,
+                                            request_address)
 
+        iter_ = self._socket_factory.iterate_multiple_addresses
+        sub_addresses = iter_(self.configuration['chatter_subscription_port']
+        # TODO: verify that this shouldn't be like a connect as the socket factory defaults to bind
         # subscription socket is a XPUB socket
-        sub_ports = self.configuration['chatter_subscription_port']
-        self.subscription_socket = create_sock(zmq.XPUB,
-                                               sub_ports)
+        self.subscription_socket = create_n_bind(zmq.XPUB,
+                                                 sub_addresses)
 
-
-        # control socket address
         self._poller.register(self.command_socket, zmq.POLLIN)
         self._poller.register(self.control_socket, zmq.POLLIN)
         # TODO: verify that dealer sockets are `zmq.POLLOUT` 
         self._poller.register(self.request_socket, zmq.POLLIN)
-
         # IN type for the poll registration
         self._poller.register(self.subscription_socket, zmq.POLLIN)
-
-
         # information comes in for poller purposes
         self._poller.register(self.publish_socket, zmq.POLLIN)
-
-        # grab out the port
-        sub_addr = self.configuration['chatter_publish_port']
-        # create the address
-        sub_addr = self._address_helper(sub_addr)
-
-        # try to bind the pub socket to it's address.
-        try:
-            self.publish_socket.bind(sub_addr)
-        except zmq.error.ZMQError:
-            self._handle_bind_error_by_exit(sub_addr, 'publish')
 
     def send_heartbeat(self, target: str=''):
         frame = self._create_frame('PING', target)
