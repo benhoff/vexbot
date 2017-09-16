@@ -1,12 +1,28 @@
-import sys
 import logging
 
 import zmq
 import zmq.devices
 
 from vexbot import _get_default_port_config
+from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
 from vexmessage import create_vex_message, decode_vex_message
+
+
+def _get_address(message: list):
+    # Need the address so that we know who to send the message back to
+    addresses = []
+    # the message is broken by the addresses in the beginning and then the
+    # message, like this: `addresses | '' | message `
+    for address in message:
+        # if we hit a blank string, then we've got all the addresses
+        if address == b'':
+            break
+
+        addresses.append(address)
+
+    return addresses
+
 
 
 class Messaging:
@@ -36,12 +52,10 @@ class Messaging:
         # override the default with the `kwargs`
         configuration.update(kwargs)
 
-        self._service_name = botname
-        self.protocol = configuration['protocol']
-        self.ip_address = configuration['ip_address']
-
         # Store the addresses of publish, subscription, and heartbeat sockets
         self.configuration = configuration 
+
+        self._service_name = botname
 
         self.subscription_socket = None
         self.publish_socket = None
@@ -54,48 +68,42 @@ class Messaging:
         self.running = False
         self._logger = logging.getLogger(__name__)
 
-    def start(self, zmq_context: 'zmq.Context'=None):
+        # Socket factory keeps the zmq context, default ip_address and
+        # protocol for socket creation.
+        self._socket_factory = _SocketFactory(self.configuration['ip_address'],
+                                              self.configuration['protocol'])
+
+    def start(self):
         """
         starts/instantiates the messaging
         """
-        context = zmq_context or zmq.Context()
+        # alias for pep8 reasons
+        create_sock = self._socket_factory.create_socket
 
-        # command and control sockets
-        self.command_socket = context.socket(zmq.ROUTER)
-        self.control_socket = context.socket(zmq.ROUTER)
-        self.request_socket = context.socket(zmq.DEALER)
-        # subscription socket is a XPUB socket
-        self.subscription_socket = context.socket(zmq.XPUB)
+        # let's do the sockets that can cause us to exit first
+        self.control_socket = create_sock(zmq.ROUTER,
+                                          self.configuration['control_port'],
+                                          on_error='exit')
         # publish socket is an XSUB socket
-        self.publish_socket = context.socket(zmq.XSUB)
+        pub_ports = self.configuration['chatter_publish_port']
+        self.publish_socket = create_sock(zmq.XSUB,
+                                          pub_ports,
+                                          on_error='exit')
+        # command and control sockets
+        self.command_socket = create_sock(zmq.ROUTER,
+                                          self.configuration['command_port'])
 
-        # command address
-        command_address = self.configuration['command_port']
-        command_address = self._address_helper(command_address)
-        # bind command socket to it's address
-        try:
-            self.command_socket.bind(command_address)
-        except zmq.error.ZMQError:
-            self._handle_bind_error_by_log(command_address, 'command')
+
+        self.request_socket = create_sock(zmq.DEALER,
+                                          self.configuration['request_port'])
+
+        # subscription socket is a XPUB socket
+        sub_ports = self.configuration['chatter_subscription_port']
+        self.subscription_socket = create_sock(zmq.XPUB,
+                                               sub_ports)
+
 
         # control socket address
-        control_address = self.configuration['control_port']
-        control_address = self._address_helper(control_address)
-
-        # bind control socket to it's address
-        try:
-            self.control_socket.bind(control_address)
-        except zmq.error.ZMQError:
-            self._handle_bind_error_by_exit(control_address, 'control')
-
-        request_address = self.configuration['request_port']
-        request_address = self._address_helper(request_address)
-
-        try:
-            self.request_socket.bind(request_address)
-        except zmq.error.ZMQError:
-            self._handle_bind_error_by_log(request_address, 'request')
-
         self._poller.register(self.command_socket, zmq.POLLIN)
         self._poller.register(self.control_socket, zmq.POLLIN)
         # TODO: verify that dealer sockets are `zmq.POLLOUT` 
@@ -104,22 +112,6 @@ class Messaging:
         # IN type for the poll registration
         self._poller.register(self.subscription_socket, zmq.POLLIN)
 
-        # get all addresses
-        addresses = self.configuration['chatter_subscription_port']
-        # validate the addresses real quick
-        if isinstance(addresses, (str, int)):
-            # TODO: verify this works.
-            addresses = tuple(addresses,)
-
-        # Can subscribe to multiple addresses
-        for addr in addresses:
-            ip_address = self._address_helper(addr) 
-
-            # TODO: verify that this shouldn't be like a connect
-            try:
-                self.subscription_socket.bind(ip_address)
-            except zmq.error.ZMQError:
-                self._handle_bind_error_by_log(ip_address, 'subscription')
 
         # information comes in for poller purposes
         self._poller.register(self.publish_socket, zmq.POLLIN)
@@ -134,9 +126,6 @@ class Messaging:
             self.publish_socket.bind(sub_addr)
         except zmq.error.ZMQError:
             self._handle_bind_error_by_exit(sub_addr, 'publish')
-
-    def send_request(self, target: str, **request: dict):
-        pass
 
     def send_heartbeat(self, target: str=''):
         frame = self._create_frame('PING', target)
@@ -186,29 +175,4 @@ class Messaging:
     def _create_frame(self, type_, target='', **contents):
         return create_vex_message(target, self._service_name, type_, **contents)
 
-    def _address_helper(self, port):
-        """
-        returns a zmq address
-        """
-        # check to see if user passed in a string
-        # if they did, they want to use that instead
-        if isinstance(port, str) and len(port) > 6:
-            return port
 
-        zmq_address = '{}://{}:{}'
-        return zmq_address.format(self.protocol,
-                                  self.ip_address,
-                                  port)
-
-    def _handle_bind_error_by_log(self, ip_address, socket_type):
-        s = 'Address bind attempt fail. Address tried: {}'
-        s = s.format(ip_address)
-        self._logger.error(s)
-        self._logger.error('socket type: {}'.format(socket_type))
-
-    def _handle_bind_error_by_exit(self, ip_address, socket_type):
-        s = 'Address bind attempt fail. Address tried: {}'
-        s = s.format(ip_address)
-        self._logger.error(s)
-        self._logger.error('socket type: {}'.format(socket_type))
-        sys.exit(1)
