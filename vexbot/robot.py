@@ -19,10 +19,12 @@ class Robot:
                  subprocess_manager=None):
 
         self.messaging = messaging
-        self._scheduler = _Scheduler(messaging)
+        self.scheduler = _Scheduler(messaging)
         self.subprocess_manager = subprocess_manager or SubprocessManager()
         self.command_manager = command_manager or _BotCommands(messaging,
                                                                self.subprocess_manager)
+
+        self.scheduler.command.subscribe(self.command_manager)
 
 
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
@@ -33,4 +35,4 @@ class Robot:
         # an error on None type
         self.messaging.start()
         self.running = True
-        self._scheduler.run()
+        self.scheduler.run()

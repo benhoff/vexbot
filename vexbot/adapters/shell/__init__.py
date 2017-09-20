@@ -1,15 +1,15 @@
 # TODO: check to see if we can run concurrent using the prompt toolkit lib
 # We've got two event loops: the communication poller and the response loop
-import logging
-import pprint
+import logging as _logging
+import pprint as _pprint
 from threading import Thread as _Thread
 
 from prompt_toolkit import AbortAction, CommandLineInterface
 from prompt_toolkit.shortcuts import create_prompt_application, create_eventloop, create_output
-from prompt_toolkit.token import Token
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.contrib.completers import WordCompleter
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.token import Token as _Token
+from prompt_toolkit.history import FileHistory as _FileHistory
+from prompt_toolkit.contrib.completers import WordCompleter as _WordCompleter
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory as _AutoSuggestFromHistory
 from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
 
 from vexbot import __version__
@@ -33,21 +33,21 @@ class PromptShell:
 
         history = None
         if history_filepath is not None:
-            history = FileHistory(history_filepath)
+            history = _FileHistory(history_filepath)
 
         self._history = history
         # NOTE: there's a sentence option here that might be interesting to explore
-        self._completer = WordCompleter([], ignore_case=True)
-        self._suggest = AutoSuggestFromHistory()
+        self._completer = _WordCompleter([], ignore_case=True)
+        self._suggest = _AutoSuggestFromHistory()
 
         def _get_prompt_tokens(*args):
-            return [(Token.Prompt, self.prompt)]
+            return [(_Token.Prompt, self.prompt)]
 
         def _get_rprompt_tokens(*args):
-            return [(Token.RPrompt, self._bot)]
+            return [(_Token.RPrompt, self._bot)]
 
         self.app = create_prompt_application(history=self._history,
-                                             auto_suggest=AutoSuggestFromHistory(),
+                                             auto_suggest=_AutoSuggestFromHistory(),
                                              get_prompt_tokens=_get_prompt_tokens,
                                              get_rprompt_tokens=_get_rprompt_tokens,
                                              enable_history_search=True,
@@ -90,7 +90,7 @@ class PromptShell:
                     if self.command_manager.is_command(result.text):
                         self.command_manager.handle_command(result.text)
                     else:
-                        raise RuntimeError('Not implemented')
+                        self.messaging.send_command(result.text)
             except EOFError:
                 break
         self.eventloop.close()

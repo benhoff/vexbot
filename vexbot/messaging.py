@@ -1,4 +1,5 @@
 import logging
+import pickle
 
 import zmq
 import zmq.devices
@@ -214,5 +215,5 @@ class Messaging:
             kwargs = pickle.loads(kwargs)
         
         # TODO: use better names, request? command?
-        request = Request(command, address, args=args, kwargs=kwargs)
+        request = Request(command, addresses, args=args, kwargs=kwargs)
         return request

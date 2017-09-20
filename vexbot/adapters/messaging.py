@@ -4,7 +4,6 @@ import pickle
 
 from vexbot import _get_default_port_config
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
-from vexbot.util.messaging import get_address as _get_address
 
 from vexmessage import create_vex_message, decode_vex_message
 
@@ -104,8 +103,9 @@ class ZmqMessaging:
                                             socket_name='publish socket')
 
         iter_ = self._socket_factory.iterate_multiple_addresses
-        subscription_address = iter_(self._configuration['chatter_subscrption_port'])
-        self.subscription_socket = create_n_conn(zmq.SUB,
+        subscription_address = iter_(self._configuration['chatter_subscription_port'])
+        multiple_conn = self._socket_factory.multiple_create_n_connect
+        self.subscription_socket = multiple_conn(zmq.SUB,
                                                  subscription_address,
                                                  socket_name='subscription socket')
 

@@ -1,45 +1,15 @@
-import sys
+import sys as _sys
 import logging # flake8: noqa
 import collections as _collections
-from threading import RLock as _RLock
+import inspect as _inspect
+
+from rx import Observer
 
 from vexmessage import Request
 
+from vexbot.subprocess_manager import SubprocessManager
 from vexbot.util.function_wrapers import (msg_list_wrapper,
                                           no_arguments)
-
-class Observable:
-    def __init__(self):
-        self.observers = []
-        self.mutex = _RLock()
-        self.changed = False
-
-    def add_observer(self, observer):
-        if observer not in self.obs:
-            self.obs.append(observer)
-
-    def delete_observer(self, observer):
-        self.obs.remove(observer)
-
-    def notify_observers(self, message):
-        for observer in self.observers:
-            observer.update(self, message)
-
-    def delete_observers(self):
-        self.observers = []
-
-    def set_changed(self):
-        self.changed = True
-
-    def clear_changed(self):
-        self.changed = False
-
-    def has_changed(self):
-        return self.changed
-
-    def count_observers(self):
-        return len(self.observers)
-
 
 class CommandManager:
     def __init__(self, messaging: 'vexbot.messaging:Messaging'):
@@ -76,7 +46,8 @@ class CommandManager:
                                               response=results)
 
     def process_command(self, message: Request):
-        gcr = self._get_callback_recursively
+        raise RuntimeError('Not Implemented')
+        # Do we want to do an observable system or callback system?
         callback, command, args = gcr(message.command, message.args)
 
         if callback:
@@ -110,44 +81,51 @@ class CommandManager:
         return get_commands(self._commands)
 
 
-class BotCommandManager(CommandManager):
-    def __init__(self, robot: 'vebot.robot:Robot'):
-        # Need to pass in messaging in order to access commands
-        # Alternatively, could pass in some sort of interface
-        super().__init__(robot.messaging)
-        # nested command dict
-        subprocess = {}
+class BotCommands(Observer):
+    def __init__(self, messaging, subprocess_manager: SubprocessManager):
+        super().__init__()
+        self.messaging = messaging
+        self.subprocess_manager = subprocess_manager
+        self._commands = self._get_commands()
 
-        adapter_interface = robot.adapter_interface
+    def _get_commands(self) -> dict:
+        result = {}
+        for name, method in _inspect.getmembers(self):
+            if name.startswith('do_'):
+                result[name[3:]] = method
 
-        # alias for pep8
-        # FIXME: Should probably access this a better way
-        s_manager = adapter_interface.get_subprocess_manager()
+        return result
 
-        # FIXME: use the settings manager instead of subprocess manager
-        # subprocess['settings'] = msg_list_wrapper(s_manager.get_settings, 1)
+    def do_start(self, name: str, mode: str='replace'):
+        self.subprocess_manager.start(name, mode)
 
-        # self._commands['subprocess'] = subprocess
+    def do_print(self, *args, **kwargs):
+        print('made it here!')
 
-        # self._commands['killall'] = no_arguments(adapter_interface.killall)
-        # self._commands['restart_bot'] = no_arguments(_restart_bot)
+    def do_restart(self, name: str, mode: str='replace'):
+        self.subprocess_manager.restart(name, mode)
 
-        # TODO: check if want this to be `start_adapters` or `start_adapter`
-        # self._commands['start'] = msg_list_wrapper(adapter_interface.start_adapters)
-        # self._commands['stop'] = msg_list_wrapper(s_manager.stop)
-        # registered = s_manager.registered_subprocesses
-        # self._commands['subprocesses'] = no_arguments(registered)
-        # self._commands['restart'] = msg_list_wrapper(s_manager.restart)
-        # self._commands['kill'] = msg_list_wrapper(s_manager.kill)
-        # self._commands['kill_bot'] = self._kill_bot
-        # running = s_manager.running_subprocesses
-        # self._commands['running'] = no_arguments(running)
+    def do_stop(self, name: str, mode: str='replace'):
+        self.subprocess_manager.stop(name, mode)
 
-    def _kill_bot(self, *args, **kwargs):
+    def on_next(self, item: Request):
+        command = item.command
+        args = item.args
+        kwargs = item.kwargs
+        callback = self._commands[command]
+        result = callback(*args, **kwargs)
+
+    def on_error(self, *args, **kwargs):
+        pass
+
+    def on_completed(self, *args, **kwargs):
+        pass
+
+    def do_kill_bot(self, *args, **kwargs):
         """
         Kills the instance of vexbot
         """
-        sys.exit()
+        _sys.exit()
 
 
 class AdapterCommandManager(CommandManager):

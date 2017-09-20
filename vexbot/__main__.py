@@ -19,7 +19,6 @@ from vexbot.util import get_config as _get_config
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.settings_manager import SettingsManager as _SettingsManager
 from vexbot.subprocess_manager import SubprocessManager as _SubprocessManager
-from vexbot._adapter_interface import AdapterInterface as _AdapterInterface
 
 
 def _update_kwargs_with_command_line_arguments(**kwargs):
@@ -75,13 +74,10 @@ def main(*args, **kwargs):
                                         settings=adapter_settings)
 
     # create the settings manager using the port config
-    adapter_interface = _AdapterInterface(settings_manager,
-                                          _SubprocessManager())
-
     if _setproctitle:
         _setproctitle.setproctitle('vexbot')
 
-    robot = Robot(messaging, adapter_interface)
+    robot = Robot(messaging)
     robot.run()
 
 

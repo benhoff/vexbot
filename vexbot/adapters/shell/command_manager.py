@@ -83,15 +83,11 @@ class ShellCommand:
         try:
             callback = self._commands[command]
         except KeyError:
-            # TODO: error handling or fallthrough
+            # TODO: Notify user of fallthrough?
+            self.messaging.send_command(command, args=args, kwargs=kwargs) 
             return
-        result = callback(*args, **kwargs)
 
-        """
-        self.messaging.send_command(command=command,
-                                    args=args,
-                                    kwargs=kwargs)
-        """
+        result = callback(*args, **kwargs)
 
     def do_start(self, program: str, *args, **kwargs):
         mode = kwargs.get('mode', 'replace')

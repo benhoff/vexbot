@@ -58,6 +58,7 @@ setup(
         # TODO: move as optional
         'urwid',
         'prompt_toolkit',
+        'rx',
         ],
 
     extras_require={
