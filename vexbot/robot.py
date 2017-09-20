@@ -1,5 +1,4 @@
-import sys
-import pickle
+import sys as _sys
 import logging as _logging
 
 import zmq
@@ -31,8 +30,11 @@ class Robot:
         self._logger = _logging.getLogger(log_name)
 
     def run(self):
-        # TODO: error log if self.messaging is None, otherwise this will throw
-        # an error on None type
+        if self.messaging is None:
+            e = ' No `messaging` provided to `Robot` on initialization'
+            self._logger.error(e)
+            _sys.exit(1)
+
         self.messaging.start()
-        self.running = True
+        # NOTE: blocking call
         self.scheduler.run()
