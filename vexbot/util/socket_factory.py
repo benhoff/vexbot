@@ -45,6 +45,26 @@ class SocketFactory:
 
         return socket
 
+    def multiple_create_n_connect(self,
+                                  socket_type,
+                                  addresses: tuple,
+                                  bind=False,
+                                  on_error='log',
+                                  socket_name=''):
+
+        socket = self.context.socket(socket_type)
+        for address in addresses:
+            if bind:
+                try:
+                    socket.bind(address)
+                except _zmq.error.ZMQError:
+                    self._handle_error(on_error, address, socket_name)
+                    socket = None
+            else: # connect the socket
+                socket.connect(address)
+
+        return socket
+
     def to_address(self, port: str):
         """
         transforms the ports into addresses.
@@ -65,13 +85,13 @@ class SocketFactory:
         transforms an iterable, or the expectation of an iterable
         into zmq addresses
         """
-        if isinstance(addresses, (str, int)):
+        if isinstance(ports, (str, int)):
             # TODO: verify this works.
-            addresses = tuple(addresses,)
+            addresses = tuple(ports,)
 
         result = []
-        for addr in addresses:
-            result.append(self.transform_address(addr))
+        for port in ports:
+            result.append(self.to_address(port))
 
         return result
 
