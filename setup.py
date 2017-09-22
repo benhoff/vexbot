@@ -35,19 +35,18 @@ setup(
         'Operating System :: OS Independent'],
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
-    entry_points={'vexbot.subprocesses': ['irc = vexbot.adapters.irc',
-                                          'xmpp = vexbot.adapters.xmpp',
-                                          'socket_io = vexbot.adapters.socket_io',
-                                          'youtube = vexbot.adapters.youtube_api'],
-
-                  'vexbot.settings': ['irc = vexbot.adapters.models:IrcSettings',
+    entry_points={'vexbot.settings': ['irc = vexbot.adapters.models:IrcSettings',
                                       'xmpp = vexbot.adapters.models:XMPPSettings',
                                       'socket_io = vexbot.adapters.models:SocketIOSettings'],
 
                   'console_scripts': ['vexbot=vexbot.adapters.shell.__main__:main',
                                       'vexbot_robot=vexbot.__main__:main',
                                       'vexbot_quickstart=vexbot.util.quickstart:quickstart',
-                                      'vexbot_create_database=vexbot.util.create_database:create_database']},
+                                      'vexbot_create_database=vexbot.util.create_database:create_database',
+                                      'vexbot_irc=vexbot.adapters.irc:main',
+                                      'vexbot_xmpp=vexbot.adapters.xmpp:main',
+                                      'vexbot_socket_io=vexbot.adapters.socket_io:main',
+                                      'vexbot_youtube=vexbot.adapters.youtube:main']},
 
     packages= find_packages(), # exclude=['docs', 'tests']
     install_requires=[
