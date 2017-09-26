@@ -8,8 +8,8 @@ from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexmessage import create_vex_message, decode_vex_message
 
 
-class ZmqMessaging:
-    def __init__(self, service_name: str, **kwargs):
+class Messaging:
+    def __init__(self, service_name: str, socket_filter: str='', **kwargs):
         """
         `kwargs`:
             protocol:   'ipc'
@@ -37,7 +37,7 @@ class ZmqMessaging:
         self._service_name = service_name
         self._configuration = configuration
 
-        # self._socket_filter = socket_filter
+        self._socket_filter = socket_filter
         self._messaging_started = False
         self._logger = logging.getLogger(self._service_name)
 
@@ -114,15 +114,11 @@ class ZmqMessaging:
         self.poller.register(self.command_socket, zmq.POLLIN)
         self.poller.register(self.request_socket, zmq.POLLIN)
         self.poller.register(self.subscription_socket, zmq.POLLIN)
-        self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
-        # TODO: add in the socket filter logic where applicable
-        """
         if self._socket_filter is not None:
             self.set_socket_filter(self._socket_filter)
-            self._heartbeat.setsockopt_string(zmq.IDENTITY,
-                                              self._socket_filter)
-        """
+        else:
+            self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
         self._messaging_started = True
 

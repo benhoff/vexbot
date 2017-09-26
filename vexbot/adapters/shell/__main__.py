@@ -1,5 +1,5 @@
 from vexbot.adapters.shell import PromptShell
-from vexbot.adapters.messaging import ZmqMessaging as _Messaging
+from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.command_manager import ShellCommand
 
 
