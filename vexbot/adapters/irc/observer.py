@@ -1,11 +1,13 @@
+import inspect as _inspect
+
 from rx import Observer
+from vexmessage import Request
 
 
 class IrcObserver(Observer):
-    def __init__(self, messaging, subprocess_manager: SubprocessManager=None):
+    def __init__(self, messaging):
         super().__init__()
         self.messaging = messaging
-        self.subprocess_manager = subprocess_manager or SubprocessManager()
         self._commands = self._get_commands()
 
     def _get_commands(self) -> dict:
@@ -16,7 +18,7 @@ class IrcObserver(Observer):
 
         return result
 
-    def on_next(self, *args, **kwargs):
+    def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
@@ -33,7 +35,7 @@ class IrcObserver(Observer):
         source = item.source
         self.messaging.send_control_response(source, result, command)
 
-    def on_complete(self, *args, **kwargs):
+    def on_completed(self, *args, **kwargs):
         pass
 
     def on_error(self, *args, **kwargs):

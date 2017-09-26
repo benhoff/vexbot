@@ -9,7 +9,6 @@ from gi._error import GError
 from pydbus import SessionBus, SystemBus
 
 from vexbot.adapters.messaging import ZmqMessaging as _Messaging
-from vexbot.command_managers import CommandManager as _Command
 from vexbot.subprocess_manager import SubprocessManager
 
 from vexbot.adapters.tui import VexTextInterface

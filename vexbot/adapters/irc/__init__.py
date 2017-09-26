@@ -3,55 +3,53 @@ import argparse
 import logging
 import pkg_resources
 
-from zmq import ZMQError
+from  multiprocessing import Process as _Process
 
-from vexbot.adapters.messaging import ZmqMessaging
-from vexbot.subprocess_manager import SubprocessManager
+import irc3
 
-_IRC3_INSTALLED = True
-
+from vexbot.adapters.messaging import Messaging as _Messaging
+from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
+from vexbot.adapters.scheduler import Scheduler as _Scheduler
 
 
 class IrcInterface:
-    def __init__(self, **kwargs):
-        self.irc_bot = kwawrgs.get('bot')
-        self.messaging = None
-        self.command_parser = None
+    def __init__(self,
+                 service_name: str,
+                 messaging: _Messaging=None,
+                 command_parser=None,
+                 irc_config: dict=None,
+                 **kwargs):
+
+        # FIXME: Should be passing in some of the kwargs here
+        self.messaging = messaging or _Messaging(service_name)
 
 
-def create_irc_bot(nick,
-                   password,
-                   host=None,
-                   port=6667,
-                   realname=None,
-                   channel=None,
-                   **kwargs):
+        self.command_parser = command_parser or _IrcObserver(self.messaging)
 
-    if realname is None:
-        realname = nick
-    if channel is None:
-        channel = nick
+        self._messaging_scheduler = _Scheduler(self.messaging)
+        self._scheduler_process = _Process(target=self._messaging_scheduler.run)
 
-    config = {'ssl': False,
-              'includes': ['irc3.plugins.core',
-                           'irc3.plugins.command',
-                           'irc3.plugins.human',
-                           __name__],
-              'nick': nick,
-              'password': password,
-              'host': host,
-              'port': port,
-              'username': realname,
-              'autojoins': channel,
-              'level': 30}
+        self.irc_bot = irc3.IrcBot.from_config(irc_config)
+        # Duck type messaging to irc bot. Could also subclass `irc3.IrcBot`,
+        # but seems like overkill
+        self.irc_bot.messaging = self.messaging
 
-    bot = irc3.IrcBot.from_config(config)
+    def run(self):
+        self.irc_bot.messaging.start_messaging()
+        self._scheduler_process.start()
 
-    return bot
+        self.irc_bot.create_connection()
+        self.irc_bot.add_signal_handlers()
+        event_loop = asyncio.get_event_loop()
 
-else: #irc3 not installed
-    def create_irc_bot(*args, **kwargs):
-        pass
+        """
+        handle_close = _handle_close(messaging,
+                                    event_loop)
+        signal.signal(signal.SIGINT, handle_close)
+        signal.signal(signal.SIGTERM, handle_close)
+        """
+        event_loop.run_forever()
+        event_loop.close()
 
 
 def _handle_close(messaging, event_loop):
