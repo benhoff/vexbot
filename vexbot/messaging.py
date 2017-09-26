@@ -23,7 +23,7 @@ class Messaging:
     def __init__(self, botname: str='Vexbot', **kwargs):
         """
         `kwargs`:
-            protocol:   'ipc'
+            protocol:   'tcp'
             ip_address: '127.0.0.1'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]

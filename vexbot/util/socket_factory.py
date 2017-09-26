@@ -6,11 +6,11 @@ class SocketFactory:
     Abstracts out the socket creation, specifically the issues with transforming ports into zmq addresses. 
     Also sets up some default protocol and ip_address handeling.
     For example, if everything is being run locally on one machine, and the default is to use
-    the ip_address `127.0.0.1` and the transport protocol `ipc` means interprocess communication
+    the ip_address `127.0.0.1` and the transport protocol `tcp` means tcp communication
     """
     def __init__(self,
                  ip_address: str,
-                 protocol: str='ipc',
+                 protocol: str='tcp',
                  context: 'zmq.Context'=None,
                  logger: 'logging.Logger'=None):
 

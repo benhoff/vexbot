@@ -12,7 +12,7 @@ class Messaging:
     def __init__(self, service_name: str, socket_filter: str='', **kwargs):
         """
         `kwargs`:
-            protocol:   'ipc'
+            protocol:   'tcp'
             ip_address: '127.0.0.1'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]
@@ -98,6 +98,7 @@ class Messaging:
                                             socket_name='request socket')
 
         publish_address = to_address(self._configuration['chatter_publish_port'])
+        print(publish_address)
         self.publish_socket = create_n_conn(zmq.PUB,
                                             publish_address,
                                             socket_name='publish socket')
