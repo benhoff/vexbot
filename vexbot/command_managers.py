@@ -99,8 +99,9 @@ class BotCommands(Observer):
     def do_start(self, name: str, mode: str='replace'):
         self.subprocess_manager.start(name, mode)
 
-    def do_print(self, *args, **kwargs):
-        print('made it here!')
+    def do_bot_commands(self, *args, **kwargs):
+        commands = tuple(self._commands.keys())
+        return commands
 
     def do_restart(self, name: str, mode: str='replace'):
         self.subprocess_manager.restart(name, mode)
@@ -112,8 +113,18 @@ class BotCommands(Observer):
         command = item.command
         args = item.args
         kwargs = item.kwargs
-        callback = self._commands[command]
+        try:
+            callback = self._commands[command]
+        except KeyError:
+            return
+
         result = callback(*args, **kwargs)
+
+        if result is None:
+            return
+
+        source = item.source
+        self.messaging.send_control_response(source, result, command)
 
     def on_error(self, *args, **kwargs):
         pass
@@ -126,12 +137,3 @@ class BotCommands(Observer):
         Kills the instance of vexbot
         """
         _sys.exit()
-
-
-class AdapterCommandManager(CommandManager):
-    def __init__(self, messaging: 'vexbot.messaging:Messaging'):
-        super().__init__(messaging)
-        self._commands['alive'] = no_arguments(self._alive)
-
-    def _alive(self, *args):
-        self._messaging.send_status('CONNECTED')
