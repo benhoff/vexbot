@@ -140,28 +140,11 @@ class Messaging:
 
         self.subscription_socket.send_multipart(frame)
 
-    # NOTE: not really implemented?
-    """
-    def send_command(self, target: str, **cmd: dict):
-        frame = self._create_frame('CMD', target=target, **cmd)
-        self.command_publish_socket.send_multipart(frame)
-    """
-
-    def send_response(self, target: str, original: str, **rsp: dict):
-        frame = self._create_frame('RSP',
-                                   target=target,
-                                   original=original,
-                                   **rsp)
-
-        self.control_socket.send_multipart(frame)
-
-    def send_response_command(self, target: str, original: str, **rsp: dict):
-        frame = self._create_frame('RSP',
-                                   target=target,
-                                   original=original,
-                                   **rsp)
-
-        self.command_socket.send_multipart(frame)
+    def send_control_response(self, source: list, result, command=None):
+        source .append(b'')
+        send = {'result': result, 'command': command}
+        source.append(send)
+        self.command_socket.send_mutipart(source)
 
     def _get_message_helper(self, socket):
         try:
