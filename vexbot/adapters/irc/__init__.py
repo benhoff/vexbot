@@ -4,8 +4,13 @@ import logging
 import pkg_resources
 
 from threading import Thread
+try:
+    import irc3
+except ImportError:
+    irc3 = False
 
-import irc3
+if not irc3:
+    raise ImportError('irc3 is not installed. Install irc3 using `pip install irc3` on the command line')
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
