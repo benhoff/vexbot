@@ -161,7 +161,6 @@ class Messaging:
         return create_vex_message(target, self._service_name, type_, **contents)
 
 
-    # NOTE: this should be moved to `messaging.py` at some point
     def handle_raw_command(self, message) -> Request:
         addresses = _get_addresses(message)
         # NOTE: there should be a blank string between

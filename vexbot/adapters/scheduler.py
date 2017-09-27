@@ -19,29 +19,25 @@ class Scheduler:
 
         # self.request = _Subject()
 
-    def run(self, timeout=None, sleep=None):
+    def run(self):
         self.running = True
-        logging.error('timeout: {}    sleep: {}'.format(timeout, sleep))
         while self.running:
             try:
-                socks = dict(self.messaging.poller.poll(timeout))
+                socks = dict(self.messaging.poller.poll())
             except KeyboardInterrupt:
                 socks = {}
                 self.running = False
 
+            # FIXME: One of these sockets shouldn't be in here
+            # Also need to add another
             if self.messaging.control_socket in socks:
                 self._control_helper()
             if self.messaging.command_socket in socks:
                 self._command_helper()
-            if self.messaging.publish_socket in socks:
-                self._publish_helper()
             if self.messaging.subscription_socket in socks:
                 self._subscriber_helper()
             if self.messaging.request_socket in socks:
                 self._request_helper()
-
-            if sleep is not None:
-                time.sleep(sleep)
 
     def _control_helper(self):
         try:
@@ -68,21 +64,12 @@ class Scheduler:
 
         self.command.on_next(request)
 
-    def _publish_helper(self):
-        try:
-            msg = self.messaging.publish_socket.recv_multipart(_zmq.NOBLOCK)
-        except _zmq.error.Again:
-            return
-
-        self.messaging.subscription_socket.send_multipart(msg)
-
     def _subscriber_helper(self):
         try:
             msg = self.messaging.subscription_socket.recv_multipart(_zmq.NOBLOCK)
         except _zmq.error.Again:
             return
 
-        self.messaging.publish_socket.send_multipart(msg)
         try:
             msg = decode_vex_message(msg)
         except IndexError:

@@ -12,8 +12,9 @@ class EchoToMessage:
     @irc3.event(irc3.rfc.PRIVMSG)
     def message(self, mask, event, target, data):
         nick = mask.nick
+        nick = str(nick)
         message = data
         message = str(message)
         self.bot.messaging.send_chatter(author=nick,
-                                        message=str(message),
+                                        message=message,
                                         channel=target)
