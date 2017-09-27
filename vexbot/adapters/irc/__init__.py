@@ -3,7 +3,7 @@ import argparse
 import logging
 import pkg_resources
 
-from  multiprocessing import Process as _Process
+from threading import Thread
 
 import irc3
 
@@ -27,7 +27,7 @@ class IrcInterface:
         self.command_parser = command_parser or _IrcObserver(self.messaging)
 
         self._messaging_scheduler = _Scheduler(self.messaging)
-        self._scheduler_process = _Process(target=self._messaging_scheduler.run)
+        self._scheduler_thread = Thread(target=self._messaging_scheduler.run, daemon=True)
 
         self.irc_bot = irc3.IrcBot.from_config(irc_config)
         # Duck type messaging to irc bot. Could also subclass `irc3.IrcBot`,
@@ -36,7 +36,7 @@ class IrcInterface:
 
     def run(self):
         self.irc_bot.messaging.start_messaging()
-        self._scheduler_process.start()
+        self._scheduler_thread.start()
 
         self.irc_bot.create_connection()
         self.irc_bot.add_signal_handlers()
