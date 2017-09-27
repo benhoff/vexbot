@@ -5,7 +5,8 @@ import pickle
 from vexbot import _get_default_port_config
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
-from vexmessage import create_vex_message, decode_vex_message
+from vexmessage import create_vex_message, decode_vex_message, Request
+from vexbot.util.messaging import get_addresses as _get_addresses
 
 
 class Messaging:
@@ -98,7 +99,6 @@ class Messaging:
                                             socket_name='request socket')
 
         publish_address = to_address(self._configuration['chatter_publish_port'])
-        print(publish_address)
         self.publish_socket = create_n_conn(zmq.PUB,
                                             publish_address,
                                             socket_name='publish socket')
@@ -177,3 +177,46 @@ class Messaging:
             pass
 
         self._address[socket_name] = None
+
+    # TODO: verify if this needs to be here
+    def handle_raw_command(self, message) -> Request:
+        # FIXME
+        if message[0] == b'PONG':
+            return
+        addresses = _get_addresses(message)
+        # NOTE: there should be a blank string between
+        # the address piece and the message content, which is why
+        # we add one to get the correct `address_length`
+        address_length = len(addresses) + 1
+        # remove the address information from the message
+        message = message[address_length:]
+        # the command name is the first string in message
+        command = message.pop(0).decode('ascii')
+
+        # Respond to PING commands
+        if command == 'PING':
+            addresses.append(b'PONG')
+            self.command_socket.send_multipart(addresses)
+            return
+
+        # NOTE: Message format is [command, args, kwargs]
+        args = message.pop(0)
+        # FIXME: wrap in try/catch and handle gracefully
+        # NOTE: pickle is NOT safe
+        args = pickle.loads(args)
+        # need to see if we have kwargs, so we'll try and pop them off
+        try:
+            kwargs = message.pop(0)
+        # if we don't have kwargs, then we'll alias our args and pass an
+        # empty list in for our args instead.
+        except IndexError:
+            kwargs = args
+            args = []
+        else:
+            # FIXME: wrap in try/catch and handle gracefully
+            # NOTE: pickle is NOT safe
+            kwargs = pickle.loads(kwargs)
+        
+        # TODO: use better names, request? command?
+        request = Request(command, addresses, args=args, kwargs=kwargs)
+        return request

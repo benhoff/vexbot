@@ -13,6 +13,9 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory as _AutoSuggestFr
 from prompt_toolkit.key_binding.bindings.completion import display_completions_like_readline
 
 from vexbot import __version__
+from vexbot.adapters.scheduler import Scheduler
+from vexbot.adapters.messaging import Messaging as _Messaging
+from vexbot.adapters.shell.observers import PrintObserver, CommandObserver
 
 
 VEXBOT_SETTINGS_NAME = 'vexbot_shell'
@@ -21,15 +24,19 @@ VEXBOT_SETTINGS_NAME = 'vexbot_shell'
 class PromptShell:
     _NO_BOT = '<no bot detected>'
     def __init__(self,
-                 command_manager,
+                 messaging=None,
                  history_filepath=None):
 
         self._bot = self._NO_BOT
-        self.command_manager = command_manager
-        self.messaging = self.command_manager.messaging
-        self._thread = _Thread(target=self.run)
-        self._thread.daemon = True
+        self.messaging = messaging or _Messaging('shell')
+        self.command_observer = CommandObserver(self.messaging)
+        self._messaging_scheduler = Scheduler(self.messaging)
+        self._messaging_scheduler.subscribe.subscribe(PrintObserver())
+        self._thread = _Thread(target=self._messaging_scheduler.run, daemon=True)
         self.running = False
+        # Tries to snag the bot properties
+        self._robot = None
+        self._setup_bot_watch()
 
         history = None
         if history_filepath is not None:
@@ -60,6 +67,16 @@ class PromptShell:
 
         self._patch_context = self.cli.patch_stdout_context()
 
+    def _setup_bot_watch(self):
+        bus = self.command_observer.subprocess_manager.bus
+        systemd = self.command_observer.subprocess_manager.systemd
+        self._robot = bus.get(".systemd1", systemd.GetUnit('vexbot.service'))
+
+        self._robot.onPropertiesChange = self._handle_bot_change
+
+    def _handle_bot_change(self, *args, **kwargs):
+        print(args, kwargs)
+
     @property
     def prompt(self):
         # profile = self.command_manager._profile
@@ -78,19 +95,23 @@ class PromptShell:
         print(intro, flush=True)
         while True:
             try:
-                # FIXME
-                if self._bot == self._NO_BOT:
-                    self.command_manager.check_for_bot()
-                    pass
-
                 with self._patch_context:
-                    result = self.cli.run(True)
-                    text = result.text
+                    text = self.cli.run(True)
+                    text = text.text
                     text = self._clean_text(text)
-                    if self.command_manager.is_command(result.text):
-                        self.command_manager.handle_command(result.text)
+                    if self.command_observer.is_command(text):
+                        try:
+                            result = self.command_observer.handle_command(text)
+                        except Exception as e:
+                            self.command_observer.on_error(e, text)
+                            continue
                     else:
-                        self.messaging.send_command(result.text)
+                        result = self.messaging.send_command(text)
+
+                    if result:
+                        # TODO: determine if this is the best way to do this
+                        print(result)
+
             except EOFError:
                 break
         self.eventloop.close()
