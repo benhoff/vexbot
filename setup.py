@@ -56,7 +56,7 @@ setup(
         'sqlalchemy',
         # TODO: move as optional
         'urwid',
-        'prompt_toolkit',
+        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
         'rx',
         ],
 

@@ -3,15 +3,18 @@ import cmd as _cmd
 import textwrap as _textwrap
 import shlex as _shlex
 import pprint as _pprint
+import textwrap
 import logging
 
 from gi._error import GError
 from pydbus import SessionBus, SystemBus
 from rx import Observer
 
-from prompt_toolkit.shortcuts import print_tokens
+from pygments.lexers import HtmlLexer
+from prompt_toolkit.layout.lexers import PygmentsLexer
 from pygments.styles.monokai import MonokaiStyle
 from prompt_toolkit.styles import style_from_pygments
+from prompt_toolkit.shortcuts import prompt
 from pygments.token import Token
 
 from vexmessage import Message
@@ -22,14 +25,23 @@ from vexbot.adapters.shell.parser import parse
 
 
 class PrintObserver(Observer):
-    style = style_from_pygments(MonokaiStyle)
+    def __init__(self):
+        super().__init__()
+        self.style = style_from_pygments(MonokaiStyle)
+        self.lexer = PygmentsLexer(HtmlLexer)
 
     def on_next(self, msg: Message):
+        """
         tokens = [(Token.Keyword, '{}: '.format(msg.contents['author'])),
                   (Token, msg.contents['message']),
                   (Token, '\n')]
 
         print_tokens(tokens, style=self.style)
+        """
+        s = '{}: {}'.format(msg.contents['author'], msg.contents['message'])
+        # text = prompt(s, lexer=self.lexer, style=self.style)
+        s = textwrap.fill(s, initial_indent=' ', subsequent_indent='   ')
+        print(s)
 
     def on_error(self, *args, **kwargs):
         pass

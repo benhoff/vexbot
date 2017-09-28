@@ -68,6 +68,9 @@ class Messaging:
                 if msg[0] == b'PONG':
                     self._handle_pong(None)
 
+    # FIXME
+    def start(self, *args, **kwargs):
+        self.start_messaging(*args, **kwargs)
 
     def start_messaging(self, zmq_context: 'zmq.Context'=None):
         if self._messaging_started:
