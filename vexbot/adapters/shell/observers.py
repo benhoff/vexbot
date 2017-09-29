@@ -10,38 +10,45 @@ from gi._error import GError
 from pydbus import SessionBus, SystemBus
 from rx import Observer
 
-from pygments.lexers import HtmlLexer
-from prompt_toolkit.layout.lexers import PygmentsLexer
-from pygments.styles.monokai import MonokaiStyle
-from prompt_toolkit.styles import style_from_pygments
-from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit.styles import Attrs
+from prompt_toolkit.application.current import get_app
 from pygments.token import Token
 
 from vexmessage import Message
 
+from vexbot.adapters.shell.parser import parse
+from vexbot.adapters.shell._lru_cache import _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
 
-from vexbot.adapters.shell.parser import parse
 
+
+def _get_attributes(output, attrs):
+    if output.true_color() and not output.ansi_colors_only():
+        return output._escape_code_cache_true_color[attrs]
+    else:
+        return output._escape_code_cache[attrs]
 
 class PrintObserver(Observer):
-    def __init__(self):
+    def __init__(self, application=None, add_callback=None, delete_callback=None):
         super().__init__()
-        self.style = style_from_pygments(MonokaiStyle)
-        self.lexer = PygmentsLexer(HtmlLexer)
+        # NOTE: if this raises an error, then the instantion is incorrect.
+        # Need to instantiate the application before the print observer
+        output = application.output
+
+        attr = Attrs(color='ansigreen', bgcolor='', bold=False, underline=False,
+                     italic=False, blink=False, reverse=False)
+
+        self._author_color = _get_attributes(output, attr)
+        # NOTE: vt100 ONLY
+        self._reset_color = '\033[0m'
+        self.authors = _LRUCache(100, add_callback, delete_callback)
 
     def on_next(self, msg: Message):
-        """
-        tokens = [(Token.Keyword, '{}: '.format(msg.contents['author'])),
-                  (Token, msg.contents['message']),
-                  (Token, '\n')]
-
-        print_tokens(tokens, style=self.style)
-        """
-        s = '{}: {}'.format(msg.contents['author'], msg.contents['message'])
-        # text = prompt(s, lexer=self.lexer, style=self.style)
-        s = textwrap.fill(s, initial_indent=' ', subsequent_indent='   ')
-        print(s)
+        author = msg.contents['author']
+        self.authors[author] = msg.source
+        author = ' {}: '.format(author)
+        message = textwrap.fill(msg.contents['message'], subsequent_indent='    ')
+        print(self._author_color + author + self._reset_color + message)
 
     def on_error(self, *args, **kwargs):
         pass
@@ -53,11 +60,11 @@ class PrintObserver(Observer):
 class CommandObserver(Observer):
     def __init__(self,
                  messaging,
-                 stdin=None,
-                 stdout=None):
+                 prompt=None):
 
         self.shebangs = ['!',]
         self.subprocess_manager = SubprocessManager()
+        self._prompt = prompt
 
         if messaging is None:
             messaging = _Messaging('shell', socket_filter='shell')
@@ -104,6 +111,10 @@ class CommandObserver(Observer):
 
     def do_ping(self, *args, **kwargs):
         self.messaging.send_ping()
+
+    def do_history(self, *args, **kwargs):
+        if self._prompt:
+            _pprint.pprint(self._prompt.history.strings)
 
     def _get_command(self, arg: str):
         # consume shebang
