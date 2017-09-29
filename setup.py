@@ -38,21 +38,20 @@ setup(
     author_email='beohoff@gmail.com',
     entry_points={'console_scripts': ['vexbot=vexbot.adapters.shell.__main__:main',
                                       'vexbot_robot=vexbot.__main__:main',
-                                      'vexbot_quickstart=vexbot.util.quickstart:quickstart',
-                                      'vexbot_create_database=vexbot.util.create_database:create_database',
                                       'vexbot_irc=vexbot.adapters.irc.__main__:main',
                                       'vexbot_xmpp=vexbot.adapters.xmpp:main',
                                       'vexbot_socket_io=vexbot.adapters.socket_io:main',
                                       'vexbot_youtube=vexbot.adapters.youtube:main']},
 
-    packages= find_packages(), # exclude=['docs', 'tests']
+    packages=find_packages(), # exclude=['docs', 'tests']
+    dependency_links=[
+        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
+        ],
+
     install_requires=[
-        'pluginmanager>=0.4.1',
+        # 'pluginmanager>=0.4.1',
         'pyzmq',
         # 'vexmessage>=0.3.0',
-        # TODO: move as optional
-        'urwid',
-        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
         'rx',
         ],
 

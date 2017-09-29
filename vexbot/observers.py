@@ -7,11 +7,12 @@ from rx import Observer
 
 from vexmessage import Request
 
-from vexbot.subprocess_manager import SubprocessManager
-
 
 class BotObserver(Observer):
-    def __init__(self, messaging, subprocess_manager: SubprocessManager):
+    def __init__(self,
+                 messaging,
+                 subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager'):
+
         super().__init__()
         self.messaging = messaging
         self.subprocess_manager = subprocess_manager

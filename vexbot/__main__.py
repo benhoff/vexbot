@@ -14,7 +14,6 @@ from vexbot.util import get_kwargs as _get_kwargs
 from vexbot.util import get_config as _get_config
 
 from vexbot.messaging import Messaging as _Messaging
-from vexbot.subprocess_manager import SubprocessManager as _SubprocessManager
 
 
 def _update_kwargs_with_command_line_arguments(**kwargs):
