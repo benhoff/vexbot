@@ -13,8 +13,8 @@ class EchoToMessage:
     def message(self, mask, event, target, data):
         nick = mask.nick
         nick = str(nick)
-        message = data
-        message = str(message)
+        message = str(data)
+        target = str(target)
         self.bot.messaging.send_chatter(author=nick,
                                         message=message,
                                         channel=target)
