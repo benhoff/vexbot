@@ -3,6 +3,7 @@ class _dlnode(object):
     def __init__(self):
         self.empty = True
 
+
 # https://github.com/jlhutch/pylru
 class _LRUCache(object):
 
@@ -31,7 +32,6 @@ class _LRUCache(object):
         # Adjust the size
         self.size(size)
 
-
     def __len__(self):
         return len(self.table)
 
@@ -43,7 +43,6 @@ class _LRUCache(object):
 
         self.table.clear()
 
-
     def __contains__(self, key):
         return key in self.table
 
@@ -52,7 +51,6 @@ class _LRUCache(object):
         # Look up the node
         node = self.table[key]
         return node.value
-
 
     def __getitem__(self, key):
         # Look up the node
@@ -71,7 +69,7 @@ class _LRUCache(object):
         """Get an item - return default (None) if not present"""
         if key not in self.table:
             return default
-        
+
         return self[key]
 
     def __setitem__(self, key, value):
@@ -236,7 +234,6 @@ class _LRUCache(object):
             node.value = None
 
         self.listSize -= n
-
 
     # This method adjusts the ordering of the doubly linked list so that
     # 'node' directly precedes the 'head' node. Because of the order of

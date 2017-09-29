@@ -1,5 +1,4 @@
 from vexbot.adapters.shell import Shell
-from vexbot.adapters.messaging import Messaging as _Messaging
 
 
 def main(**kwargs):

@@ -1,18 +1,11 @@
-import sys as _sys
-import cmd as _cmd
-import textwrap as _textwrap
 import shlex as _shlex
 import pprint as _pprint
 import textwrap
-import logging
 
 from gi._error import GError
-from pydbus import SessionBus, SystemBus
 from rx import Observer
 
 from prompt_toolkit.styles import Attrs
-from prompt_toolkit.application.current import get_app
-from pygments.token import Token
 
 from vexmessage import Message
 
@@ -21,22 +14,27 @@ from vexbot.adapters.shell._lru_cache import _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
 
 
-
 def _get_attributes(output, attrs):
     if output.true_color() and not output.ansi_colors_only():
         return output._escape_code_cache_true_color[attrs]
     else:
         return output._escape_code_cache[attrs]
 
+
 class PrintObserver(Observer):
-    def __init__(self, application=None, add_callback=None, delete_callback=None):
+    def __init__(self,
+                 application=None,
+                 add_callback=None,
+                 delete_callback=None):
+
         super().__init__()
         # NOTE: if this raises an error, then the instantion is incorrect.
         # Need to instantiate the application before the print observer
         output = application.output
 
-        attr = Attrs(color='ansigreen', bgcolor='', bold=False, underline=False,
-                     italic=False, blink=False, reverse=False)
+        attr = Attrs(color='ansigreen', bgcolor='', bold=False,
+                     underline=False, italic=False, blink=False,
+                     reverse=False)
 
         self._author_color = _get_attributes(output, attr)
         # NOTE: vt100 ONLY
@@ -47,7 +45,9 @@ class PrintObserver(Observer):
         author = msg.contents['author']
         self.authors[author] = msg.source
         author = ' {}: '.format(author)
-        message = textwrap.fill(msg.contents['message'], subsequent_indent='    ')
+        message = textwrap.fill(msg.contents['message'],
+                                subsequent_indent='    ')
+
         print(self._author_color + author + self._reset_color + message)
 
     def on_error(self, *args, **kwargs):
@@ -62,13 +62,9 @@ class CommandObserver(Observer):
                  messaging,
                  prompt=None):
 
-        self.shebangs = ['!',]
+        self.shebangs = ['!', ]
         self.subprocess_manager = SubprocessManager()
         self._prompt = prompt
-
-        if messaging is None:
-            messaging = _Messaging('shell', socket_filter='shell')
-
         self.messaging = messaging
         self.messaging.start_messaging()
 
@@ -93,7 +89,7 @@ class CommandObserver(Observer):
             print(error.message)
             command = self._get_command(text)
             if command in ('start', 'restart', 'status'):
-                print('You might need to add `.target` to the end of the command')
+                print('You might need to add `.service` to the name')
             return
         print(error.message)
 
@@ -143,7 +139,7 @@ class CommandObserver(Observer):
             callback = self._commands[command]
         except KeyError:
             # TODO: Notify user of fallthrough?
-            self.messaging.send_command(command, args=args, kwargs=kwargs) 
+            self.messaging.send_command(command, args=args, kwargs=kwargs)
             return
 
         result = callback(*args, **kwargs)
@@ -154,10 +150,6 @@ class CommandObserver(Observer):
         # TODO: Better aliasing for more commands
         if program == 'bot':
             program = 'vexbot'
-        if (not program.endswith('.service') or
-                not program.endswith('.target') or
-                not program.endswith('.socket')):
-            program = program + '.service'
 
         self.subprocess_manager.start(program, mode)
 
@@ -165,16 +157,10 @@ class CommandObserver(Observer):
         status = self.subprocess_manager.status(program)
         return status
 
-
     def do_restart(self, program: str, *args, **kwargs):
         mode = kwargs.get('mode', 'replace')
         if program == 'bot':
             program = 'vexbot'
-
-        if (not program.endswith('.service') or
-                not program.endswith('.target') or
-                not program.endswith('.socket')):
-            program = program + '.service'
 
         self.subprocess_manager.restart(program, mode)
 
@@ -182,11 +168,6 @@ class CommandObserver(Observer):
         mode = kwargs.get('mode', 'replace')
         if program == 'bot':
             program = 'vexbot'
-
-        if (not program.endswith('.service') or
-                not program.endswith('.target') or
-                not program.endswith('.socket')):
-            program = program + '.service'
 
         self.subprocess_manager.stop(program, mode)
 

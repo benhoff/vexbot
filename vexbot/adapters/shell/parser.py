@@ -23,7 +23,7 @@ def parse(strings: list):
         except IndexError:
             kwargs[string] = True
             break
-        
+
         if not _is_kwarg(value):
             kwargs[string] = strings.pop(0)
         else:
@@ -55,5 +55,3 @@ def parse(strings: list):
                 break
 
     return args, kwargs
-
-

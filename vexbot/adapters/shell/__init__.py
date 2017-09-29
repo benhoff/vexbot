@@ -1,17 +1,12 @@
-import sys
-import shlex
 from threading import Thread as _Thread
 
 from prompt_toolkit.shortcuts import Prompt
 from prompt_toolkit.patch_stdout import patch_stdout
-from prompt_toolkit.output import create_output
 
-from prompt_toolkit.renderer import to_formatted_text
-
-from vexbot import __version__
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.scheduler import Scheduler
 from vexbot.adapters.shell.observers import PrintObserver, CommandObserver
+
 
 class Shell(Prompt):
     def __init__(self,
@@ -21,9 +16,10 @@ class Shell(Prompt):
 
         self.messaging = messaging or _Messaging('shell')
         self._messaging_scheduler = Scheduler(self.messaging)
-        self._thread = _Thread(target=self._messaging_scheduler.run, daemon=True)
-        self.running = False
+        self._thread = _Thread(target=self._messaging_scheduler.run,
+                               daemon=True)
 
+        self.running = False
 
         # NOTE: the command observer is currently NOT hooked up to the
         # scheduler
@@ -42,7 +38,10 @@ class Shell(Prompt):
             except Exception:
                 pass
 
-        self.print_observer = PrintObserver(self.app, add_author, remove_author)
+        self.print_observer = PrintObserver(self.app,
+                                            add_author,
+                                            remove_author)
+
         self._messaging_scheduler.subscribe.subscribe(self.print_observer)
 
     def _handle_command(self, text):
@@ -63,7 +62,6 @@ class Shell(Prompt):
         author = author[0]
         if author in self.print_observer.authors:
             pass
-
 
     def run(self):
         self._thread.start()
