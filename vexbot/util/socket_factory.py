@@ -114,9 +114,9 @@ class SocketFactory:
 
     def _handle_bind_error_by_exit(self, ip_address: str, socket_type: str):
         if self.logger is not None:
-            s = 'Address bind attempt fail. Address tried: {}'
+            s = 'Address bind attempt fail. Likely alredy in use. Address tried: {}'
             s = s.format(ip_address)
             self.logger.error(s)
             self.logger.error('socket type: {}'.format(socket_type))
 
-        sys.exit(1)
+        _sys.exit(1)
