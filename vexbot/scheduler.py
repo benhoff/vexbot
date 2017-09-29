@@ -68,17 +68,16 @@ class Scheduler:
         msg = decode_vex_message(msg)
         self.subscribe.on_next(msg)
 
-
     def _subscriber_helper(self):
         try:
-            msg = self.messaging.subscription_socket.recv_multipart(_zmq.NOBLOCK)
+            m = self.messaging.subscription_socket.recv_multipart(_zmq.NOBLOCK)
         except _zmq.error.Again:
             return
 
-        self.messaging.publish_socket.send_multipart(msg)
+        self.messaging.publish_socket.send_multipart(m)
 
     def _request_helper(self):
         try:
             msg = self.messaging.request_socket.recv_multipart(_zmq.NOBLOCK)
         except _zmq.error.Again:
-            return 
+            return

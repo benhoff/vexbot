@@ -37,7 +37,7 @@ class Messaging:
         configuration.update(kwargs)
 
         # Store the addresses of publish, subscription, and heartbeat sockets
-        self.configuration = configuration 
+        self.configuration = configuration
 
         self._service_name = botname
 
@@ -84,7 +84,7 @@ class Messaging:
 
         control_address = to_address(self.configuration['control_port'])
 
-        # NOTE: These sockets will cause the program to exit if there's an issue
+        # NOTE: These sockets will exit the program to exit if there's an issue
         self.control_socket = create_n_conn(zmq.ROUTER,
                                             control_address,
                                             on_error='exit',
@@ -101,7 +101,9 @@ class Messaging:
 
         # NOTE: these sockets will only log an error if there's an issue
         command_address = to_address(self.configuration['command_port'])
-        self.command_socket = create_n_conn(zmq.ROUTER, command_address, bind=True)
+        self.command_socket = create_n_conn(zmq.ROUTER,
+                                            command_address,
+                                            bind=True)
 
         request_address = to_address(self.configuration['request_port'])
         self.request_socket = create_n_conn(zmq.DEALER,
@@ -111,18 +113,19 @@ class Messaging:
 
         iter_ = self._socket_factory.iterate_multiple_addresses
         sub_addresses = iter_(self.configuration['chatter_subscription_port'])
-        # TODO: verify that this shouldn't be like a connect as the socket factory defaults to bind
-        # subscription socket is a XPUB socket
+        # TODO: verify that this shouldn't be like a connect as the socket
+        # factory defaults to bind subscription socket is a XPUB socket
         multiple_create = self._socket_factory.multiple_create_n_connect
 
+        name = 'subscription socket'
         self.subscription_socket = multiple_create(zmq.XPUB,
                                                    sub_addresses,
                                                    bind=True,
-                                                   socket_name='subscription socket')
+                                                   socket_name=name)
 
         self._poller.register(self.command_socket, zmq.POLLIN)
         self._poller.register(self.control_socket, zmq.POLLIN)
-        # TODO: verify that dealer sockets are `zmq.POLLOUT` 
+        # TODO: verify that dealer sockets are `zmq.POLLOUT`
         self._poller.register(self.request_socket, zmq.POLLIN)
         # IN type for the poll registration
         self._poller.register(self.subscription_socket, zmq.POLLIN)
@@ -136,7 +139,7 @@ class Messaging:
     def send_chatter(self, target: str='', **chatter: dict):
         frame = self._create_frame('CHATTER',
                                    target=target,
-                                   contents=chatter) 
+                                   contents=chatter)
 
         self.subscription_socket.send_multipart(frame)
 
@@ -158,8 +161,10 @@ class Messaging:
             pass
 
     def _create_frame(self, type_, target='', **contents):
-        return create_vex_message(target, self._service_name, type_, **contents)
-
+        return create_vex_message(target,
+                                  self._service_name,
+                                  type_,
+                                  **contents)
 
     def handle_raw_command(self, message) -> Request:
         addresses = _get_addresses(message)
@@ -195,7 +200,7 @@ class Messaging:
             # FIXME: wrap in try/catch and handle gracefully
             # NOTE: pickle is NOT safe
             kwargs = pickle.loads(kwargs)
-        
-        # TODO: use better names, request? command?
+
+        # TODO: use better names, request? command
         request = Request(command, addresses, args=args, kwargs=kwargs)
         return request

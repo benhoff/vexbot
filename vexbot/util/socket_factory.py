@@ -1,12 +1,15 @@
 import sys as _sys
 import zmq as _zmq
 
+
 class SocketFactory:
     """
-    Abstracts out the socket creation, specifically the issues with transforming ports into zmq addresses. 
+    Abstracts out the socket creation, specifically the issues with
+    transforming ports into zmq addresses.
     Also sets up some default protocol and ip_address handeling.
-    For example, if everything is being run locally on one machine, and the default is to use
-    the ip_address `127.0.0.1` and the transport protocol `tcp` means tcp communication
+    For example, if everything is being run locally on one machine, and the
+    default is to use the ip_address `127.0.0.1` and the transport protocol
+    `tcp` means tcp communication
     """
     def __init__(self,
                  ip_address: str,
@@ -27,7 +30,7 @@ class SocketFactory:
                          socket_name=''):
         """
         Creates and connects or binds the sockets
-        on_error: 
+        on_error:
             'log': will log error
             'exit': will exit the program
         socket_name:
@@ -40,7 +43,7 @@ class SocketFactory:
             except _zmq.error.ZMQError:
                 self._handle_error(on_error, address, socket_name)
                 socket = None
-        else: # connect the socket
+        else:  # connect the socket
             socket.connect(address)
 
         return socket
@@ -60,7 +63,7 @@ class SocketFactory:
                 except _zmq.error.ZMQError:
                     self._handle_error(on_error, address, socket_name)
                     socket = None
-            else: # connect the socket
+            else:  # connect the socket
                 socket.connect(address)
 
         return socket
@@ -87,7 +90,7 @@ class SocketFactory:
         """
         if isinstance(ports, (str, int)):
             # TODO: verify this works.
-            addresses = tuple(ports,)
+            ports = tuple(ports,)
 
         result = []
         for port in ports:
@@ -110,11 +113,11 @@ class SocketFactory:
         s = 'Address bind attempt fail. Address tried: {}'
         s = s.format(ip_address)
         self.logger.error(s)
-        self.logger.error('socket type: {}'.format(socket_type))
+        self.logger.error('socket type: {}'.format(socket_name))
 
     def _handle_bind_error_by_exit(self, ip_address: str, socket_type: str):
         if self.logger is not None:
-            s = 'Address bind attempt fail. Likely alredy in use. Address tried: {}'
+            s = 'Address bind attempt fail. Alredy in use? Address tried: {}'
             s = s.format(ip_address)
             self.logger.error(s)
             self.logger.error('socket type: {}'.format(socket_type))

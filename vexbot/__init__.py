@@ -35,6 +35,7 @@ def _get_default_port_config():
 
     return default_port_config
 
+
 def _get_adapter_settings_helper(configuration: dict) -> dict:
     vexbot = configuration.get('vexbot', {})
     vexbot_adapters = vexbot.get('vexbot_adapters', [])

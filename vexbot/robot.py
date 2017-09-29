@@ -1,8 +1,6 @@
 import sys as _sys
 import logging as _logging
 
-import zmq
-
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.subprocess_manager import SubprocessManager
 from vexbot.scheduler import Scheduler as _Scheduler
@@ -18,9 +16,12 @@ class Robot:
         self.messaging = messaging
         self.scheduler = _Scheduler(messaging)
         self.subprocess_manager = subprocess_manager or SubprocessManager()
-        self.command_observer = command_observer or _BotObserver(messaging,
-                                                                 self.subprocess_manager)
 
+        if command_observer is None:
+            command_observer = _BotObserver(messaging,
+                                            self.subprocess_manager)
+
+        self.command_observer = command_observer
         self.scheduler.command.subscribe(self.command_observer)
 
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
