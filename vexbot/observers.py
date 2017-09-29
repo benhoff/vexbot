@@ -8,8 +8,7 @@ from rx import Observer
 from vexmessage import Request
 
 from vexbot.subprocess_manager import SubprocessManager
-from vexbot.util.function_wrapers import (msg_list_wrapper,
-                                          no_arguments)
+
 
 class BotObserver(Observer):
     def __init__(self, messaging, subprocess_manager: SubprocessManager):

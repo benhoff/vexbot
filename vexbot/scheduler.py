@@ -82,6 +82,3 @@ class Scheduler:
             msg = self.messaging.request_socket.recv_multipart(_zmq.NOBLOCK)
         except _zmq.error.Again:
             return 
-
-        # TODO: Implement
-        # request = self.messaging.handle_raw_command(msg)

@@ -9,15 +9,11 @@ except ImportError:
 
 from vexbot import _port_configuration_helper, _get_adapter_settings_helper
 
-# from vexbot.commands.start_vexbot import start_vexbot
-# from vexbot.adapters.shell.__main__ import main as shell_main
-
 from vexbot.robot import Robot
 from vexbot.util import get_kwargs as _get_kwargs
 from vexbot.util import get_config as _get_config
 
 from vexbot.messaging import Messaging as _Messaging
-from vexbot.settings_manager import SettingsManager as _SettingsManager
 from vexbot.subprocess_manager import SubprocessManager as _SubprocessManager
 
 
@@ -58,7 +54,6 @@ def main(*args, **kwargs):
     configuration = _get_configuration_from_file(kwargs=kwargs)
 
     # setup some sane defaults
-    # FIXME: `vexbot_settings` not used
     _, robot_name = _configuration_sane_defaults(configuration)
 
     # Get the port configuration out of the configuration
@@ -68,10 +63,6 @@ def main(*args, **kwargs):
     messaging = _Messaging(robot_name, kwargs=port_config)
     # get the adapter settings
     adapter_settings = _get_adapter_settings_helper(configuration)
-
-    # TODO: Fix the SettingsManager API. Confusing
-    settings_manager = _SettingsManager(configuration=port_config,
-                                        settings=adapter_settings)
 
     # create the settings manager using the port config
     if _setproctitle:

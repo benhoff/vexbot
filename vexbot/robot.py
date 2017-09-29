@@ -6,7 +6,7 @@ import zmq
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.subprocess_manager import SubprocessManager
 from vexbot.scheduler import Scheduler as _Scheduler
-from vexbot.bot_observer import BotObserver as _BotObserver
+from vexbot.observers import BotObserver as _BotObserver
 
 
 class Robot:
