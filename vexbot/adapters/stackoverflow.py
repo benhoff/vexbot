@@ -47,7 +47,7 @@ class StackOverflow:
             if new_num > num_comments:
                 delta = num_comments - new_num
                 for comment in comments[delta:]:
-                    username = comment.find_element_by_class_name('username').text
+                    username = comment.find_elements_by_class_name('username')[-1].text
                     messages = comment.find_elements_by_class_name('messages')
                     texts = []
                     for message in comment.find_elements_by_class_name('message'):
