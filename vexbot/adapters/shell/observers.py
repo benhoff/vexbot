@@ -66,7 +66,7 @@ class CommandObserver(Observer):
         self.subprocess_manager = SubprocessManager()
         self._prompt = prompt
         self.messaging = messaging
-        self.messaging.start_messaging()
+        self.messaging.start()
 
         self._bot_callback = None
         self._no_bot_callback = None

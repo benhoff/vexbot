@@ -26,7 +26,8 @@ class Robot:
             subprocess_manager = SubprocessManager()
         else:
             err = ('If you would like to use the subporcess manager, please '
-                  'run `pip install -e .[process_manager]` from the directory')
+                   'run `pip install -e .[process_manager]` from the '
+                   'directory')
 
             self._logger.warn(err)
 
@@ -38,7 +39,6 @@ class Robot:
 
         self.command_observer = command_observer
         self.scheduler.command.subscribe(self.command_observer)
-
 
     def run(self):
         if self.messaging is None:

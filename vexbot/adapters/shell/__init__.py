@@ -14,9 +14,9 @@ class Shell(Prompt):
                  history_filepath=None,
                  display_help=True):
 
-        self.messaging = messaging or _Messaging('shell')
-        self._messaging_scheduler = Scheduler(self.messaging)
-        self._thread = _Thread(target=self._messaging_scheduler.run,
+        self.messaging = messaging or _Messaging('shell', run_control_loop=True)
+        self._messaging_scheduler = self.messaging.scheduler
+        self._thread = _Thread(target=self._messaging_scheduler.loop.start,
                                daemon=True)
 
         self.running = False

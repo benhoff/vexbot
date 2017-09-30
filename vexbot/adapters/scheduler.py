@@ -1,6 +1,10 @@
 import time
 import logging
+import types
+
 import zmq as _zmq
+from zmq.eventloop import IOLoop
+from zmq.eventloop.zmqstream import ZMQStream
 from rx.subjects import Subject as _Subject
 
 from vexmessage import decode_vex_message
@@ -12,38 +16,33 @@ class Scheduler:
         """
         self.running = False
         self.messaging = messaging
+        self.loop = IOLoop()
+
+        self._request = None
+        self._command = None
+        self._control = None
+        self._subscribe = None
 
         self.control = _Subject()
         self.command = _Subject()
         self.subscribe = _Subject()
 
-        # self.request = _Subject()
+    def add_callback(self, callback, *args, **kwargs):
+        self.loop.add_callback(callback, *args, **kwargs)
 
-    def run(self):
-        self.running = True
-        while self.running:
-            try:
-                socks = dict(self.messaging.poller.poll())
-            except KeyboardInterrupt:
-                socks = {}
-                self.running = False
+    def setup(self):
+        self._request = ZMQStream(self.messaging.request_socket, self.loop)
+        self._command = ZMQStream(self.messaging.command_socket, self.loop)
+        self._control = ZMQStream(self.messaging.control_socket, self.loop)
+        self._subscribe = ZMQStream(self.messaging.subscription_socket,
+                                    self.loop)
 
-            # FIXME: One of these sockets shouldn't be in here
-            # Also need to add another
-            if self.messaging.control_socket in socks:
-                self._control_helper()
-            if self.messaging.command_socket in socks:
-                self._command_helper()
-            if self.messaging.subscription_socket in socks:
-                self._subscriber_helper()
-            if self.messaging.request_socket in socks:
-                self._request_helper()
+        self._command.on_recv(self._command_helper)
+        self._request.on_recv(self._request_helper)
+        self._subscribe.on_recv(self._subscriber_helper)
+        self._control.on_recv(self._control_helper)
 
-    def _control_helper(self):
-        try:
-            msg = self.messaging.control_socket.recv_multipart(_zmq.NOBLOCK)
-        except _zmq.error.Again:
-            return
+    def _control_helper(self, msg):
         request = self.messaging.handle_raw_command(msg)
 
         if request is None:
@@ -51,12 +50,7 @@ class Scheduler:
 
         self.control.on_next(request)
 
-    def _command_helper(self):
-        try:
-            msg = self.messaging.command_socket.recv_multipart(_zmq.NOBLOCK)
-        except _zmq.error.Again:
-            return
-
+    def _command_helper(self, msg):
         request = self.messaging.handle_raw_command(msg)
 
         if request is None:
@@ -64,24 +58,13 @@ class Scheduler:
 
         self.command.on_next(request)
 
-    def _subscriber_helper(self):
-        try:
-            msg = self.messaging.subscription_socket.recv_multipart(_zmq.NOBLOCK)
-        except _zmq.error.Again:
+    def _subscriber_helper(self, msg):
+        # TODO: error log? sometimes it's just a subscription notice
+        if len(msg) == 1:
             return
 
-        try:
-            msg = decode_vex_message(msg)
-        except IndexError:
-            # TODO: error log? sometimes it's just a subscription notice
-            return
+        msg = decode_vex_message(msg)
         self.subscribe.on_next(msg)
 
-    def _request_helper(self):
-        try:
-            msg = self.messaging.request_socket.recv_multipart(_zmq.NOBLOCK)
-        except _zmq.error.Again:
-            return 
-
-        # TODO: Implement
-        # request = self.messaging.handle_raw_command(msg)
+    def _request_helper(self, msg):
+        pass

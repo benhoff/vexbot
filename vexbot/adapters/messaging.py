@@ -1,16 +1,22 @@
-import zmq
 import logging
 import pickle
 
+import zmq
 from vexbot import _get_default_port_config
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
 from vexmessage import create_vex_message, decode_vex_message, Request
+
 from vexbot.util.messaging import get_addresses as _get_addresses
+from vexbot.adapters.scheduler import Scheduler
 
 
 class Messaging:
-    def __init__(self, service_name: str, socket_filter: str='', **kwargs):
+    def __init__(self,
+                 service_name: str,
+                 socket_filter: str='',
+                 run_control_loop: bool=False,
+                 **kwargs):
         """
         `kwargs`:
             protocol:   'tcp'
@@ -21,6 +27,8 @@ class Messaging:
             request_port: 4003
             control_port: 4005
         """
+        self._run_control_loop = run_control_loop
+        self.scheduler = Scheduler(self)
         # Get the default port configurations
         configuration = _get_default_port_config()
         # update the default port configurations with the kwargs
@@ -69,10 +77,7 @@ class Messaging:
                     self._handle_pong(None)
 
     # FIXME
-    def start(self, *args, **kwargs):
-        self.start_messaging(*args, **kwargs)
-
-    def start_messaging(self, zmq_context: 'zmq.Context'=None):
+    def start(self):
         if self._messaging_started:
             s = (' {} messaging already started! Use `update_messaging` '
                 'instead of start')
@@ -113,16 +118,14 @@ class Messaging:
                                                  subscription_address,
                                                  socket_name='subscription socket')
 
-        # register the control socket to the poller
-        self.poller.register(self.control_socket, zmq.POLLIN)
-        self.poller.register(self.command_socket, zmq.POLLIN)
-        self.poller.register(self.request_socket, zmq.POLLIN)
-        self.poller.register(self.subscription_socket, zmq.POLLIN)
 
         if self._socket_filter is not None:
             self.set_socket_filter(self._socket_filter)
         else:
             self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
+
+        if self._run_control_loop:
+            self.scheduler.setup()
 
         self._messaging_started = True
 
@@ -134,7 +137,10 @@ class Messaging:
 
     def send_chatter(self, target: str='', **msg):
         frame = create_vex_message(target, self._service_name, 'MSG', **msg)
-        self.publish_socket.send_multipart(frame)
+        if self._run_control_loop:
+            self.scheduler.add_callback(self.publish_socket.send_multipart, frame)
+        else:
+            self.publish_socket.send_multipart(frame)
 
     def send_command(self, command: str, *args, **kwargs):
         """
@@ -143,12 +149,17 @@ class Messaging:
         command = command.encode('ascii')
         args = pickle.dumps(args)
         kwargs = pickle.dumps(kwargs)
-        self.command_socket.send_multipart((b'', command, args, kwargs))
+        frame = (b'', command, args, kwargs)
+        if self._run_control_loop:
+            self.scheduler.add_callback(self.command_socket.send_multipart, frame)
+        else:
+            self.command_socket.send_multipart(frame)
 
     def send_control(self, control, **kwargs):
         """
         Time critical commands
         """
+        # FIXME
         # frame = create_vex_message()
         self.command_socket.send_multipart(frame)
 
@@ -164,8 +175,20 @@ class Messaging:
         """
         raise RuntimeError('Not implemented')
 
-    def send_ping(self):
-        self.command_socket.send_multipart((b'', b'PING'))
+    def send_ping(self, target: str=''):
+        frame = (target.encode('ascii'), b'PING')
+        if self._run_control_loop:
+            self.scheduler.add_callback(self.command_socket.send_multipart, frame)
+        else:
+            self.command_socket.send_multipart(frame)
+
+    def _send_pong(self, addresses: list):
+        addresses.append(b'PONG')
+        if self._run_control_loop:
+            self.scheduler.add_callback(self.command_socket.send_multipart,
+                                        addresses)
+        else:
+            self.command_socket.send_multipart(addresses)
 
     def _disconnect_socket(self, socket, socket_name, address=None):
         if address is None:
@@ -198,8 +221,7 @@ class Messaging:
 
         # Respond to PING commands
         if command == 'PING':
-            addresses.append(b'PONG')
-            self.command_socket.send_multipart(addresses)
+            self._handle_pong(addresses)
             return
 
         # NOTE: Message format is [command, args, kwargs]

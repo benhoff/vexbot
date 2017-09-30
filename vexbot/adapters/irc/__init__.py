@@ -10,7 +10,8 @@ except ImportError:
     irc3 = False
 
 if not irc3:
-    raise ImportError('irc3 is not installed. Install irc3 using `pip install irc3` on the command line')
+    raise ImportError('irc3 is not installed. Install irc3 using `pip install '
+                      'irc3` on the command line')
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
@@ -26,13 +27,13 @@ class IrcInterface:
                  **kwargs):
 
         # FIXME: Should be passing in some of the kwargs here
-        self.messaging = messaging or _Messaging(service_name)
-
+        self.messaging = messaging or _Messaging(service_name, run_control_loop=True)
 
         self.command_parser = command_parser or _IrcObserver(self.messaging)
 
-        self._messaging_scheduler = _Scheduler(self.messaging)
-        self._scheduler_thread = Thread(target=self._messaging_scheduler.run, daemon=True)
+        self._messaging_scheduler = self.messaging.scheduler
+        self._scheduler_thread = Thread(target=self._messaging_scheduler.loop.start,
+                                        daemon=True)
 
         self.irc_bot = irc3.IrcBot.from_config(irc_config)
         # Duck type messaging to irc bot. Could also subclass `irc3.IrcBot`,
@@ -40,7 +41,7 @@ class IrcInterface:
         self.irc_bot.messaging = self.messaging
 
     def run(self):
-        self.irc_bot.messaging.start_messaging()
+        self.irc_bot.messaging.start()
         self._scheduler_thread.start()
 
         self.irc_bot.create_connection()
