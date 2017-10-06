@@ -1,6 +1,6 @@
+import sys as _sys
 import shlex as _shlex
-import pprint as _pprint
-import textwrap
+# import textwrap
 
 from gi._error import GError
 from rx import Observer
@@ -19,6 +19,20 @@ def _get_attributes(output, attrs):
         return output._escape_code_cache_true_color[attrs]
     else:
         return output._escape_code_cache[attrs]
+
+def _super_parse(string: str) -> [list, dict]:
+    """
+    turns a shebang'd string into a list and dict (args, kwargs)
+    or returns `None`
+    """
+    string = string[1:]
+    args = _shlex.split(string)
+    try:
+        command = args.pop(0)
+    except IndexError:
+        return [], {}
+    args, kwargs = parse(args)
+    return args, kwargs
 
 
 class PrintObserver(Observer):
@@ -44,9 +58,12 @@ class PrintObserver(Observer):
     def on_next(self, msg: Message):
         author = msg.contents['author']
         self.authors[author] = msg.source
-        author = ' {}: '.format(author)
+        author = '{}: '.format(author)
+        """
         message = textwrap.fill(msg.contents['message'],
                                 subsequent_indent='    ')
+        """
+        message = msg.contents['message']
 
         print(self._author_color + author + self._reset_color + message)
 
@@ -105,12 +122,22 @@ class CommandObserver(Observer):
     def set_no_bot_callback(self, callback):
         self._no_bot_callback = callback
 
+    def do_quit(self, *args, **kwargs):
+        _sys.exit(0)
+
+    def do_exit(self, *args, **kwargs):
+        _sys.exit(0)
+
     def do_ping(self, *args, **kwargs):
         self.messaging.send_ping()
 
     def do_history(self, *args, **kwargs):
         if self._prompt:
-            _pprint.pprint(self._prompt.history.strings)
+            return self._prompt.history.strings
+
+    def do_autosuggestions(self, *args, **kwargs):
+        if self._prompt:
+            return self._prompt._word_completer.words
 
     def _get_command(self, arg: str):
         # consume shebang
@@ -124,17 +151,8 @@ class CommandObserver(Observer):
             return
 
     def handle_command(self, arg: str):
-        # consume shebang
-        arg = arg[1:]
-        # Not sure if `shlex` can handle unicode. If can, this can be done
-        # here rather than having a helper method
-        args = _shlex.split(arg)
-        try:
-            command = args.pop(0)
-        except IndexError:
-            return
-
-        args, kwargs = parse(args)
+        command = self._get_command(arg)
+        args, kwargs = _super_parse(arg)
         try:
             callback = self._commands[command]
         except KeyError:
@@ -172,5 +190,8 @@ class CommandObserver(Observer):
         self.subprocess_manager.stop(program, mode)
 
     def do_commands(self, *args, **kwargs):
-        commands = ['!' + x for x in self._commands.keys()]
-        _pprint.pprint(commands)
+        commands = self._get_commands()
+        return commands
+
+    def _get_commands(self) -> list:
+        return ['!' + x for x in self._commands.keys()]

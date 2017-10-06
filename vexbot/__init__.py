@@ -14,7 +14,7 @@ def _port_configuration_helper(configuration: dict) -> dict:
 
     return port_config
 
-def _get_default_port_config():
+def _get_default_port_config() -> dict:
     """
     protocol:   'tcp'
     ip_address: '127.0.0.1'

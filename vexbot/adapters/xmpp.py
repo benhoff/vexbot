@@ -9,20 +9,10 @@ from threading import Thread
 import zmq
 from vexmessage import decode_vex_message
 
-from vexbot.command_managers import AdapterCommandManager
-from vexbot.adapters.messaging import ZmqMessaging # flake8: noqa
+from vexbot.adapters.messaging import Messaging # flake8: noqa
 
-_SLEEKXMPP_INSTALLED = True
-
-try:
-    pkg_resources.get_distribution('sleekxmpp')
-except pkg_resources.DistributionNotFound:
-    _SLEEKXMPP_INSTALLED = False
-    ClientXMPP = object
-
-if _SLEEKXMPP_INSTALLED:
-    from sleekxmpp import ClientXMPP
-    from sleekxmpp.exceptions import IqError, IqTimeout
+from sleekxmpp import ClientXMPP
+from sleekxmpp.exceptions import IqError, IqTimeout
 
 
 class XMPPBot(ClientXMPP):
@@ -37,17 +27,12 @@ class XMPPBot(ClientXMPP):
                  **kwargs):
 
         # Initialize the parent class
-        if not _SLEEKXMPP_INSTALLED:
-            logging.error('must install sleekxmpp')
 
         super().__init__(jid, password)
-        self.messaging = ZmqMessaging(service_name,
-                                      publish_address,
-                                      subscribe_address,
-                                      service_name)
+        self.messaging = Messaging(service_name,
+                                   run_control_loop=True)
 
-        self.messaging.start_messaging()
-        self.command_manager = AdapterCommandManager(self.messaging)
+        self.messaging.start()
 
         self.room = room
         self.nick = bot_nick
@@ -58,26 +43,7 @@ class XMPPBot(ClientXMPP):
 
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("groupchat_message", self.muc_message)
-        self.add_event_handler('connected', self._connected)
-        self.add_event_handler('disconnected', self._disconnected)
-        self._thread = Thread(target=self.run)
-        self._thread.daemon = True
-        self._thread.start()
-
-    def run(self):
-        for message in self.messaging.run():
-            if message.type == 'CMD':
-                self.command_manager.parse_commands(message)
-            elif message.type == 'RSP':
-                channel = message.contents.get('channel')
-                contents = message.contents.get('response')
-                self.send_message(channel, contents, mtype='groupchat')
-
-    def _disconnected(self, *args):
-        self.messaging.send_status('DISCONNECTED')
-
-    def _connected(self, *args):
-        self.messaging.send_status('CONNECTED')
+        self._thread = Thread(target=self.messaging.scheduler.loop.start, daemon=True)
 
     def _register_plugin_helper(self):
         """
@@ -91,6 +57,7 @@ class XMPPBot(ClientXMPP):
         self.register_plugin('xep_0045')
 
     def start(self, event):
+        self._thread.start()
         self.log.info('starting xmpp')
         self.send_presence()
         self.plugin['xep_0045'].joinMUC(self.room,
@@ -100,68 +67,44 @@ class XMPPBot(ClientXMPP):
         self.get_roster()
 
     def muc_message(self, msg):
-        self.messaging.send_message(author=msg['mucnick'],
+        self.messaging.send_chatter(author=msg['mucnick'],
                                     message=msg['body'],
                                     channel=msg['from'].bare)
 
 
 def _get_args():
     parser = argparse.ArgumentParser()
+    # local/username
     parser.add_argument('--local', help='local arg for string parsing')
+    # like a url
     parser.add_argument('--domain', help='domain for xmpp')
-    parser.add_argument('--room', help='room!')
+    parser.add_argument('--room', help='room or channel to join')
+    # special identifier for where you're coming from
     parser.add_argument('--resource', help='resource')
     parser.add_argument('--password', help='password')
     parser.add_argument('--service_name')
     parser.add_argument('--publish_address')
     parser.add_argument('--subscribe_address')
+    # nick can be different than your local
     parser.add_argument('--bot_nick')
 
     return parser.parse_args()
 
 
-def _handle_close(messaging):
-    def inner(*args):
-        _send_disconnect(messaging)()
-        sys.exit()
-    return inner
-
-
-def _send_disconnect(messaging):
-    def inner():
-        messaging.send_status('DISCONNECTED')
-    return inner
-
-
 def main():
-    if not _SLEEKXMPP_INSTALLED:
-        logging.error('xmpp requires `sleekxmpp` installed. Please install using `pip install sleekxmpp`')
-
     args = _get_args()
     jid = '{}@{}/{}'.format(args.local, args.domain, args.resource)
     kwargs = vars(args)
     already_running = False
 
-    try:
-        xmpp_bot = XMPPBot(jid, **kwargs)
-    except zmq.ZMQError:
-        already_running = True
+    xmpp_bot = XMPPBot(jid, **kwargs)
 
-    if not already_running:
-        messaging = xmpp_bot.messaging
-        atexit.register(_send_disconnect(messaging))
-        # handle_close = _handle_close(messaging)
-        # signal.signal(signal.SIGINT, handle_close)
-        # signal.signal(signal.SIGTERM, handle_close)
-
-        while True:
-            try:
-                xmpp_bot.connect()
-                xmpp_bot.process(block=True)
-            except SystemExit:
-                break
-            except Exception as e:
-                xmpp_bot.log.error(e)
+    while True:
+        xmpp_bot.connect()
+        try:
+            xmpp_bot.process(block=True)
+        finally:
+            xmpp_bot.disconnect()
 
 if __name__ == '__main__':
     main()

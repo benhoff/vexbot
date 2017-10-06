@@ -1,11 +1,19 @@
+from os import path
+import shlex as _shlex
+import pprint as _pprint
 from threading import Thread as _Thread
 
 from prompt_toolkit.shortcuts import Prompt
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.shortcuts import CompleteStyle
+from prompt_toolkit.contrib.completers import WordCompleter
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.scheduler import Scheduler
-from vexbot.adapters.shell.observers import PrintObserver, CommandObserver
+from vexbot.adapters.shell.parser import parse
+from vexbot.adapters.shell.observers import PrintObserver, CommandObserver, _super_parse
+from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 
 
 class Shell(Prompt):
@@ -24,17 +32,27 @@ class Shell(Prompt):
         # NOTE: the command observer is currently NOT hooked up to the
         # scheduler
         self.command_observer = CommandObserver(self.messaging, prompt=self)
+        if history_filepath is None:
+            vexdir = get_vexdir_filepath()
+            history_filepath = path.join(vexdir, 'vexshell_history')
+
+        self.history = FileHistory(history_filepath)
+        commands = self.command_observer._get_commands()
+        self._word_completer = WordCompleter(commands)
         super().__init__(message='vexbot: ',
                          enable_system_prompt=True,
                          enable_suspend=True,
-                         enable_open_in_editor=True)
+                         enable_open_in_editor=True,
+                         history=self.history,
+                         complete_while_typing=False,
+                         completer=self._word_completer)
 
         def add_author(author):
-            self.history.append(author)
+            self._word_completer.words.append(author)
 
         def remove_author(author):
             try:
-                self.history.strings.remove(author)
+                self._word_completer.words.remove(author)
             except Exception:
                 pass
 
@@ -54,14 +72,44 @@ class Shell(Prompt):
         else:
             self.messaging.send_command(text)
 
+    def _handle_author_command(self, string: str, author: str, source: str):
+        command = self.command_observer._get_command(string)
+        if command is None:
+            return
+
+        args, kwargs = _super_parse(string)
+        kwargs['msg_target'] = author
+        if not kwargs.get('force-remote'):
+            try:
+                callback = self.command_observer._commands[command]
+            except KeyError:
+                self.messaging.send_command(command,
+                                            target=source,
+                                            args=args,
+                                            kwargs=kwargs)
+
+                return
+
+            result = callback(args, kwargs)
+            if result:
+                message = _pprint.pformat(result)
+                self.messaging.send_command('MSG', target=source, message=message)
+
     def _handle_author(self, text: str):
         author = text.split(' ', 1)
         if len(author) < 2:
             return
+
         string = author[1]
         author = author[0]
+
         if author in self.print_observer.authors:
-            pass
+            source = self.print_observer.authors[author]
+            # check for shebang
+            if self.command_observer.is_command(string):
+                return self._handle_author_command(string, author, source)
+            else:
+                self.messaging.send_command('MSG', target=source, message=string, msg_target=author)
 
     def run(self):
         self._thread.start()
@@ -69,6 +117,8 @@ class Shell(Prompt):
             while True:
                 try:
                     text = self.prompt()
+                except KeyboardInterrupt:
+                    continue
                 except EOFError:
                     return
 
@@ -77,7 +127,7 @@ class Shell(Prompt):
                 text = text.lstrip()
                 result = self._handle_command(text)
                 if result:
-                    # TODO: determine if this is the best way to do this
-                    print(result)
+                    _pprint.pprint(result)
                     continue
+
                 self._handle_author(text)
