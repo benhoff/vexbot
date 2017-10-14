@@ -12,8 +12,10 @@ from prompt_toolkit.contrib.completers import WordCompleter
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.scheduler import Scheduler
 from vexbot.adapters.shell.parser import parse
-from vexbot.adapters.shell.observers import PrintObserver, CommandObserver, _super_parse
+from vexbot.adapters.shell.observers import PrintObserver, CommandObserver, _super_parse, AuthorObserver
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
+
+from vexbot.adapters.shell._lru_cache import _LRUCache
 
 
 class Shell(Prompt):
@@ -56,11 +58,11 @@ class Shell(Prompt):
             except Exception:
                 pass
 
-        self.print_observer = PrintObserver(self.app,
-                                            add_author,
-                                            remove_author)
+        self.print_observer = PrintObserver(self.app)
+        self.author_observer = AuthorObserver(add_author, remove_author)
 
         self._messaging_scheduler.subscribe.subscribe(self.print_observer)
+        self._messaging_scheduler.subscribe.subscribe(self.author_observer)
 
     def _handle_command(self, text):
         if self.command_observer.is_command(text):
@@ -69,8 +71,6 @@ class Shell(Prompt):
             except Exception as e:
                 self.command_observer.on_error(e, text)
                 return
-        else:
-            self.messaging.send_command(text)
 
     def _handle_author_command(self, string: str, author: str, source: str):
         command = self.command_observer._get_command(string)
@@ -84,9 +84,9 @@ class Shell(Prompt):
                 callback = self.command_observer._commands[command]
             except KeyError:
                 self.messaging.send_command(command,
+                                            *args,
                                             target=source,
-                                            args=args,
-                                            kwargs=kwargs)
+                                            **kwargs)
 
                 return
 
@@ -103,8 +103,8 @@ class Shell(Prompt):
         string = author[1]
         author = author[0]
 
-        if author in self.print_observer.authors:
-            source = self.print_observer.authors[author]
+        if author in self.author_observer.authors:
+            source = self.author_observer.authors[author]
             # check for shebang
             if self.command_observer.is_command(string):
                 return self._handle_author_command(string, author, source)
