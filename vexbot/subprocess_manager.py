@@ -8,6 +8,16 @@ from pydbus import SessionBus as _SessionBus
 from pydbus import SystemBus as _SystemBus
 
 
+def _name_helper(name: str):
+    """
+    default to returning a name with `.service`
+    """
+    name = name.rstrip()
+    if name.endswith(('.service', '.socket', '.target')):
+        return name
+    return name + '.service'
+
+
 # TODO: think of a better name
 class SubprocessManager:
     def __init__(self):
@@ -39,15 +49,19 @@ class SubprocessManager:
     def start(self, name: str, mode: str='replace'):
         # TODO: add in some parsing if fail
         # https://github.com/LEW21/pydbus/issues/35
+        name = _name_helper(name)
         self.systemd.StartUnit(name, mode)
 
     def restart(self, name: str, mode: str='replace'):
+        name = _name_helper(name)
         self.systemd.ReloadOrRestartUnit(name, mode)
 
     def stop(self, name: str, mode: str='replace'):
+        name = _name_helper(name)
         self.systemd.StopUnit(name, mode)
 
     def status(self, name: str):
+        name = _name_helper(name)
         unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
         return '{}: {} ({})'.format(unit.Id, unit.ActiveState, unit.SubState)
 
