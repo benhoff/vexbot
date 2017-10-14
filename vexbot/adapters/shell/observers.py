@@ -39,13 +39,14 @@ def _super_parse(string: str) -> [list, dict]:
 class AuthorObserver(Observer):
     def __init__(self, add_callback=None, delete_callback=None):
         super().__init__()
-        self._authors = _LRUCache(100, add_callback, delete_callback)
+        self.authors = _LRUCache(100, add_callback, delete_callback)
 
     def on_next(self, msg: Message):
         author = msg.contents.get('author')
         if author is None:
             return
-        self._authors[author] = msg.source
+
+        self.authors[author] = msg.source
 
     def on_error(self, *args, **kwargs):
         pass
