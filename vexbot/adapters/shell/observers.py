@@ -1,6 +1,7 @@
 import sys as _sys
 import shlex as _shlex
 # import textwrap
+import traceback
 
 from gi._error import GError
 from rx import Observer
@@ -56,7 +57,9 @@ class PrintObserver(Observer):
         self.authors = _LRUCache(100, add_callback, delete_callback)
 
     def on_next(self, msg: Message):
-        author = msg.contents['author']
+        author = msg.contents.get('author')
+        if author is None:
+            return
         self.authors[author] = msg.source
         author = '{}: '.format(author)
         """
@@ -102,13 +105,9 @@ class CommandObserver(Observer):
         return False
 
     def on_error(self, error: Exception, text: str, *args, **kwargs):
-        if isinstance(error, GError):
-            print(error.message)
-            command = self._get_command(text)
-            if command in ('start', 'restart', 'status'):
-                print('You might need to add `.service` to the name')
-            return
-        print(error.message)
+        _, value, _ = _sys.exc_info()
+        print('{}: {}'.format(value.__class__.__name__, value))
+
 
     def on_completed(self, *args, **kwargs):
         pass
@@ -124,6 +123,9 @@ class CommandObserver(Observer):
 
     def do_quit(self, *args, **kwargs):
         _sys.exit(0)
+
+    def do_authors(self, *args, **kwargs):
+        return tuple(self._prompt.print_observer.authors.keys())
 
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
@@ -171,7 +173,9 @@ class CommandObserver(Observer):
 
         self.subprocess_manager.start(program, mode)
 
-    def do_status(self, program: str, *args, **kwargs):
+    def do_status(self, program: str=None, *args, **kwargs):
+        if program is None:
+            raise RuntimeError('!status requires a program name to inquire about. Example usage: `!status vexbot.service`')
         status = self.subprocess_manager.status(program)
         return status
 
