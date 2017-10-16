@@ -5,8 +5,10 @@ import zmq
 import zmq.devices
 
 from vexbot import _get_default_port_config
+from vexbot.scheduler import Scheduler
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexbot.util.messaging import get_addresses as _get_addresses
+from vexbot.adapters.shell._lru_cache import _LRUCache
 
 from vexmessage import create_vex_message, decode_vex_message, Request
 
@@ -16,7 +18,6 @@ class Messaging:
     Current class responsabilities:
         configuration
         decode
-        yield
     """
 
     # TODO: add an `update_messaging` command
@@ -38,7 +39,6 @@ class Messaging:
 
         # Store the addresses of publish, subscription, and heartbeat sockets
         self.configuration = configuration
-
         self._service_name = botname
 
         self.subscription_socket = None
@@ -46,10 +46,9 @@ class Messaging:
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
+        self.scheduler = Scheduler(self)
 
         # The poller polls each socket
-        self._poller = zmq.Poller()
-        self.running = False
         self._logger = logging.getLogger(__name__)
 
         # Socket factory keeps the zmq context, default ip_address and
@@ -57,6 +56,8 @@ class Messaging:
         self._socket_factory = _SocketFactory(self.configuration['ip_address'],
                                               self.configuration['protocol'],
                                               logger=self._logger)
+
+        self._address_map = _LRUCache(100)
 
     def _get_sockets(self) -> tuple:
         sockets = (self.command_socket,
@@ -123,31 +124,61 @@ class Messaging:
                                                    bind=True,
                                                    socket_name=name)
 
-        self._poller.register(self.command_socket, zmq.POLLIN)
-        self._poller.register(self.control_socket, zmq.POLLIN)
-        # TODO: verify that dealer sockets are `zmq.POLLOUT`
-        self._poller.register(self.request_socket, zmq.POLLIN)
-        # IN type for the poll registration
-        self._poller.register(self.subscription_socket, zmq.POLLIN)
-        # information comes in for poller purposes
-        self._poller.register(self.publish_socket, zmq.POLLIN)
+        self.scheduler.setup()
+        self.scheduler.run()
 
     def send_heartbeat(self, target: str=''):
         frame = self._create_frame('PING', target)
-        self.publish_socket.send_multipart(frame)
+        self.scheduler.add_callback(self.publish_socket.send_multipart, frame)
 
-    def send_chatter(self, target: str='', **chatter: dict):
-        frame = self._create_frame('CHATTER',
-                                   target=target,
-                                   contents=chatter)
+    def send_chatter(self, target: str='', from_='', *args, **chatter: dict):
+        if from_ == '':
+            from_ = self._service_name
 
-        self.subscription_socket.send_multipart(frame)
+        frame = create_vex_message(target, self._service_name, 'MSG', **chatter)
+        self.scheduler.add_callback(self.subscription_socket.send_multipart,
+                                    frame) 
 
-    def send_control_response(self, source: list, result, command=None):
-        source .append(b'')
-        send = {'result': result, 'command': command}
-        source.append(send)
-        self.command_socket.send_mutipart(source)
+    def send_command(self, command: str, target: str='', *args, **kwargs):
+        target = target.encode('ascii')
+        command = command.encode('ascii')
+        args = pickle.dumps(args)
+        kwargs = pickle.dumps(kwargs)
+        frame = (target, command, args, kwargs)
+        self.command_socket.send_multipart(frame)
+
+    def _get_address_from_source(self, source: str) -> list:
+        """
+        get the zmq address from the source
+        to be used for sending requests to the adapters
+        """
+        raise NotImplemented()
+
+    def send_request(self, target: str, *args, **kwargs):
+        """
+        address must a list instance. Or a string which will be transformed into a address
+        """
+        # TODO: Log error here if not found?
+        address = self._get_address_from_source(target)
+        if address is None:
+            return
+
+        args = pickle.dumps(args)
+        kwargs = pickle.dumps(kwargs)
+
+        # TODO: test that this works
+        # FIXME: pop out command?
+        frame = (*address, b'', b'MSG', args, kwargs)
+        self.command_socket.send_multipart(frame)
+
+    def send_control_response(self, source: list, command: str, *args, **kwargs):
+        """
+        Used in bot observer `on_next` method
+        """
+        args = pickle.dumps(args)
+        kwargs = pickle.dumps(kwargs)
+        frame = (*source, b'', command.encode('ascii'), args, kwargs)
+        self.scheduler.add_callback(self.command_socket.send_multipart, frame)
 
     def _get_message_helper(self, socket):
         try:
@@ -166,7 +197,7 @@ class Messaging:
                                   type_,
                                   **contents)
 
-    def handle_raw_command(self, message) -> Request:
+    def handle_raw_command(self, message: list) -> Request:
         addresses = _get_addresses(message)
         # NOTE: there should be a blank string between
         # the address piece and the message content, which is why
@@ -191,6 +222,8 @@ class Messaging:
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
+        # FIXME: This is pretty confusing when creating a raw file such
+        # as the 'IDENT' frame
         # if we don't have kwargs, then we'll alias our args and pass an
         # empty list in for our args instead.
         except IndexError:
@@ -202,5 +235,5 @@ class Messaging:
             kwargs = pickle.loads(kwargs)
 
         # TODO: use better names, request? command
-        request = Request(command, addresses, args=args, kwargs=kwargs)
+        request = Request(command, addresses, *args, **kwargs)
         return request

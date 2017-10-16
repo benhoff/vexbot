@@ -6,11 +6,12 @@ import inspect as _inspect
 from rx import Observer
 
 from vexmessage import Request
+from vexbot.messaging import Messaging
 
 
 class BotObserver(Observer):
     def __init__(self,
-                 messaging,
+                 messaging: Messaging,
                  subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager'):
 
         super().__init__()
@@ -25,6 +26,24 @@ class BotObserver(Observer):
                 result[name[3:]] = method
 
         return result
+
+    def do_MSG(self, target, *args, **kwargs):
+        try:
+            kwargs.pop('source')
+        except KeyError:
+            pass
+        source = self.messaging._address_map[target]
+        print(source)
+        # FIXME: Figure out a better API for this
+        self.messaging.send_control_response(source, 'MSG', *args, **kwargs)
+
+    def do_IDENT(self, source, *args, **kwargs):
+        service_name = kwargs.get('service_name')
+        print(source, service_name)
+        if service_name is None:
+            return
+
+        self.messaging._address_map[service_name] = source
 
     def do_start(self, name: str, mode: str='replace'):
         self.subprocess_manager.start(name, mode)
@@ -43,18 +62,20 @@ class BotObserver(Observer):
         command = item.command
         args = item.args
         kwargs = item.kwargs
+        source = item.source
         try:
             callback = self._commands[command]
         except KeyError:
             return
 
-        result = callback(*args, **kwargs)
+        result = callback(*args, **kwargs, source=source)
 
         if result is None:
             return
 
         source = item.source
-        self.messaging.send_control_response(source, result, command)
+        # FIXME: figure out a better API for this
+        self.messaging.send_control_response(source, command, result=result)
 
     def on_error(self, *args, **kwargs):
         pass

@@ -68,4 +68,4 @@ class Scheduler:
         self.loop.add_callback(self.messaging.publish_socket.send_multipart, msg)
 
     def _request_helper(self, msg):
-        pass
+        print(msg)

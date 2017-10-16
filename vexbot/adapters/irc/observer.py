@@ -18,10 +18,14 @@ class IrcObserver(Observer):
 
         return result
 
+    def do_MSG(self, *args, **kwargs):
+        print(args, kwargs)
+
     def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
+        print(command, args, kwargs)
         try:
             callback = self._commands[command]
         except KeyError:

@@ -1,6 +1,8 @@
 import sys as _sys
 import logging as _logging
 
+from rx import Observer
+
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.scheduler import Scheduler as _Scheduler
 from vexbot.observers import BotObserver as _BotObserver
@@ -19,7 +21,7 @@ class Robot:
                  subprocess_manager=None):
 
         self.messaging = messaging
-        self.scheduler = _Scheduler(messaging)
+        self.scheduler = messaging.scheduler
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = _logging.getLogger(log_name)
         if subprocess_manager is None and SubprocessManager:
@@ -47,5 +49,6 @@ class Robot:
             _sys.exit(1)
 
         self.messaging.start()
+        self.scheduler.setup()
         # NOTE: blocking call
         self.scheduler.run()

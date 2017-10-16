@@ -54,39 +54,7 @@ class Messaging:
                                               configuration['protocol'],
                                               logger=self._logger)
 
-
-        try:
-            import setproctitle
-            setproctitle.setproctitle(self._service_name)
-        except ImportError:
-            pass
-
-    def set_pong_callback(self, function):
-        self._pong_callback = function
-
-    def _handle_pong(self, sender: str):
-        if self._pong_callback is not None:
-            self._pong_callback(sender)
-
-    def run(self, timeout=None):
-        while True:
-            socks = dict(self.poller.poll(timeout))
-            if self.command_socket in socks:
-                msg = self.command_socket.recv_multipart()
-                if msg[0] == b'PONG':
-                    self._handle_pong(None)
-
-    # FIXME
     def start(self):
-        if self._messaging_started:
-            s = (' {} messaging already started! Use `update_messaging` '
-                'instead of start')
-
-            s = s.format(self._service_name)
-
-            self._logger.warn(s)
-            return
-
         create_n_conn = self._socket_factory.create_n_connect
         to_address = self._socket_factory.to_address
 
@@ -118,14 +86,14 @@ class Messaging:
                                                  subscription_address,
                                                  socket_name='subscription socket')
 
-
-        if self._socket_filter is not None:
-            self.set_socket_filter(self._socket_filter)
-        else:
-            self.subscription_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        self.set_socket_filter(self._socket_filter)
+        identify_frame = (b'', b'IDENT', pickle.dumps([]), pickle.dumps({'service_name': self._service_name}))
 
         if self._run_control_loop:
             self.scheduler.setup()
+            self.scheduler.add_callback(self.command_socket.send_multipart, identify_frame)
+        else:
+            self.command_socket.send_multipart(identify_frame)
 
         self._messaging_started = True
 
@@ -147,6 +115,7 @@ class Messaging:
         For request bot to perform some action
         """
         command = command.encode('ascii')
+        # target = target.encode('ascii')
         args = pickle.dumps(args)
         kwargs = pickle.dumps(kwargs)
         frame = (b'', command, args, kwargs)
@@ -204,44 +173,36 @@ class Messaging:
 
         self._address[socket_name] = None
 
-    # TODO: verify if this needs to be here
     def handle_raw_command(self, message) -> Request:
-        # FIXME
-        if message[0] == b'PONG':
-            return
-        addresses = _get_addresses(message)
-        # NOTE: there should be a blank string between
-        # the address piece and the message content, which is why
-        # we add one to get the correct `address_length`
-        address_length = len(addresses) + 1
-        # remove the address information from the message
-        message = message[address_length:]
-        # the command name is the first string in message
+        # blank string
+        message.pop(0)
+        # command? Not sure if we want to do it this way.
         command = message.pop(0).decode('ascii')
-
-        # Respond to PING commands
-        if command == 'PING':
-            self._handle_pong(addresses)
-            return
 
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
         # FIXME: wrap in try/catch and handle gracefully
         # NOTE: pickle is NOT safe
-        args = pickle.loads(args)
+        try:
+            args = pickle.loads(args)
+        except EOFError:
+            args = ()
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
         # if we don't have kwargs, then we'll alias our args and pass an
         # empty list in for our args instead.
         except IndexError:
-            kwargs = args
-            args = []
+            pass
         else:
             # FIXME: wrap in try/catch and handle gracefully
             # NOTE: pickle is NOT safe
-            kwargs = pickle.loads(kwargs)
+            try:
+                kwargs = pickle.loads(kwargs)
+            except EOFError:
+                kwargs = {}
         
         # TODO: use better names, request? command?
-        request = Request(command, addresses, args=args, kwargs=kwargs)
+        # NOTE: this might be different since it's on the other side of the command
+        request = Request(command, None, *args, **kwargs)
         return request
