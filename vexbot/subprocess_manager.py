@@ -63,6 +63,9 @@ class SubprocessManager:
     def status(self, name: str):
         name = _name_helper(name)
         unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
+        # NOTE: what systemctl status shows
+        # irc.service - IRC Client
+        # active (running) since Tue 2017-10-17 10:36:03 UTC; 19s ago
         return '{}: {} ({})'.format(unit.Id, unit.ActiveState, unit.SubState)
 
     def get_units(self):

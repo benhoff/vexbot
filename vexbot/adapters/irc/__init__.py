@@ -22,14 +22,12 @@ class IrcInterface:
     def __init__(self,
                  service_name: str,
                  messaging: _Messaging=None,
-                 command_parser=None,
                  irc_config: dict=None,
                  **kwargs):
 
         # FIXME: Should be passing in some of the kwargs here
         self.messaging = messaging or _Messaging(service_name, run_control_loop=True)
 
-        self.command_parser = command_parser or _IrcObserver(self.messaging)
 
         self._messaging_scheduler = self.messaging.scheduler
         self._scheduler_thread = Thread(target=self._messaging_scheduler.loop.start,
@@ -39,6 +37,8 @@ class IrcInterface:
         # Duck type messaging to irc bot. Could also subclass `irc3.IrcBot`,
         # but seems like overkill
         self.irc_bot.messaging = self.messaging
+        self.command_parser = _IrcObserver(self.irc_bot, self.messaging)
+        self._messaging_scheduler.command.subscribe(self.command_parser)
 
     def run(self):
         self.irc_bot.messaging.start()

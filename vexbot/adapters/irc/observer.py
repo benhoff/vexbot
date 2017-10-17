@@ -5,8 +5,9 @@ from vexmessage import Request
 
 
 class IrcObserver(Observer):
-    def __init__(self, messaging):
+    def __init__(self, bot, messaging):
         super().__init__()
+        self.bot = bot
         self.messaging = messaging
         self._commands = self._get_commands()
 
@@ -18,20 +19,22 @@ class IrcObserver(Observer):
 
         return result
 
-    def do_MSG(self, *args, **kwargs):
-        print(args, kwargs)
+    def do_MSG(self, message, channel, *args, **kwargs):
+        self.bot.privmsg(channel, message)
 
     def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
-        print(command, args, kwargs)
         try:
             callback = self._commands[command]
         except KeyError:
             return
 
-        result = callback(*args, **kwargs)
+        try:
+            result = callback(*args, **kwargs)
+        except Exception as e:
+            self.on_error(e, commnad)
 
         if result is None:
             return

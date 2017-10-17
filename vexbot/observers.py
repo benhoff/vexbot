@@ -33,13 +33,11 @@ class BotObserver(Observer):
         except KeyError:
             pass
         source = self.messaging._address_map[target]
-        print(source)
         # FIXME: Figure out a better API for this
         self.messaging.send_control_response(source, 'MSG', *args, **kwargs)
 
     def do_IDENT(self, source, *args, **kwargs):
         service_name = kwargs.get('service_name')
-        print(source, service_name)
         if service_name is None:
             return
 
@@ -68,7 +66,10 @@ class BotObserver(Observer):
         except KeyError:
             return
 
-        result = callback(*args, **kwargs, source=source)
+        try:
+            result = callback(*args, **kwargs, source=source)
+        except Exception as e:
+            self.on_error(e, command)
 
         if result is None:
             return

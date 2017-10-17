@@ -72,12 +72,16 @@ class Shell(Prompt):
                 self.command_observer.on_error(e, text)
                 return
 
-    def _handle_author_command(self, string: str, author: str, source: str):
+    def _handle_author_command(self, string: str, author: str, source: str, metadata: dict=None):
         command = self.command_observer._get_command(string)
         if command is None:
             return
 
         args, kwargs = _super_parse(string)
+        # FIXME? Don't feel great about this. Not sure how best to handle channel/room data
+        if metadata is not None:
+            kwargs.update(metadata)
+
         kwargs['msg_target'] = author
         if not kwargs.get('force-remote'):
             try:
@@ -105,11 +109,12 @@ class Shell(Prompt):
 
         if author in self.author_observer.authors:
             source = self.author_observer.authors[author]
+            metadata = self.author_observer.author_metadata[author]
             # check for shebang
             if self.command_observer.is_command(string):
-                return self._handle_author_command(string, author, source)
+                return self._handle_author_command(string, author, source, metadata)
             else:
-                self.messaging.send_command('MSG', target=source, message=string, msg_target=author)
+                self.messaging.send_command('MSG', target=source, message=string, msg_target=author, **metadata)
 
     def run(self):
         self._thread.start()

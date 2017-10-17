@@ -40,6 +40,8 @@ class AuthorObserver(Observer):
     def __init__(self, add_callback=None, delete_callback=None):
         super().__init__()
         self.authors = _LRUCache(100, add_callback, delete_callback)
+        self.author_metadata = _LRUCache(100)
+        self.metadata_words = ['channel', ]
 
     def on_next(self, msg: Message):
         author = msg.contents.get('author')
@@ -47,12 +49,14 @@ class AuthorObserver(Observer):
             return
 
         self.authors[author] = msg.source
+        self.author_metadata[author] = {k: v for k, v in msg.contents.items()
+                                        if k in self.metadata_words} 
 
     def on_error(self, *args, **kwargs):
-        pass
+        return
 
     def on_completed(self, *args, **kwargs):
-        pass
+        return
 
 
 class PrintObserver(Observer):
@@ -74,7 +78,11 @@ class PrintObserver(Observer):
         author = msg.contents.get('author')
         if author is None:
             return
-        author = '{}: '.format(author)
+        channel = msg.contents.get('channel')
+        if channel is None:
+            author = '{}: '.format(author)
+        else:
+            author = '{} [{}]: '.format(author, channel)
         """
         message = textwrap.fill(msg.contents['message'],
                                 subsequent_indent='    ')
@@ -126,7 +134,7 @@ class CommandObserver(Observer):
     def do_start_print(self, *args, **kwargs):
         # alias out for santity
         sub = self._prompt._messaging_scheduler.subscribe
-        if not self._prompt.print_observer in sub.observers:
+        if self._prompt.print_observer not in sub.observers:
             sub.subscribe(self._prompt.print_observer)
 
     def on_error(self, error: Exception, text: str, *args, **kwargs):

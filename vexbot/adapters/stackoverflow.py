@@ -53,7 +53,7 @@ class StackOverflow:
                     for message in comment.find_elements_by_class_name('message'):
                         texts.append(message.find_element_by_class_name('content').text)
                     text = '\n'.join(texts)
-                    self.messaging.send_chatter('stack', author=username, message=text)
+                    self.messaging.send_chatter('stack', author=username, message=text, channel='stackoverflow')
                 # loop maintainence 
                 num_comments = new_num
                 last_comment = comments[-1]
