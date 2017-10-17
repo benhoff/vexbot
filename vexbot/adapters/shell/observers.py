@@ -1,7 +1,6 @@
 import sys as _sys
 import shlex as _shlex
-# import textwrap
-import traceback
+from time import gmtime, strftime
 
 from gi._error import GError
 from rx import Observer
@@ -73,6 +72,7 @@ class PrintObserver(Observer):
         self._author_color = _get_attributes(output, attr)
         # NOTE: vt100 ONLY
         self._reset_color = '\033[0m'
+        self._time_format = "%H:%M:%S"
 
     def on_next(self, msg: Message):
         author = msg.contents.get('author')
@@ -88,8 +88,9 @@ class PrintObserver(Observer):
                                 subsequent_indent='    ')
         """
         message = msg.contents['message']
+        time = strftime(self._time_format, gmtime()) + ' '
 
-        print(self._author_color + author + self._reset_color + message)
+        print(time + self._author_color + author + self._reset_color + message)
 
     def on_error(self, *args, **kwargs):
         pass
@@ -158,7 +159,7 @@ class CommandObserver(Observer):
         _sys.exit(0)
 
     def do_authors(self, *args, **kwargs):
-        return tuple(self._prompt.print_observer.authors.keys())
+        return tuple(self._prompt.author_observer.authors.keys())
 
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
