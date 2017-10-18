@@ -61,7 +61,7 @@ class Shell(Prompt):
         self.print_observer = PrintObserver(self.app)
         self.author_observer = AuthorObserver(add_author, remove_author)
 
-        self._messaging_scheduler.subscribe.subscribe(self.print_observer)
+        self._print_subscription = self._messaging_scheduler.subscribe.subscribe(self.print_observer)
         self._messaging_scheduler.subscribe.subscribe(self.author_observer)
 
     def _handle_command(self, text):
@@ -78,9 +78,10 @@ class Shell(Prompt):
             return
 
         args, kwargs = _super_parse(string)
-        # FIXME? Don't feel great about this. Not sure how best to handle channel/room data
+        # Update the metadata with any command line args
         if metadata is not None:
-            kwargs.update(metadata)
+            metadata.update(kwargs)
+            kwargs = metadata
 
         kwargs['msg_target'] = author
         if not kwargs.get('force-remote'):

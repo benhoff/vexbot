@@ -22,6 +22,14 @@ class IrcObserver(Observer):
     def do_MSG(self, message, channel, *args, **kwargs):
         self.bot.privmsg(channel, message)
 
+    def do_join(self, channel, *args, **kwargs):
+        print(channel, args, kwargs)
+        self.bot.join(channel)
+
+    def do_part(self, channel, *args, **kwargs):
+        print(channel, args, kwargs)
+        self.bot.part(channel)
+
     def on_next(self, item: Request):
         command = item.command
         args = item.args

@@ -82,7 +82,7 @@ class PrintObserver(Observer):
         if channel is None:
             author = '{}: '.format(author)
         else:
-            author = '{} [{}]: '.format(author, channel)
+            author = '{} {}: '.format(author, channel)
         """
         message = textwrap.fill(msg.contents['message'],
                                 subsequent_indent='    ')
@@ -127,16 +127,14 @@ class CommandObserver(Observer):
         return False
 
     def do_stop_print(self, *args, **kwargs):
-        try:
-            self._prompt._messaging_scheduler.subscribe.observers.remove(self._prompt.print_observer)
-        except ValueError:
-            return
+        self._prompt._print_subscription.dispose()
 
     def do_start_print(self, *args, **kwargs):
+        if not self._prompt._print_subscription.is_disposed:
+            return
         # alias out for santity
         sub = self._prompt._messaging_scheduler.subscribe
-        if self._prompt.print_observer not in sub.observers:
-            sub.subscribe(self._prompt.print_observer)
+        self._prompt._print_subscription = sub.subscribe(self._prompt.print_observer)
 
     def on_error(self, error: Exception, text: str, *args, **kwargs):
         _, value, _ = _sys.exc_info()
@@ -226,6 +224,11 @@ class CommandObserver(Observer):
             program = 'vexbot'
 
         self.subprocess_manager.stop(program, mode)
+
+    def do_time(sef, *args, **kwargs):
+        time_format = "%H:%M:%S"
+        time = strftime(time_format, gmtime())
+        return time
 
     def do_commands(self, *args, **kwargs):
         commands = self._get_commands()
