@@ -23,18 +23,15 @@ class IrcObserver(Observer):
         self.bot.privmsg(channel, message)
 
     def do_join(self, *args, **kwargs):
-        print(args, kwargs)
         self.bot.join(*args)
 
     def do_part(self, *args, **kwargs):
-        print(args, kwargs)
         self.bot.part(*args)
 
     def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
-        print(command, args, kwargs)
         try:
             callback = self._commands[command]
         except KeyError:
