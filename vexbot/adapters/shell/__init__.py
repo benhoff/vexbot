@@ -106,6 +106,24 @@ class Shell(Prompt):
 
         return False
 
+    def _handle_service(self, service: str, *args, **kwargs):
+        args = list(args)
+        try:
+            command = args.pop(0)
+        except IndexError:
+            return
+
+        if self.is_command(command):
+            # consume shebang
+            command = command[1:]
+        else:
+            command = 'MSG'
+
+        try:
+            self.service_observer.handle_command(service, command, *args, **kwargs)
+        except Exception as e:
+            self.service_observer.on_error(e, command)
+
     def _handle_command(self, text: str):
         command = _get_command(text)
         if command is None:
@@ -119,26 +137,7 @@ class Shell(Prompt):
                 self.command_observer.on_error(e, text)
                 return
         elif self.service_observer.is_command(command):
-            try:
-                command = args[0]
-            except IndexError:
-                command = 'MSG'
-
-            if self.is_command(command):
-                # consume shebang
-                command = command[1:]
-            try:
-                self.service_observer.handle_command(command, *args, **kwargs)
-            except Exception as e:
-                self.service_observer.on_error(e, text)
-
-    def _handle_service(self, text):
-        author = text.split(' ', 1)
-        if len(author) < 2:
-            return
-
-        string = author[1]
-        author = author[0]
+            return self._handle_service(command, *args, **kwargs)
 
     def _handle_author_command(self, string: str, author: str, source: str, metadata: dict=None):
         command = _get_command(string)
@@ -180,7 +179,7 @@ class Shell(Prompt):
             source = self.author_observer.authors[author]
             metadata = self.author_observer.author_metadata[author]
             # check for shebang
-            if self.command_observer.is_command(string):
+            if self.is_command(string):
                 return self._handle_author_command(string, author, source, metadata)
             else:
                 self.messaging.send_command('MSG', target=source, message=string, msg_target=author, **metadata)
@@ -201,8 +200,10 @@ class Shell(Prompt):
                 text = text.lstrip()
                 if self.is_command(text):
                     result = self._handle_command(text)
-                if result:
-                    _pprint.pprint(result)
-                    continue
 
+                    if result:
+                        _pprint.pprint(result)
+                        continue
+
+                    continue
                 self._handle_author(text)

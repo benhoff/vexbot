@@ -204,5 +204,7 @@ class Messaging:
         
         # TODO: use better names, request? command?
         # NOTE: this might be different since it's on the other side of the command
-        request = Request(command, None, *args, **kwargs)
+        request = Request(command, None)
+        request.args = args
+        request.kwargs = kwargs
         return request

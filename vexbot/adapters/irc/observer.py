@@ -22,18 +22,19 @@ class IrcObserver(Observer):
     def do_MSG(self, message, channel, *args, **kwargs):
         self.bot.privmsg(channel, message)
 
-    def do_join(self, channel, *args, **kwargs):
-        print(channel, args, kwargs)
-        self.bot.join(channel)
+    def do_join(self, *args, **kwargs):
+        print(args, kwargs)
+        self.bot.join(*args)
 
-    def do_part(self, channel, *args, **kwargs):
-        print(channel, args, kwargs)
-        self.bot.part(channel)
+    def do_part(self, *args, **kwargs):
+        print(args, kwargs)
+        self.bot.part(*args)
 
     def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
+        print(command, args, kwargs)
         try:
             callback = self._commands[command]
         except KeyError:
@@ -42,7 +43,8 @@ class IrcObserver(Observer):
         try:
             result = callback(*args, **kwargs)
         except Exception as e:
-            self.on_error(e, commnad)
+            self.on_error(e, command, args)
+            return
 
         if result is None:
             return
@@ -54,4 +56,4 @@ class IrcObserver(Observer):
         pass
 
     def on_error(self, *args, **kwargs):
-        pass
+        print(args)

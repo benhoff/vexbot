@@ -60,7 +60,7 @@ class ServiceObserver(Observer):
             self.channels[channel] = source
 
     def on_error(self, *args, **kwargs):
-        pass
+        print(args, kwargs)
 
     def on_completed(self, *args, **kwargs):
         pass
@@ -70,9 +70,13 @@ class ServiceObserver(Observer):
         in_channel = service in self.channels
         return in_service or in_channel
 
-    def handle_command(self, service: str, *args, **kwargs):
+    # FIXME: this API is brutal
+    def handle_command(self, service: str, command: str, *args, **kwargs):
         if service in self.channels:
             service = self.channels[service]
+        kwargs['target'] = service
+        kwargs['remote_command'] = command
+        self.messaging.send_command('CMD', *args, **kwargs)
 
 
 class PrintObserver(Observer):
@@ -211,6 +215,9 @@ class CommandObserver(Observer):
 
         status = self.subprocess_manager.status(program)
         return status
+
+    def do_services(self, *args, **kwargs) -> list:
+        return self._prompt.service_observer.services
 
     def do_restart(self, program: str=None, *args, **kwargs):
         if program is None:

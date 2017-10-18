@@ -213,7 +213,6 @@ class Messaging:
             addresses.append(b'PONG')
             self.command_socket.send_multipart(addresses)
             return
-
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
         # FIXME: wrap in try/catch and handle gracefully
@@ -222,18 +221,14 @@ class Messaging:
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
-        # FIXME: This is pretty confusing when creating a raw file such
-        # as the 'IDENT' frame
-        # if we don't have kwargs, then we'll alias our args and pass an
-        # empty list in for our args instead.
         except IndexError:
-            kwargs = args
-            args = []
+            kwargs = {}
         else:
             # FIXME: wrap in try/catch and handle gracefully
             # NOTE: pickle is NOT safe
             kwargs = pickle.loads(kwargs)
-
         # TODO: use better names, request? command
-        request = Request(command, addresses, *args, **kwargs)
+        request = Request(command, addresses)
+        request.args = args
+        request.kwargs = kwargs
         return request

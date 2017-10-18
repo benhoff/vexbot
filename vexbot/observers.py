@@ -27,6 +27,22 @@ class BotObserver(Observer):
 
         return result
 
+    # FIXME: this API is brutal
+    def do_CMD(self, *args, **kwargs):
+        try:
+            target = kwargs.pop('target')
+            command = kwargs.pop('remote_command')
+        except KeyError:
+            return
+        try:
+            kwargs.pop('source')
+        except KeyError:
+            pass
+
+        source = self.messaging._address_map[target]
+        # FIXME: Figure out a better API for this
+        self.messaging.send_control_response(source, command, *args, **kwargs)
+
     def do_MSG(self, target, *args, **kwargs):
         try:
             kwargs.pop('source')
@@ -70,6 +86,7 @@ class BotObserver(Observer):
             result = callback(*args, **kwargs, source=source)
         except Exception as e:
             self.on_error(e, command)
+            return
 
         if result is None:
             return
@@ -78,8 +95,9 @@ class BotObserver(Observer):
         # FIXME: figure out a better API for this
         self.messaging.send_control_response(source, command, result=result)
 
+    # FIXME: do better logging
     def on_error(self, *args, **kwargs):
-        pass
+        print(args)
 
     def on_completed(self, *args, **kwargs):
         pass
