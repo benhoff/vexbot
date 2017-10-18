@@ -12,10 +12,40 @@ from prompt_toolkit.contrib.completers import WordCompleter
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.scheduler import Scheduler
 from vexbot.adapters.shell.parser import parse
-from vexbot.adapters.shell.observers import PrintObserver, CommandObserver, _super_parse, AuthorObserver
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 
 from vexbot.adapters.shell._lru_cache import _LRUCache
+from vexbot.adapters.shell.observers import (PrintObserver,
+                                             CommandObserver,
+                                             AuthorObserver,
+                                             ServiceObserver)
+
+
+def _super_parse(string: str) -> (list, dict):
+    """
+    turns a shebang'd string into a list and dict, i.e. (args, kwargs)
+    List and dict may be empty
+    """
+    string = string[1:]
+    args = _shlex.split(string)
+    try:
+        command = args.pop(0)
+    except IndexError:
+        return [], {}
+    args, kwargs = parse(args)
+    return args, kwargs
+
+
+def _get_command(arg: str) -> str:
+    # consume shebang
+    arg = arg[1:]
+    # Not sure if `shlex` can handle unicode. If can, this can be done
+    # here rather than having a helper method
+    args = _shlex.split(arg)
+    try:
+        return args.pop(0)
+    except IndexError:
+        return
 
 
 class Shell(Prompt):
@@ -29,6 +59,7 @@ class Shell(Prompt):
         self._thread = _Thread(target=self._messaging_scheduler.loop.start,
                                daemon=True)
 
+        self.shebangs = ['!', ]
         self.running = False
 
         # NOTE: the command observer is currently NOT hooked up to the
@@ -60,20 +91,57 @@ class Shell(Prompt):
 
         self.print_observer = PrintObserver(self.app)
         self.author_observer = AuthorObserver(add_author, remove_author)
+        self.service_observer = ServiceObserver(self.messaging)
 
         self._print_subscription = self._messaging_scheduler.subscribe.subscribe(self.print_observer)
         self._messaging_scheduler.subscribe.subscribe(self.author_observer)
+        self._messaging_scheduler.subscribe.subscribe(self.service_observer)
 
-    def _handle_command(self, text):
-        if self.command_observer.is_command(text):
+    def is_command(self, text: str) -> bool:
+        """
+        checks for presence of shebang in the first character of the text
+        """
+        if text[0] in self.shebangs:
+            return True
+
+        return False
+
+    def _handle_command(self, text: str):
+        command = _get_command(text)
+        if command is None:
+            return
+        # TODO: Verify that this correctly consumes the command
+        args, kwargs = _super_parse(text)
+        if self.command_observer.is_command(command):
             try:
-                return self.command_observer.handle_command(text)
+                return self.command_observer.handle_command(command, *args, **kwargs)
             except Exception as e:
                 self.command_observer.on_error(e, text)
                 return
+        elif self.service_observer.is_command(command):
+            try:
+                command = args[0]
+            except IndexError:
+                command = 'MSG'
+
+            if self.is_command(command):
+                # consume shebang
+                command = command[1:]
+            try:
+                self.service_observer.handle_command(command, *args, **kwargs)
+            except Exception as e:
+                self.service_observer.on_error(e, text)
+
+    def _handle_service(self, text):
+        author = text.split(' ', 1)
+        if len(author) < 2:
+            return
+
+        string = author[1]
+        author = author[0]
 
     def _handle_author_command(self, string: str, author: str, source: str, metadata: dict=None):
-        command = self.command_observer._get_command(string)
+        command = _get_command(string)
         if command is None:
             return
 
@@ -131,7 +199,8 @@ class Shell(Prompt):
                 if text == '':
                     continue
                 text = text.lstrip()
-                result = self._handle_command(text)
+                if self.is_command(text):
+                    result = self._handle_command(text)
                 if result:
                     _pprint.pprint(result)
                     continue

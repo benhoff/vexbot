@@ -20,20 +20,6 @@ def _get_attributes(output, attrs):
     else:
         return output._escape_code_cache[attrs]
 
-def _super_parse(string: str) -> [list, dict]:
-    """
-    turns a shebang'd string into a list and dict (args, kwargs)
-    or returns `None`
-    """
-    string = string[1:]
-    args = _shlex.split(string)
-    try:
-        command = args.pop(0)
-    except IndexError:
-        return [], {}
-    args, kwargs = parse(args)
-    return args, kwargs
-
 
 class AuthorObserver(Observer):
     def __init__(self, add_callback=None, delete_callback=None):
@@ -58,6 +44,37 @@ class AuthorObserver(Observer):
         return
 
 
+class ServiceObserver(Observer):
+    def __init__(self, messaging):
+        super().__init__()
+        self.services = set()
+        self.channels = _LRUCache(100)
+        self.messaging = messaging
+
+    def on_next(self, msg: Message):
+        source = msg.source
+        self.services.add(source)
+        channel = msg.contents.get('channel')
+
+        if channel:
+            self.channels[channel] = source
+
+    def on_error(self, *args, **kwargs):
+        pass
+
+    def on_completed(self, *args, **kwargs):
+        pass
+
+    def is_command(self, service: str):
+        in_service = service in self.services
+        in_channel = service in self.channels
+        return in_service or in_channel
+
+    def handle_command(self, service: str, *args, **kwargs):
+        if service in self.channels:
+            service = self.channels[service]
+
+
 class PrintObserver(Observer):
     def __init__(self, application=None):
         super().__init__()
@@ -78,11 +95,9 @@ class PrintObserver(Observer):
         author = msg.contents.get('author')
         if author is None:
             return
-        channel = msg.contents.get('channel')
-        if channel is None:
-            author = '{}: '.format(author)
-        else:
-            author = '{} {}: '.format(author, channel)
+        # Get channel name or default to source
+        channel = msg.contents.get('channel', msg.source)
+        author = '{} {}: '.format(author, channel)
         """
         message = textwrap.fill(msg.contents['message'],
                                 subsequent_indent='    ')
@@ -99,12 +114,12 @@ class PrintObserver(Observer):
         pass
 
 
+
 class CommandObserver(Observer):
     def __init__(self,
                  messaging,
                  prompt=None):
 
-        self.shebangs = ['!', ]
         self.subprocess_manager = SubprocessManager()
         self._prompt = prompt
         self.messaging = messaging
@@ -117,21 +132,16 @@ class CommandObserver(Observer):
             if method.startswith('do_'):
                 self._commands[method[3:]] = getattr(self, method)
 
-    def is_command(self, text: str):
-        """
-        checks for presence of shebang in the first character of the text
-        """
-        if text[0] in self.shebangs:
-            return True
-
-        return False
-
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
+
+    def is_command(self, command: str) -> bool:
+        return command in self._commands
 
     def do_start_print(self, *args, **kwargs):
         if not self._prompt._print_subscription.is_disposed:
             return
+
         # alias out for santity
         sub = self._prompt._messaging_scheduler.subscribe
         self._prompt._print_subscription = sub.subscribe(self._prompt.print_observer)
@@ -156,16 +166,17 @@ class CommandObserver(Observer):
     def do_quit(self, *args, **kwargs):
         _sys.exit(0)
 
-    def do_authors(self, *args, **kwargs):
+    def do_authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_observer.authors.keys())
 
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
 
     def do_ping(self, *args, **kwargs):
+        # FIXME: broken
         self.messaging.send_ping()
 
-    def do_history(self, *args, **kwargs):
+    def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
             return self._prompt.history.strings
 
@@ -173,25 +184,12 @@ class CommandObserver(Observer):
         if self._prompt:
             return self._prompt._word_completer.words
 
-    def _get_command(self, arg: str):
-        # consume shebang
-        arg = arg[1:]
-        # Not sure if `shlex` can handle unicode. If can, this can be done
-        # here rather than having a helper method
-        args = _shlex.split(arg)
-        try:
-            return args.pop(0)
-        except IndexError:
-            return
-
-    def handle_command(self, arg: str):
-        command = self._get_command(arg)
-        args, kwargs = _super_parse(arg)
+    def handle_command(self, command, *args, **kwargs):
         try:
             callback = self._commands[command]
         except KeyError:
             # TODO: Notify user of fallthrough?
-            self.messaging.send_command(command, args=args, kwargs=kwargs)
+            self.messaging.send_command(command, *args, **kwargs)
             return
 
         result = callback(*args, **kwargs)
@@ -207,11 +205,19 @@ class CommandObserver(Observer):
 
     def do_status(self, program: str=None, *args, **kwargs):
         if program is None:
-            raise RuntimeError('!status requires a program name to inquire about. Example usage: `!status vexbot.service`')
+            err = ('!status requires a program name to inquire about. Example'
+                   ' usage: `!status vexbot.service`')
+            raise RuntimeError(err)
+
         status = self.subprocess_manager.status(program)
         return status
 
-    def do_restart(self, program: str, *args, **kwargs):
+    def do_restart(self, program: str=None, *args, **kwargs):
+        if program is None:
+            err = ('!restart requires a program name to inquire about. Example'
+                   ' usage: `!restart vexbot.service`')
+            raise RuntimeError(err)
+
         mode = kwargs.get('mode', 'replace')
         if program == 'bot':
             program = 'vexbot'
@@ -225,12 +231,12 @@ class CommandObserver(Observer):
 
         self.subprocess_manager.stop(program, mode)
 
-    def do_time(sef, *args, **kwargs):
+    def do_time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"
         time = strftime(time_format, gmtime())
         return time
 
-    def do_commands(self, *args, **kwargs):
+    def do_commands(self, *args, **kwargs) -> list:
         commands = self._get_commands()
         return commands
 
