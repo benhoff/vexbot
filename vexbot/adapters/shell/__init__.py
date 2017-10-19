@@ -1,3 +1,4 @@
+import re
 from os import path
 import shlex as _shlex
 import pprint as _pprint
@@ -8,6 +9,7 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import CompleteStyle
 from prompt_toolkit.contrib.completers import WordCompleter
+from prompt_toolkit.document import _FIND_CURRENT_WORD_INCLUDE_TRAILING_WHITESPACE_RE
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.scheduler import Scheduler
@@ -21,78 +23,73 @@ from vexbot.adapters.shell.observers import (PrintObserver,
                                              ServiceObserver)
 
 
-def _super_parse(string: str) -> (list, dict):
-    """
-    turns a shebang'd string into a list and dict, i.e. (args, kwargs)
-    List and dict may be empty
-    """
-    string = string[1:]
-    args = _shlex.split(string)
+# add in ! and # to our word completion regex
+_WORD = re.compile(r'([!#a-zA-Z0-9_]+|[^!#a-zA-Z0-9_\s]+)')
+
+
+def _get_cmd_args_kwargs(text: str) -> (str, tuple, dict):
+    # consume shebang
+    text = text[1:]
+    args = _shlex.split(text)
     try:
         command = args.pop(0)
     except IndexError:
-        return [], {}
+        return '', (), {}
     args, kwargs = parse(args)
-    return args, kwargs
+    return command, args, kwargs
 
 
-def _get_command(arg: str) -> str:
-    # consume shebang
-    arg = arg[1:]
-    # Not sure if `shlex` can handle unicode. If can, this can be done
-    # here rather than having a helper method
-    args = _shlex.split(arg)
-    try:
-        return args.pop(0)
-    except IndexError:
-        return
+def _get_default_history_filepath():
+    vexdir = get_vexdir_filepath()
+    return path.join(vexdir, 'vexshell_history')
 
 
 class Shell(Prompt):
-    def __init__(self,
-                 messaging=None,
-                 history_filepath=None,
-                 display_help=True):
+    def __init__(self, history_filepath=None):
+        if history_filepath is None:
+            history_filepath = _get_default_history_filepath()
 
-        self.messaging = messaging or _Messaging('shell', run_control_loop=True)
+        self.history = FileHistory(history_filepath)
+        self.messaging = _Messaging('shell', run_control_loop=True)
+
+        # NOTE: should be able to get rid of these lines with a cleaner api
         self._messaging_scheduler = self.messaging.scheduler
         self._thread = _Thread(target=self._messaging_scheduler.loop.start,
                                daemon=True)
 
         self.shebangs = ['!', ]
-        self.running = False
 
         # NOTE: the command observer is currently NOT hooked up to the
         # scheduler
         self.command_observer = CommandObserver(self.messaging, prompt=self)
-        if history_filepath is None:
-            vexdir = get_vexdir_filepath()
-            history_filepath = path.join(vexdir, 'vexshell_history')
 
-        self.history = FileHistory(history_filepath)
         commands = self.command_observer._get_commands()
-        self._word_completer = WordCompleter(commands)
+        self._word_completer = WordCompleter(commands, WORD=_WORD)
+
         super().__init__(message='vexbot: ',
+                         history=self.history,
+                         completer=self._word_completer,
                          enable_system_prompt=True,
                          enable_suspend=True,
                          enable_open_in_editor=True,
-                         history=self.history,
-                         complete_while_typing=False,
-                         completer=self._word_completer)
+                         complete_while_typing=False)
 
-        def add_author(author):
-            self._word_completer.words.append(author)
+        # NOTE: This method is used to add words to the word completer
+        def add_word(word: str):
+            self._word_completer.words.append(word)
 
-        def remove_author(author):
+        # NOTE: This method is used to add words to the word completer
+        def remove_word(word: str):
             try:
-                self._word_completer.words.remove(author)
+                self._word_completer.words.remove(word)
             except Exception:
                 pass
 
         self.print_observer = PrintObserver(self.app)
-        self.author_observer = AuthorObserver(add_author, remove_author)
-        self.service_observer = ServiceObserver(self.messaging)
+        self.author_observer = AuthorObserver(add_word, remove_word)
+        self.service_observer = ServiceObserver(add_word, remove_word)
 
+        # FIXME: This API is awkward
         self._print_subscription = self._messaging_scheduler.subscribe.subscribe(self.print_observer)
         self._messaging_scheduler.subscribe.subscribe(self.author_observer)
         self._messaging_scheduler.subscribe.subscribe(self.service_observer)
@@ -106,104 +103,132 @@ class Shell(Prompt):
 
         return False
 
-    def _handle_service(self, service: str, *args, **kwargs):
-        args = list(args)
-        try:
-            command = args.pop(0)
-        except IndexError:
-            return
-
-        if self.is_command(command):
-            # consume shebang
-            command = command[1:]
-        else:
-            command = 'MSG'
-
-        try:
-            self.service_observer.handle_command(service, command, *args, **kwargs)
-        except Exception as e:
-            self.service_observer.on_error(e, command)
-
-    def _handle_command(self, text: str):
-        command = _get_command(text)
-        if command is None:
-            return
-        # TODO: Verify that this correctly consumes the command
-        args, kwargs = _super_parse(text)
-        if self.command_observer.is_command(command):
-            try:
-                return self.command_observer.handle_command(command, *args, **kwargs)
-            except Exception as e:
-                self.command_observer.on_error(e, text)
-                return
-        elif self.service_observer.is_command(command):
-            return self._handle_service(command, *args, **kwargs)
-
-    def _handle_author_command(self, string: str, author: str, source: str, metadata: dict=None):
-        command = _get_command(string)
-        if command is None:
-            return
-
-        args, kwargs = _super_parse(string)
-        # Update the metadata with any command line args
-        if metadata is not None:
-            metadata.update(kwargs)
-            kwargs = metadata
-
-        kwargs['msg_target'] = author
-        if not kwargs.get('force-remote'):
-            try:
-                callback = self.command_observer._commands[command]
-            except KeyError:
-                self.messaging.send_command(command,
-                                            *args,
-                                            target=source,
-                                            **kwargs)
-
-                return
-
-            result = callback(args, kwargs)
-            if result:
-                message = _pprint.pformat(result)
-                self.messaging.send_command('MSG', target=source, message=message)
-
-    def _handle_author(self, text: str):
-        author = text.split(' ', 1)
-        if len(author) < 2:
-            return
-
-        string = author[1]
-        author = author[0]
-
-        if author in self.author_observer.authors:
-            source = self.author_observer.authors[author]
-            metadata = self.author_observer.author_metadata[author]
-            # check for shebang
-            if self.is_command(string):
-                return self._handle_author_command(string, author, source, metadata)
-            else:
-                self.messaging.send_command('MSG', target=source, message=string, msg_target=author, **metadata)
-
     def run(self):
         self._thread.start()
         with patch_stdout(raw=True):
             while True:
+                # Get our text
                 try:
                     text = self.prompt()
+                # KeyboardInterrupt continues
                 except KeyboardInterrupt:
                     continue
+                # End of file returns
                 except EOFError:
                     return
 
+                # Clean text
+                text = text.lstrip()
+                # Handle empty text
                 if text == '':
                     continue
-                text = text.lstrip()
-                if self.is_command(text):
-                    result = self._handle_command(text)
+                # Program specific handeling. Currently either first word
+                # or second word can be commands
+                self._handle_text(text)
 
-                    if result:
-                        _pprint.pprint(result)
-                        continue
+    def _handle_text(self, text: str):
+        """
+        Check to see if text is a command. Otherwise, check to see if the
+        second word is a command.
 
-                    continue
-                self._handle_author(text)
+        Commands get handeled by the `_handle_command` method
+
+        If not command, check to see if first word is a service or an author.
+        Default program is to send message replies. However, we will also
+        check to see if the second word is a command and handle approparitly
+
+        This method does simple string parsing and high level program control
+        """
+        # If first word is command
+        if self.is_command(text):
+            # get the command, args, and kwargs out using `shlex`
+            command, args, kwargs = _get_cmd_args_kwargs(text)
+            # hand off to the `handle_command` method
+            result = self._handle_command(command, args, kwargs)
+
+            if result:
+                # print our results
+                _pprint.pprint(result)
+            # Exit the method here if in this block
+            return
+        # Else check if second word is a command
+        else:
+            # get the first word and then the rest of the text. Text reassign
+            # here
+            first_word, text = text.split(' ', 1)
+            # check if second word/string is a command
+            if self.is_command(text):
+                # get the command, args, and kwargs out using `shlex`
+                command, args, kwargs = _get_cmd_args_kwargs(text)
+            # if second word is not a command, default to message
+            else:
+                command = 'MSG'
+                args = ()
+                kwargs = {'message': text}
+
+            # since we've defaulted to message if not command, this api makes
+            # sense for now. If we don't default to message, need to refactor
+            self._first_word_not_cmd(first_word, command, args, kwargs)
+
+    def _handle_command(self, command: str, args: tuple, kwargs: dict):
+        # TODO: Command fallthrough to bot? Currently just sees if command local
+        # and exits if not
+        if self.command_observer.is_command(command):
+            try:
+                return self.command_observer.handle_command(command, *args, **kwargs)
+            except Exception as e:
+                self.command_observer.on_error(e, command, args, kwargs)
+                return
+
+    def _first_word_not_cmd(self,
+                            first_word: str,
+                            command: str,
+                            args: tuple,
+                            kwargs: dict) -> None:
+        """
+        check to see if this is an author or service.
+        This method does high level control handling
+        """
+        if self.service_observer.is_service(first_word):
+            args, kwargs = self._handle_service(first_word, args, kwargs)
+        elif self._is_author(first_word):
+            args, kwargs = self._handle_author(first_word, args, kwargs)
+        if not kwargs.get('force-remote'):
+            try:
+                callback = self.command_observer._commands[command]
+            except KeyError:
+                kwargs['remote_command'] = command
+                command= 'CMD'
+                self.messaging.send_command(command, *args, **kwargs)
+                return
+            try:
+                result = callback(*args, **kwargs)
+            except Exception as e:
+                print(args, kwargs)
+                self.command_observer.on_error(e, command)
+                return
+
+            if result:
+                message = _pprint.pformat(result)
+                self.messaging.send_command('MSG', message=message, *args, **kwargs)
+        else:
+            print(command, args, kwargs)
+            self.messaging.send_command(command, *args, **kwargs)
+
+    def _handle_service(self,
+                        service: str,
+                        args: tuple,
+                        kwargs: dict) -> (str, tuple, dict):
+        return self.service_observer.handle_command(service, args, kwargs)
+
+    def _is_author(self, author: str):
+        return author in self.author_observer.authors
+
+    def _handle_author(self, author: str, args: tuple, kwargs: dict) -> (tuple, dict):
+        source = self.author_observer.authors[author]
+        metadata = self.author_observer.author_metadata[author]
+        metadata.update(kwargs)
+        kwargs = metadata
+        kwargs['target'] = source
+        kwargs['msg_target'] = author
+        return args, kwargs

@@ -20,6 +20,9 @@ class IrcObserver(Observer):
         return result
 
     def do_MSG(self, message, channel, *args, **kwargs):
+        msg_target = kwargs.get('msg_target')
+        if msg_target:
+            message = msg_target + ', ' + message
         self.bot.privmsg(channel, message)
 
     def do_join(self, *args, **kwargs):

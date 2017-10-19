@@ -45,14 +45,16 @@ class AuthorObserver(Observer):
 
 
 class ServiceObserver(Observer):
-    def __init__(self, messaging):
+    def __init__(self, add_callback=None, remove_callback=None):
         super().__init__()
         self.services = set()
-        self.channels = _LRUCache(100)
-        self.messaging = messaging
+        self.channels = _LRUCache(100, add_callback, remove_callback)
+        self._add_callback = add_callback
 
     def on_next(self, msg: Message):
         source = msg.source
+        if source not in self.services and self._add_callback:
+            self._add_callback(source)
         self.services.add(source)
         channel = msg.contents.get('channel')
 
@@ -65,18 +67,18 @@ class ServiceObserver(Observer):
     def on_completed(self, *args, **kwargs):
         pass
 
-    def is_command(self, service: str):
+    def is_service(self, service: str):
         in_service = service in self.services
         in_channel = service in self.channels
         return in_service or in_channel
 
     # FIXME: this API is brutal
-    def handle_command(self, service: str, command: str, *args, **kwargs):
+    def handle_command(self, service: str, args: tuple, kwargs: dict) -> (str, tuple, dict):
         if service in self.channels:
+            kwargs['channel'] = service
             service = self.channels[service]
         kwargs['target'] = service
-        kwargs['remote_command'] = command
-        self.messaging.send_command('CMD', *args, **kwargs)
+        return args, kwargs
 
 
 class PrintObserver(Observer):
@@ -177,7 +179,6 @@ class CommandObserver(Observer):
         _sys.exit(0)
 
     def do_ping(self, *args, **kwargs):
-        # FIXME: broken
         self.messaging.send_ping()
 
     def do_history(self, *args, **kwargs) -> list:
@@ -199,44 +200,47 @@ class CommandObserver(Observer):
         result = callback(*args, **kwargs)
         return result
 
-    def do_start(self, program: str, *args, **kwargs):
+    def do_start(self, target: str, *args, **kwargs):
         mode = kwargs.get('mode', 'replace')
         # TODO: Better aliasing for more commands
-        if program == 'bot':
-            program = 'vexbot'
+        if target == 'bot':
+            target = 'vexbot'
 
-        self.subprocess_manager.start(program, mode)
+        self.subprocess_manager.start(target, mode)
 
-    def do_status(self, program: str=None, *args, **kwargs):
-        if program is None:
-            err = ('!status requires a program name to inquire about. Example'
+    def do_status(self, target: str=None, *args, **kwargs):
+        if target is None:
+            err = ('!status requires a target name to inquire about. Example'
                    ' usage: `!status vexbot.service`')
             raise RuntimeError(err)
 
-        status = self.subprocess_manager.status(program)
+        status = self.subprocess_manager.status(target)
         return status
 
     def do_services(self, *args, **kwargs) -> list:
         return self._prompt.service_observer.services
 
-    def do_restart(self, program: str=None, *args, **kwargs):
-        if program is None:
-            err = ('!restart requires a program name to inquire about. Example'
+    def do_channels(self, *args, **kwargs) -> tuple:
+        return tuple(self._prompt.service_observer.channels.keys())
+
+    def do_restart(self, target: str=None, *args, **kwargs):
+        if target is None:
+            err = ('!restart requires a target name to inquire about. Example'
                    ' usage: `!restart vexbot.service`')
             raise RuntimeError(err)
 
         mode = kwargs.get('mode', 'replace')
-        if program == 'bot':
-            program = 'vexbot'
+        if target == 'bot':
+            target = 'vexbot'
 
-        self.subprocess_manager.restart(program, mode)
+        self.subprocess_manager.restart(target, mode)
 
-    def do_stop(self, program: str, *args, **kwargs):
+    def do_stop(self, target: str, *args, **kwargs):
         mode = kwargs.get('mode', 'replace')
-        if program == 'bot':
-            program = 'vexbot'
+        if target == 'bot':
+            target = 'vexbot'
 
-        self.subprocess_manager.stop(program, mode)
+        self.subprocess_manager.stop(target, mode)
 
     def do_time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"

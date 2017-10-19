@@ -42,7 +42,8 @@ setup(
                                       'vexbot_xmpp=vexbot.adapters.xmpp:main',
                                       'vexbot_socket_io=vexbot.adapters.socket_io:main',
                                       'vexbot_youtube=vexbot.adapters.youtube:main',
-                                      'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main']},
+                                      'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main',
+                                      'vexbot_generate_certificates=vexbot.util.generate_certificates:main']},
 
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[

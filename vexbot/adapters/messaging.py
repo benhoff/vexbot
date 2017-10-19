@@ -175,7 +175,10 @@ class Messaging:
 
     def handle_raw_command(self, message) -> Request:
         # blank string
-        message.pop(0)
+        pong = message.pop(0).decode('ascii')
+        # FIXME
+        if pong == 'PONG':
+            return
         # command? Not sure if we want to do it this way.
         command = message.pop(0).decode('ascii')
 

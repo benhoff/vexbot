@@ -4,6 +4,8 @@ from zmq.eventloop.zmqstream import ZMQStream
 from rx.subjects import Subject as _Subject
 
 from vexmessage import decode_vex_message
+from zmq.auth.ioloop import IOLoopAuthenticator 
+from vexbot.util.get_certificate_filepath import get_certificate_filepath
 
 
 class Scheduler:
@@ -22,6 +24,14 @@ class Scheduler:
         self.command = _Subject()
         self.subscribe = _Subject()
         self.loop = IOLoop()
+        # FIXME: Auth will need to go in the SocketFactory
+        self.auth = IOLoopAuthenticator()
+        self.auth.allow('127.0.0.1')
+        certificate = get_certificate_filepath()
+        public_key_location = os.path.join(certificate, 'public_keys')
+        self.auth.configure_cure(domain='*', public_key_location)
+        self.auth.start()
+
 
     def setup(self):
         self._control = ZMQStream(self.messaging.control_socket, self.loop)
