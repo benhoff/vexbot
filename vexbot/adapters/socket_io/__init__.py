@@ -10,6 +10,7 @@ from threading import Thread
 from vexmessage import decode_vex_message
 
 from vexbot.adapters.messaging import Messaging 
+from vexbot.adapters.socket_io.observer import SocketObserver
 try:
     from websocket import WebSocketApp
 except ImportError:
@@ -39,6 +40,9 @@ class WebSocket(WebSocketApp):
 
         self.messaging.start()
         self._scheduler_thread.start()
+        self.observer = SocketObserver(self, self.messaging)
+        self._messaging_scheduler.command.subscribe(self.observer)
+
         self._streamer_name = streamer_name
         self.namespace = namespace
         self._website_url = website_url
