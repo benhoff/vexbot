@@ -155,7 +155,10 @@ class Shell(Prompt):
         else:
             # get the first word and then the rest of the text. Text reassign
             # here
-            first_word, text = text.split(' ', 1)
+            try:
+                first_word, text = text.split(' ', 1)
+            except ValueError:
+                return
             # check if second word/string is a command
             if self.is_command(text):
                 # get the command, args, and kwargs out using `shlex`
