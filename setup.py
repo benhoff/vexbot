@@ -40,7 +40,7 @@ setup(
                                       'vexbot_robot=vexbot.__main__:main',
                                       'vexbot_irc=vexbot.adapters.irc.__main__:main',
                                       'vexbot_xmpp=vexbot.adapters.xmpp:main',
-                                      'vexbot_socket_io=vexbot.adapters.socket_io:main',
+                                      'vexbot_socket_io=vexbot.adapters.socket_io.__main__:main',
                                       'vexbot_youtube=vexbot.adapters.youtube:main',
                                       'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main',
                                       'vexbot_generate_certificates=vexbot.util.generate_certificates:main']},
