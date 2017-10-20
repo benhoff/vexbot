@@ -36,6 +36,9 @@ class AuthorObserver(Observer):
         if author is None:
             return
 
+        # NOTE: this fixes the parsing for usernames
+        author = author.replace(' ', '_')
+
         self.authors[author] = msg.source
         self.author_metadata[author] = {k: v for k, v in msg.contents.items()
                                         if k in self.metadata_words} 
@@ -91,13 +94,9 @@ class PrintObserver(Observer):
         # Need to instantiate the application before the print observer
         output = application.output
 
-        colors = ('ansired', 'ansigreen', 'ansiyellow', 'ansiblue',
-                  'ansifuchsia', 'ansiturquoise')
+        colors = ('af8700', '5f5faf', '0087ff', '2aa198', '5f8700')
         self.colors = [_get_attributes(output, color) for color in colors]
-        # FIXME: This is a bit of an antipattern as it relies on `colors`
         self._grey = _get_attributes(output, 'ansidarkgray')
-
-        self._grey = _get_attributes(output, self._grey)
         self.num_colors = len(self.colors)
 
         self._author_color = _LRUCache(100)
@@ -106,6 +105,8 @@ class PrintObserver(Observer):
         self._time_format = "%H:%M:%S"
 
     def _get_author_color(self, author: str):
+        # NOTE: This replace mocks the current behavior in the print observer
+        author = author.replace(' ', '_')
         if author in self._author_color:
             author_color = self._author_color[author]
         else:
@@ -189,6 +190,20 @@ class CommandObserver(Observer):
 
     def do_authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_observer.authors.keys())
+
+    def do_change_color(self, *args, **kwargs):
+        author = None
+        try:
+            author = args[0]
+        except IndexError:
+            pass
+        if author is None:
+            author = kwargs.get('msg_target')
+        if author is None:
+            return
+
+        if self._prompt.print_observer:
+            del self._prompt.print_observer._author_color[author]
 
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
