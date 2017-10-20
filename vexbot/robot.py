@@ -40,7 +40,7 @@ class Robot:
                                             self.subprocess_manager)
 
         self.command_observer = command_observer
-        self.scheduler.command.subscribe(self.command_observer)
+        self.messaging.command.subscribe(self.command_observer)
 
     def run(self):
         if self.messaging is None:
@@ -49,6 +49,5 @@ class Robot:
             _sys.exit(1)
 
         self.messaging.start()
-        self.scheduler.setup()
         # NOTE: blocking call
-        self.scheduler.run()
+        self.messaging.loop.start()

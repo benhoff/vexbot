@@ -3,6 +3,9 @@ import pickle
 
 import zmq
 import zmq.devices
+from zmq.eventloop import IOLoop
+
+from rx.subjects import Subject as _Subject
 
 from vexbot import _get_default_port_config
 from vexbot.scheduler import Scheduler
@@ -14,12 +17,6 @@ from vexmessage import create_vex_message, decode_vex_message, Request
 
 
 class Messaging:
-    """
-    Current class responsabilities:
-        configuration
-        decode
-    """
-
     # TODO: add an `update_messaging` command
     def __init__(self, botname: str='Vexbot', **kwargs):
         """
@@ -38,7 +35,7 @@ class Messaging:
         configuration.update(kwargs)
 
         # Store the addresses of publish, subscription, and heartbeat sockets
-        self.configuration = configuration
+        self.config = configuration
         self._service_name = botname
 
         self.subscription_socket = None
@@ -46,18 +43,29 @@ class Messaging:
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
-        self.scheduler = Scheduler(self)
+        self.loop = IOLoop()
+        self.scheduler = Scheduler()
 
         # The poller polls each socket
         self._logger = logging.getLogger(__name__)
 
         # Socket factory keeps the zmq context, default ip_address and
         # protocol for socket creation.
-        self._socket_factory = _SocketFactory(self.configuration['ip_address'],
-                                              self.configuration['protocol'],
+        self._socket_factory = _SocketFactory(self.config['ip_address'],
+                                              self.config['protocol'],
                                               logger=self._logger)
 
+        to_address = self._socket_factory.to_address
+        for k, v in self.config.items():
+            if k == 'chatter_subscription_port':
+                continue
+            if k.endswith('port'):
+                self.config[k] = to_address(v)
+
         self._address_map = _LRUCache(100)
+        self.control = _Subject()
+        self.command = _Subject()
+        self.chatter = _Subject()
 
     def _get_sockets(self) -> tuple:
         sockets = (self.command_socket,
@@ -79,53 +87,63 @@ class Messaging:
         starts/instantiates the messaging
         """
         self._close_sockets()
-
         create_n_conn = self._socket_factory.create_n_connect
-        to_address = self._socket_factory.to_address
-
-        control_address = to_address(self.configuration['control_port'])
 
         # NOTE: These sockets will exit the program to exit if there's an issue
         self.control_socket = create_n_conn(zmq.ROUTER,
-                                            control_address,
+                                            self.config['control_port'],
                                             on_error='exit',
                                             bind=True,
                                             socket_name='control socket')
-
-        pub_addrs = to_address(self.configuration['chatter_publish_port'])
         # publish socket is an XSUB socket
         self.publish_socket = create_n_conn(zmq.XSUB,
-                                            pub_addrs,
+                                            self.config['chatter_publish_port'],
                                             bind=True,
                                             on_error='exit',
                                             socket_name='publish socket')
-
         # NOTE: these sockets will only log an error if there's an issue
-        command_address = to_address(self.configuration['command_port'])
         self.command_socket = create_n_conn(zmq.ROUTER,
-                                            command_address,
+                                            self.config['command_port'],
                                             bind=True)
-
-        request_address = to_address(self.configuration['request_port'])
         self.request_socket = create_n_conn(zmq.DEALER,
-                                            request_address,
+                                            self.config['request_port'],
                                             bind=True,
                                             socket_name='request socket')
 
         iter_ = self._socket_factory.iterate_multiple_addresses
-        sub_addresses = iter_(self.configuration['chatter_subscription_port'])
+        sub_addresses = iter_(self.config['chatter_subscription_port'])
         # TODO: verify that this shouldn't be like a connect as the socket
         # factory defaults to bind subscription socket is a XPUB socket
         multiple_create = self._socket_factory.multiple_create_n_connect
-
         name = 'subscription socket'
         self.subscription_socket = multiple_create(zmq.XPUB,
                                                    sub_addresses,
                                                    bind=True,
                                                    socket_name=name)
 
-        self.scheduler.setup()
-        self.scheduler.run()
+        self._setup_scheduler()
+
+    def _setup_scheduler(self):
+        # Control Socket
+        self.scheduler.register_socket(self.control_socket,
+                                       self.loop,
+                                       self._control_helper)
+        # Command Socket
+        self.scheduler.register_socket(self.command_socket,
+                                       self.loop,
+                                       self._command_helper)
+        # Publish Socket
+        self.scheduler.register_socket(self.publish_socket,
+                                       self.loop,
+                                       self._publish_helper)
+        # Subscribe Socket
+        self.scheduler.register_socket(self.subscription_socket,
+                                       self.loop,
+                                       self._subscribe_helper)
+        # Request Socket
+        self.scheduler.register_socket(self.request_socket,
+                                       self.loop,
+                                       self._request_helper)
 
     def send_heartbeat(self, target: str=''):
         frame = self._create_frame('PING', target)
@@ -232,3 +250,33 @@ class Messaging:
         request.args = args
         request.kwargs = kwargs
         return request
+
+    def add_callback(self, callback, *args, **kwargs):
+        self.loop.add_callback(callback, *args, **kwargs)
+
+    def _control_helper(self, msg):
+        request = self.handle_raw_command(msg)
+
+        if request is None:
+            return
+
+        self.control.on_next(request)
+
+    def _command_helper(self, msg):
+        request = self.handle_raw_command(msg)
+
+        if request is None:
+            return
+
+        self.command.on_next(request)
+
+    def _publish_helper(self, msg):
+        self.loop.add_callback(self.subscription_socket.send_multipart, msg)
+        msg = decode_vex_message(msg)
+        self.chatter.on_next(msg)
+
+    def _subscribe_helper(self, msg):
+        self.loop.add_callback(self.publish_socket.send_multipart, msg)
+
+    def _request_helper(self, msg):
+        pass
