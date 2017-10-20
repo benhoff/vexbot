@@ -15,11 +15,13 @@ from vexbot.adapters.shell._lru_cache import _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
 
 
-def _get_attributes(output, attrs):
+def _get_attributes(output, color: str):
+    attr = Attrs(color=color, bgcolor='', bold=False, underline=False,
+                 italic=False, blink=False, reverse=False)
     if output.true_color() and not output.ansi_colors_only():
-        return output._escape_code_cache_true_color[attrs]
+        return output._escape_code_cache_true_color[attr]
     else:
-        return output._escape_code_cache[attrs]
+        return output._escape_code_cache[attr]
 
 
 class AuthorObserver(Observer):
@@ -90,12 +92,12 @@ class PrintObserver(Observer):
         output = application.output
 
         colors = ('ansired', 'ansigreen', 'ansiyellow', 'ansiblue',
-                  'ansifuchsia', 'ansiturquoise', 'ansilightgray')
-        colors = [Attrs(color=c, bgcolor='', bold=False,
-                     underline=False, italic=False, blink=False,
-                     reverse=False) for c in colors]
+                  'ansifuchsia', 'ansiturquoise')
+        self.colors = [_get_attributes(output, color) for color in colors]
+        # FIXME: This is a bit of an antipattern as it relies on `colors`
+        self._grey = _get_attributes(output, 'ansidarkgray')
 
-        self.colors = [_get_attributes(output, a) for a in colors]
+        self._grey = _get_attributes(output, self._grey)
         self.num_colors = len(self.colors)
 
         self._author_color = _LRUCache(100)
@@ -108,7 +110,7 @@ class PrintObserver(Observer):
             author_color = self._author_color[author]
         else:
             author_color = self.colors[randrange(self.num_colors)]
-            self._author_color = author_color
+            self._author_color[author] = author_color
 
         return author_color
 
@@ -122,21 +124,16 @@ class PrintObserver(Observer):
         # Get channel name or default to source
         channel = msg.contents.get('channel', msg.source)
         author = '{} {}: '.format(author, channel)
-        """
-        message = textwrap.fill(msg.contents['message'],
-                                subsequent_indent='    ')
-        """
         message = msg.contents['message']
         time = strftime(self._time_format, gmtime()) + ' '
 
-        print(time + author_color + author + self._reset_color + message)
+        print(self._grey + time + author_color + author + self._reset_color + message)
 
     def on_error(self, *args, **kwargs):
         pass
 
     def on_completed(self, *args, **kwargs):
         pass
-
 
 
 class CommandObserver(Observer):
