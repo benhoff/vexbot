@@ -64,7 +64,7 @@ setup(
         'gui': ['chatimusmaximus'],
         'irc': ['irc3'],
         'socket_io': ['requests', 'websocket-client'],
-        'xmpp': ['sleekxmpp', 'dnspython3'],
+        'xmpp': ['sleekxmpp', 'dnspython'],
         'youtube': ['google-api-python-client'],
         'microphone': ['microphone'],
         'process_name': ['setproctitle'],
