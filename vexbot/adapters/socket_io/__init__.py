@@ -102,6 +102,8 @@ class WebSocket(WebSocketApp):
             if data['name'] == 'message':
                 message = data['args'][0]
                 sender = html.unescape(message['sender'])
+                if sender == self.nick:
+                    return
                 message = html.unescape(message['text'])
                 self.messaging.send_chatter(author=sender, message=message)
             elif data['name'] == 'join':

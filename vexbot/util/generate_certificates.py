@@ -44,6 +44,7 @@ def generate_certificates(base_dir):
             shutil.move(os.path.join(keys_dir, key_file),
                         os.path.join(secret_keys_dir, '.'))
 
+
 def main():
     if zmq.zmq_version_info() < (4,0):
         raise RuntimeError("Security is not supported in libzmq version < 4.0"

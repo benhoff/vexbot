@@ -207,7 +207,6 @@ class Shell(Prompt):
             try:
                 result = callback(*args, **kwargs)
             except Exception as e:
-                print(args, kwargs)
                 self.command_observer.on_error(e, command)
                 return
 
@@ -215,7 +214,6 @@ class Shell(Prompt):
                 message = _pprint.pformat(result)
                 self.messaging.send_command('MSG', message=message, *args, **kwargs)
         else:
-            print(command, args, kwargs)
             self.messaging.send_command(command, *args, **kwargs)
 
     def _handle_service(self,
