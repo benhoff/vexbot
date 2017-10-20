@@ -147,14 +147,14 @@ class Messaging:
 
     def send_heartbeat(self, target: str=''):
         frame = self._create_frame('PING', target)
-        self.scheduler.add_callback(self.publish_socket.send_multipart, frame)
+        self.add_callback(self.publish_socket.send_multipart, frame)
 
     def send_chatter(self, target: str='', from_='', *args, **chatter: dict):
         if from_ == '':
             from_ = self._service_name
 
         frame = create_vex_message(target, self._service_name, 'MSG', **chatter)
-        self.scheduler.add_callback(self.subscription_socket.send_multipart,
+        self.add_callback(self.subscription_socket.send_multipart,
                                     frame) 
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
@@ -196,7 +196,7 @@ class Messaging:
         args = pickle.dumps(args)
         kwargs = pickle.dumps(kwargs)
         frame = (*source, b'', command.encode('ascii'), args, kwargs)
-        self.scheduler.add_callback(self.command_socket.send_multipart, frame)
+        self.add_callback(self.command_socket.send_multipart, frame)
 
     def _get_message_helper(self, socket):
         try:
