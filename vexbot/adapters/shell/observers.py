@@ -1,6 +1,7 @@
 import sys as _sys
 import shlex as _shlex
 from time import gmtime, strftime
+from random import randrange
 
 from gi._error import GError
 from rx import Observer
@@ -88,19 +89,36 @@ class PrintObserver(Observer):
         # Need to instantiate the application before the print observer
         output = application.output
 
-        attr = Attrs(color='ansigreen', bgcolor='', bold=False,
+        colors = ('ansired', 'ansigreen', 'ansiyellow', 'ansiblue',
+                  'ansifuchsia', 'ansiturquoise', 'ansilightgray')
+        colors = [Attrs(color=c, bgcolor='', bold=False,
                      underline=False, italic=False, blink=False,
-                     reverse=False)
+                     reverse=False) for c in colors]
 
-        self._author_color = _get_attributes(output, attr)
+        self.colors = [_get_attributes(output, a) for a in colors]
+        self.num_colors = len(self.colors)
+
+        self._author_color = _LRUCache(100)
         # NOTE: vt100 ONLY
         self._reset_color = '\033[0m'
         self._time_format = "%H:%M:%S"
+
+    def _get_author_color(self, author: str):
+        if author in self._author_color:
+            author_color = self._author_color[author]
+        else:
+            author_color = self.colors[randrange(self.num_colors)]
+            self._author_color = author_color
+
+        return author_color
 
     def on_next(self, msg: Message):
         author = msg.contents.get('author')
         if author is None:
             return
+
+        author_color = self._get_author_color(author)
+
         # Get channel name or default to source
         channel = msg.contents.get('channel', msg.source)
         author = '{} {}: '.format(author, channel)
@@ -111,7 +129,7 @@ class PrintObserver(Observer):
         message = msg.contents['message']
         time = strftime(self._time_format, gmtime()) + ' '
 
-        print(time + self._author_color + author + self._reset_color + message)
+        print(time + author_color + author + self._reset_color + message)
 
     def on_error(self, *args, **kwargs):
         pass
