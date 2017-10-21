@@ -45,6 +45,7 @@ def main(*args, **kwargs):
 
         `configuration_filepath`: filepath for the `ini` configuration
     """
+    # FIXME: This code seems weird
     # Update kwargs with command line arguments
     kwargs = _update_kwargs_with_command_line_arguments(kwargs=kwargs)
 
@@ -59,7 +60,7 @@ def main(*args, **kwargs):
     port_config = _port_configuration_helper(configuration)
 
     # create the messaging
-    messaging = _Messaging(robot_name, kwargs=port_config)
+    messaging = _Messaging(robot_name, **port_config)
     # get the adapter settings
     adapter_settings = _get_adapter_settings_helper(configuration)
 

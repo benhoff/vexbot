@@ -15,7 +15,6 @@ if not irc3:
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
-from vexbot.adapters.scheduler import Scheduler as _Scheduler
 
 
 class IrcInterface:
@@ -29,8 +28,7 @@ class IrcInterface:
         self.messaging = messaging or _Messaging(service_name, run_control_loop=True)
 
 
-        self._messaging_scheduler = self.messaging.scheduler
-        self._scheduler_thread = Thread(target=self._messaging_scheduler.loop.start,
+        self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)
 
         self.irc_bot = irc3.IrcBot.from_config(irc_config)
@@ -38,10 +36,9 @@ class IrcInterface:
         # but seems like overkill
         self.irc_bot.messaging = self.messaging
         self.command_parser = _IrcObserver(self.irc_bot, self.messaging)
-        self._messaging_scheduler.command.subscribe(self.command_parser)
+        self.messaging.command.subscribe(self.command_parser)
 
     def run(self):
-        self.irc_bot.messaging.start()
         self._scheduler_thread.start()
 
         self.irc_bot.create_connection()
@@ -56,11 +53,3 @@ class IrcInterface:
         """
         event_loop.run_forever()
         event_loop.close()
-
-
-def _handle_close(messaging, event_loop):
-    def inner(signum=None, frame=None):
-        event_loop.stop()
-        for task in asyncio.Task.all_tasks():
-            task.cancel()
-    return inner

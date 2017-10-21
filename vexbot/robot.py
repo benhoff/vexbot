@@ -48,6 +48,5 @@ class Robot:
             self._logger.error(e)
             _sys.exit(1)
 
-        self.messaging.start()
         # NOTE: blocking call
-        self.messaging.loop.start()
+        self.messaging.start()

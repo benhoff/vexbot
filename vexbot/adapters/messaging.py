@@ -1,14 +1,58 @@
+import uuid
+import time
 import logging
-import pickle
+import json 
 
 import zmq
+from zmq.eventloop import IOLoop
+from zmq.eventloop.ioloop import PeriodicCallback
+
+from rx.subjects import Subject as _Subject
+
 from vexbot import _get_default_port_config
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
 from vexmessage import create_vex_message, decode_vex_message, Request
 
 from vexbot.util.messaging import get_addresses as _get_addresses
-from vexbot.adapters.scheduler import Scheduler
+from vexbot.scheduler import Scheduler
+
+
+class _HeartbeatReciever:
+    def __init__(self, messaging, loop):
+        self.messaging = messaging
+        self._heart_beat_check = PeriodicCallback(self._get_state, 1000, loop)
+        self._last_bot_uuid = None
+        self.last_message = None
+        self.last_message_time = None
+        self._last_message = time.time()
+
+    def start(self):
+        self._heart_beat_check.start()
+
+    def message_recieved(self, message):
+        self._last_message = time.time()
+        self.last_message = message
+
+    def _get_state(self):
+        if self.last_message is None:
+            return
+
+        uuid = self.last_message.uuid
+        if uuid != self._last_bot_uuid:
+            self.send_identity()
+            self._last_bot_uuid = uuid
+
+    def send_identity(self):
+        identify_frame = (b'', 
+                          b'IDENT',
+                          json.dumps([]).encode('utf8'),
+                          json.dumps({'service_name': self.messaging._service_name}).encode('utf8'))
+
+        if self.messaging._run_control_loop:
+            self.messaging.add_callback(self.messaging.command_socket.send_multipart, identify_frame)
+        else:
+            self.messaging.command_socket.send_multipart(identify_frame)
 
 
 class Messaging:
@@ -28,74 +72,107 @@ class Messaging:
             control_port: 4005
         """
         self._run_control_loop = run_control_loop
-        self.scheduler = Scheduler(self)
+        self.scheduler = Scheduler()
         # Get the default port configurations
-        configuration = _get_default_port_config()
+        self.config = _get_default_port_config()
         # update the default port configurations with the kwargs
-        configuration.update(kwargs)
+        self.config.update(kwargs)
+
         self.publish_socket = None
         self.subscription_socket = None
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
 
-        self._pong_callback = None
-        self.poller = zmq.Poller()
-
         # store the service name and the configuration
         self._service_name = service_name
-        self._configuration = configuration
+        self._uuid = str(uuid.uuid1())
 
         self._socket_filter = socket_filter
-        self._messaging_started = False
         self._logger = logging.getLogger(self._service_name)
 
-        self._socket_factory = _SocketFactory(configuration['ip_address'],
-                                              configuration['protocol'],
+        self._socket_factory = _SocketFactory(self.config['ip_address'],
+                                              self.config['protocol'],
                                               logger=self._logger)
 
-    def start(self):
-        create_n_conn = self._socket_factory.create_n_connect
+        # converts the config from ports to zmq ip addresses
+        self._config_convert_to_address_helper()
+
+        self.loop = IOLoop()
+        self._heartbeat_reciever = _HeartbeatReciever(self, self.loop)
+        self.chatter = _Subject()
+        self.command = _Subject()
+        self.request = _Subject()
+
+    def _config_convert_to_address_helper(self):
+        """
+        converts the config from ports to zmq ip addresses
+        """
         to_address = self._socket_factory.to_address
+        for k, v in self.config.items():
+            if k == 'chatter_subscription_port':
+                continue
+            if k.endswith('port'):
+                self.config[k] = to_address(v)
+
+    def add_callback(self, callback, *args, **kwargs):
+        self.loop.add_callback(callback, *args, **kwargs)
+
+    def start(self):
+        self._setup()
+        if self._run_control_loop:
+            self._heartbeat_reciever.start()
+            return self.loop.start()
+
+    def _setup(self):
+        create_n_conn = self._socket_factory.create_n_connect
 
         # Instantiate all the sockets
-        command_address = to_address(self._configuration['command_port'])
         self.command_socket = create_n_conn(zmq.DEALER,
-                                            command_address,
+                                            self.config['command_port'],
                                             socket_name='command socket')
-
-        control_address = to_address(self._configuration['control_port'])
         self.control_socket = create_n_conn(zmq.DEALER,
-                                            control_address,
+                                            self.config['control_port'],
                                             socket_name='control socket')
-
-        request_address = to_address(self._configuration['request_port'])
         self.request_socket = create_n_conn(zmq.ROUTER,
-                                            request_address,
+                                            self.config['request_port'],
                                             socket_name='request socket')
-
-        publish_address = to_address(self._configuration['chatter_publish_port'])
         self.publish_socket = create_n_conn(zmq.PUB,
-                                            publish_address,
+                                            self.config['chatter_publish_port'],
                                             socket_name='publish socket')
 
         iter_ = self._socket_factory.iterate_multiple_addresses
-        subscription_address = iter_(self._configuration['chatter_subscription_port'])
+        subscription_address = iter_(self.config['chatter_subscription_port'])
         multiple_conn = self._socket_factory.multiple_create_n_connect
         self.subscription_socket = multiple_conn(zmq.SUB,
                                                  subscription_address,
                                                  socket_name='subscription socket')
 
         self.set_socket_filter(self._socket_filter)
-        identify_frame = (b'', b'IDENT', pickle.dumps([]), pickle.dumps({'service_name': self._service_name}))
-
         if self._run_control_loop:
-            self.scheduler.setup()
-            self.scheduler.add_callback(self.command_socket.send_multipart, identify_frame)
-        else:
-            self.command_socket.send_multipart(identify_frame)
+            self._setup_scheduler()
+        self._heartbeat_reciever.send_identity()
 
-        self._messaging_started = True
+    def add_callback(self, callback, *args, **kwargs):
+        self.loop.add_callback(callback, *args, **kwargs)
+
+    def _setup_scheduler(self):
+        # Control Socket
+        self.scheduler.register_socket(self.control_socket,
+                                       self.loop,
+                                       self._control_helper)
+        # Command Socket
+        self.scheduler.register_socket(self.command_socket,
+                                       self.loop,
+                                       self._command_helper)
+        # Subscribe Socket
+        self.scheduler.register_socket(self.subscription_socket,
+                                       self.loop,
+                                       self._subscribe_helper)
+        # Request Socket
+        self.scheduler.register_socket(self.request_socket,
+                                       self.loop,
+                                       self._request_helper)
 
     def set_socket_filter(self, filter_):
         self._socket_filter = filter_
@@ -104,9 +181,9 @@ class Messaging:
             self.subscription_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
 
     def send_chatter(self, target: str='', **msg):
-        frame = create_vex_message(target, self._service_name, 'MSG', **msg)
+        frame = create_vex_message(target, self._service_name, self._uuid, **msg)
         if self._run_control_loop:
-            self.scheduler.add_callback(self.publish_socket.send_multipart, frame)
+            self.add_callback(self.publish_socket.send_multipart, frame)
         else:
             self.publish_socket.send_multipart(frame)
 
@@ -116,11 +193,11 @@ class Messaging:
         """
         command = command.encode('ascii')
         # target = target.encode('ascii')
-        args = pickle.dumps(args)
-        kwargs = pickle.dumps(kwargs)
+        args = json.dumps(args).encode('utf8')
+        kwargs = json.dumps(kwargs).encode('utf8')
         frame = (b'', command, args, kwargs)
         if self._run_control_loop:
-            self.scheduler.add_callback(self.command_socket.send_multipart, frame)
+            self.add_callback(self.command_socket.send_multipart, frame)
         else:
             self.command_socket.send_multipart(frame)
 
@@ -147,14 +224,14 @@ class Messaging:
     def send_ping(self, target: str=''):
         frame = (target.encode('ascii'), b'PING')
         if self._run_control_loop:
-            self.scheduler.add_callback(self.command_socket.send_multipart, frame)
+            self.add_callback(self.command_socket.send_multipart, frame)
         else:
             self.command_socket.send_multipart(frame)
 
     def _send_pong(self, addresses: list):
         addresses.append(b'PONG')
         if self._run_control_loop:
-            self.scheduler.add_callback(self.command_socket.send_multipart,
+            self.add_callback(self.command_socket.send_multipart,
                                         addresses)
         else:
             self.command_socket.send_multipart(addresses)
@@ -185,9 +262,8 @@ class Messaging:
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
         # FIXME: wrap in try/catch and handle gracefully
-        # NOTE: pickle is NOT safe
         try:
-            args = pickle.loads(args)
+            args = json.loads(args.decode('utf8'))
         except EOFError:
             args = ()
         # need to see if we have kwargs, so we'll try and pop them off
@@ -199,9 +275,8 @@ class Messaging:
             pass
         else:
             # FIXME: wrap in try/catch and handle gracefully
-            # NOTE: pickle is NOT safe
             try:
-                kwargs = pickle.loads(kwargs)
+                kwargs = json.loads(kwargs.decode('utf8'))
             except EOFError:
                 kwargs = {}
         
@@ -211,3 +286,31 @@ class Messaging:
         request.args = args
         request.kwargs = kwargs
         return request
+
+    def _control_helper(self, msg):
+        request = self.handle_raw_command(msg)
+
+        if request is None:
+            return
+
+        self.control.on_next(request)
+
+    def _command_helper(self, msg):
+        request = self.handle_raw_command(msg)
+
+        if request is None:
+            return
+
+        self.command.on_next(request)
+
+    def _subscribe_helper(self, msg):
+        # TODO: error log? sometimes it's just a subscription notice
+        if len(msg) == 1:
+            return
+
+        msg = decode_vex_message(msg)
+        self._heartbeat_reciever.message_recieved(msg)
+        self.chatter.on_next(msg)
+
+    def _request_helper(self, msg):
+        print(msg)

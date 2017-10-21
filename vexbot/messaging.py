@@ -1,9 +1,12 @@
+import time
+import uuid
 import logging
-import pickle
+import json
 
 import zmq
 import zmq.devices
 from zmq.eventloop import IOLoop
+from zmq.eventloop.ioloop import PeriodicCallback
 
 from rx.subjects import Subject as _Subject
 
@@ -13,8 +16,29 @@ from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexbot.util.messaging import get_addresses as _get_addresses
 from vexbot.adapters.shell._lru_cache import _LRUCache
 
-from vexmessage import create_vex_message, decode_vex_message, Request
+from vexmessage import create_vex_message, decode_vex_message, Request, Message
 
+
+
+class _HeartbeatHelper:
+    def __init__(self, messaging, loop):
+        self.messaging = messaging
+        self.last_message_time = time.time()
+        self._heart_beat = PeriodicCallback(self._send_state, 1000, loop)
+
+    def start(self):
+        self._heart_beat.start()
+
+    def message_recieved(self):
+        self.last_message_time = time.time()
+
+    def _send_state(self):
+        time_now = time.time()
+        delta_time = time_now - self.last_message_time
+        if delta_time > 1.5:
+            msg = create_vex_message('', self.messaging._service_name, self.messaging.uuid)
+            self.messaging.add_callback(self.messaging.subscription_socket.send_multipart, msg)
+            self.last_message_time = time_now
 
 class Messaging:
     # TODO: add an `update_messaging` command
@@ -30,21 +54,21 @@ class Messaging:
             control_port: 4005
         """
         # Defaults. Can be overriden by the use of `kwargs`
-        configuration = _get_default_port_config()
+        self.config = _get_default_port_config()
         # override the default with the `kwargs`
-        configuration.update(kwargs)
-
-        # Store the addresses of publish, subscription, and heartbeat sockets
-        self.config = configuration
+        self.config = {**self.config, **kwargs}
         self._service_name = botname
+        self.uuid = str(uuid.uuid1())
 
         self.subscription_socket = None
         self.publish_socket = None
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
+
         self.loop = IOLoop()
         self.scheduler = Scheduler()
+        self._heartbeat_helper = _HeartbeatHelper(messaging=self, loop=self.loop)
 
         # The poller polls each socket
         self._logger = logging.getLogger(__name__)
@@ -55,17 +79,24 @@ class Messaging:
                                               self.config['protocol'],
                                               logger=self._logger)
 
+        # converts from ports to zmq ip addresses
+        self._config_convert_to_address_helper()
+        self._address_map = _LRUCache(100)
+
+        self.control = _Subject()
+        self.command = _Subject()
+        self.chatter = _Subject()
+
+    def _config_convert_to_address_helper(self):
+        """
+        converts the config from ports to zmq ip addresses
+        """
         to_address = self._socket_factory.to_address
         for k, v in self.config.items():
             if k == 'chatter_subscription_port':
                 continue
             if k.endswith('port'):
                 self.config[k] = to_address(v)
-
-        self._address_map = _LRUCache(100)
-        self.control = _Subject()
-        self.command = _Subject()
-        self.chatter = _Subject()
 
     def _get_sockets(self) -> tuple:
         sockets = (self.command_socket,
@@ -83,6 +114,11 @@ class Messaging:
                 socket.close()
 
     def start(self):
+        self._setup()
+        self._heartbeat_helper.start()
+        return self.loop.start()
+
+    def _setup(self):
         """
         starts/instantiates the messaging
         """
@@ -145,23 +181,19 @@ class Messaging:
                                        self.loop,
                                        self._request_helper)
 
-    def send_heartbeat(self, target: str=''):
-        frame = self._create_frame('PING', target)
-        self.add_callback(self.publish_socket.send_multipart, frame)
-
     def send_chatter(self, target: str='', from_='', *args, **chatter: dict):
         if from_ == '':
             from_ = self._service_name
 
-        frame = create_vex_message(target, self._service_name, 'MSG', **chatter)
+        frame = create_vex_message(target, self._service_name, self._uuid, **chatter)
         self.add_callback(self.subscription_socket.send_multipart,
                                     frame) 
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
         target = target.encode('ascii')
         command = command.encode('ascii')
-        args = pickle.dumps(args)
-        kwargs = pickle.dumps(kwargs)
+        args = json.dumps(args).encode('utf8')
+        kwargs = json.dumps(kwargs).encode('utf8')
         frame = (target, command, args, kwargs)
         self.command_socket.send_multipart(frame)
 
@@ -181,8 +213,8 @@ class Messaging:
         if address is None:
             return
 
-        args = pickle.dumps(args)
-        kwargs = pickle.dumps(kwargs)
+        args = json.dumps(args).encode('utf8')
+        kwargs = json.dumps(kwargs).encode('utf8')
 
         # TODO: test that this works
         # FIXME: pop out command?
@@ -193,8 +225,8 @@ class Messaging:
         """
         Used in bot observer `on_next` method
         """
-        args = pickle.dumps(args)
-        kwargs = pickle.dumps(kwargs)
+        args = json.dumps(args).encode('utf8')
+        kwargs = json.dumps(kwargs).encode('utf8')
         frame = (*source, b'', command.encode('ascii'), args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
@@ -234,8 +266,7 @@ class Messaging:
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
         # FIXME: wrap in try/catch and handle gracefully
-        # NOTE: pickle is NOT safe
-        args = pickle.loads(args)
+        args = json.loads(args.decode('utf8'))
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
@@ -243,8 +274,7 @@ class Messaging:
             kwargs = {}
         else:
             # FIXME: wrap in try/catch and handle gracefully
-            # NOTE: pickle is NOT safe
-            kwargs = pickle.loads(kwargs)
+            kwargs = json.loads(kwargs.decode('utf8'))
         # TODO: use better names, request? command
         request = Request(command, addresses)
         request.args = args
@@ -271,12 +301,15 @@ class Messaging:
         self.command.on_next(request)
 
     def _publish_helper(self, msg):
-        self.loop.add_callback(self.subscription_socket.send_multipart, msg)
         msg = decode_vex_message(msg)
         self.chatter.on_next(msg)
+        # FIXME: Awkward
+        msg = create_vex_message(msg.target, msg.source, self.uuid, **msg.contents)
+        self.loop.add_callback(self.subscription_socket.send_multipart, msg)
+        self._heartbeat_helper.message_recieved()
 
     def _subscribe_helper(self, msg):
         self.loop.add_callback(self.publish_socket.send_multipart, msg)
 
     def _request_helper(self, msg):
-        pass
+        print(msg)

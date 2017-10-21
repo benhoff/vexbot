@@ -34,7 +34,7 @@ class Youtube:
         self.api = _youtube_authentication(client_secret_filepath, scope)
 
     def run(self):
-        self.messaging.start()
+        self.messaging._setup()
         parts = 'snippet'
         livestream_response = self.api.liveBroadcasts().list(mine=True,
                                                              part=parts,

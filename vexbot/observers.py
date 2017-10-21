@@ -39,6 +39,10 @@ class BotObserver(Observer):
         except KeyError:
             pass
 
+        # FIXME:
+        if target == self.messaging._service_name:
+            return
+
         source = self.messaging._address_map[target]
         # FIXME: Figure out a better API for this
         self.messaging.send_control_response(source, command, *args, **kwargs)

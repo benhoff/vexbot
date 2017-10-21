@@ -5,7 +5,6 @@ import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from vexbot.adapters.messaging import Messaging
-from vexbot.adapters.scheduler import Scheduler
 
 
 class StackOverflow:
@@ -18,7 +17,7 @@ class StackOverflow:
 
     def run(self):
         # start messaging
-        self.messaging.start()
+        self.messaging._setup()
         # Get the chat block
         comment_block = self.driver.find_element_by_id('chat')
         # Get the comments from the chat block
@@ -68,9 +67,11 @@ class StackOverflow:
         except Exception:
             pass
 
+
 def main():
     s = StackOverflow()
     s.run()
+
 
 if __name__ == '__main__':
     main()

@@ -34,14 +34,12 @@ class WebSocket(WebSocketApp):
         self.log.setLevel(0)
 
         self.messaging = Messaging(service_name, run_control_loop=True)
-        self._messaging_scheduler = self.messaging.scheduler
-        self._scheduler_thread = Thread(target=self._messaging_scheduler.loop.start, 
+        self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)
 
-        self.messaging.start()
         self._scheduler_thread.start()
         self.observer = SocketObserver(self, self.messaging)
-        self._messaging_scheduler.command.subscribe(self.observer)
+        self.messaging.command.subscribe(self.observer)
 
         self._streamer_name = streamer_name
         self.namespace = namespace

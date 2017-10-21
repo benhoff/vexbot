@@ -12,7 +12,6 @@ from prompt_toolkit.contrib.completers import WordCompleter
 from prompt_toolkit.document import _FIND_CURRENT_WORD_INCLUDE_TRAILING_WHITESPACE_RE
 
 from vexbot.adapters.messaging import Messaging as _Messaging
-from vexbot.adapters.scheduler import Scheduler
 from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 
@@ -53,8 +52,7 @@ class Shell(Prompt):
         self.messaging = _Messaging('shell', run_control_loop=True)
 
         # NOTE: should be able to get rid of these lines with a cleaner api
-        self._messaging_scheduler = self.messaging.scheduler
-        self._thread = _Thread(target=self._messaging_scheduler.loop.start,
+        self._thread = _Thread(target=self.messaging.start,
                                daemon=True)
 
         self.shebangs = ['!', ]
@@ -89,10 +87,9 @@ class Shell(Prompt):
         self.author_observer = AuthorObserver(add_word, remove_word)
         self.service_observer = ServiceObserver(add_word, remove_word)
 
-        # FIXME: This API is awkward
-        self._print_subscription = self._messaging_scheduler.subscribe.subscribe(self.print_observer)
-        self._messaging_scheduler.subscribe.subscribe(self.author_observer)
-        self._messaging_scheduler.subscribe.subscribe(self.service_observer)
+        self._print_subscription = self.messaging.chatter.subscribe(self.print_observer)
+        self.messaging.chatter.subscribe(self.author_observer)
+        self.messaging.chatter.subscribe(self.service_observer)
 
     def is_command(self, text: str) -> bool:
         """

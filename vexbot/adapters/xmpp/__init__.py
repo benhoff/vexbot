@@ -29,8 +29,6 @@ class XMPPBot(ClientXMPP):
         self.messaging = Messaging(service_name,
                                    run_control_loop=True)
 
-        self.messaging.start()
-
         self.room = room
         self.nick = bot_nick
         # self.log = logging.getLogger(__file__)
@@ -41,7 +39,7 @@ class XMPPBot(ClientXMPP):
 
         self.add_event_handler("session_start", self.session_start)
         self.add_event_handler("groupchat_message", self.muc_message)
-        self._thread = Thread(target=self.messaging.scheduler.loop.start, daemon=True)
+        self._thread = Thread(target=self.messaging.start, daemon=True)
         self._thread.start()
 
     def _register_plugin_helper(self):

@@ -145,7 +145,6 @@ class CommandObserver(Observer):
         self.subprocess_manager = SubprocessManager()
         self._prompt = prompt
         self.messaging = messaging
-        self.messaging.start()
 
         self._bot_callback = None
         self._no_bot_callback = None
@@ -191,7 +190,7 @@ class CommandObserver(Observer):
     def do_authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_observer.authors.keys())
 
-    def do_change_color(self, *args, **kwargs):
+    def do_color(self, *args, **kwargs):
         author = None
         try:
             author = args[0]
