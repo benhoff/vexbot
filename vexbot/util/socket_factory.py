@@ -1,6 +1,13 @@
 import sys as _sys
 import zmq as _zmq
+from os import path
 
+from zmq.auth.thread import ThreadAuthenticator
+from zmq.auth.ioloop import IOLoopAuthenticator
+
+from vexbot.util.get_certificate_filepath import (get_certificate_filepath,
+                                                  get_vexbot_certificate_filepath,
+                                                  get_client_certificate_filepath)
 
 class SocketFactory:
     """
@@ -15,12 +22,35 @@ class SocketFactory:
                  ip_address: str,
                  protocol: str='tcp',
                  context: 'zmq.Context'=None,
-                 logger: 'logging.Logger'=None):
+                 logger: 'logging.Logger'=None,
+                 loop=None,
+                 auth_whitelist: list='127.0.0.1'):
 
         self.ip_address = ip_address
         self.protocol = protocol
         self.context = context or _zmq.Context.instance()
         self.logger = logger
+        self._server_certs = (None, None)
+
+        if loop is None:
+            self.auth = ThreadAuthenticator(self.context)
+        else:
+            self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
+
+        # allow all local host
+        self.auth.allow(auth_whitelist)
+        self._base_filepath = get_certificate_filepath()
+        public_key_location = path.join(self._base_filepath, 'public_keys')
+        self.auth.configure_curve(domain='*', location=public_key_location)
+        self.auth.start()
+
+    def _set_server_certs(self, any_=True):
+        secret_filepath, secret = get_vexbot_certificate_filepath()
+        if not secret and not any_:
+            # FIXME: This err sucks. Also, build in no Auth case
+            err = 'Could not find the vexbot certificates. Did you generate them'
+            raise FileNotFoundError(err)
+        self._server_certs = _zmq.auth.load_certificate(secret_filepath)
 
     def create_n_connect(self,
                          socket_type,
@@ -37,13 +67,30 @@ class SocketFactory:
             used for troubleshooting/logging
         """
         socket = self.context.socket(socket_type)
+        if not any(self._server_certs):
+            self._set_server_certs(bind)
         if bind:
+            if self._server_certs[1] is None:
+                # FIXME: This error sucks
+                raise FileNotFoundError('Server Secret File Not Found!')
+            public, private = self._server_certs
+        else:
+            # NOTE: This raises a `FileNotFoundError` currently if not found
+            secret_filepath = get_client_certificate_filepath()
+            public, private = _zmq.auth.load_certificate(secret_filepath)
+
+        socket.curve_secretkey = private
+        socket.curve_publickey = public
+
+        if bind:
+            socket.curve_server = True
             try:
                 socket.bind(address)
             except _zmq.error.ZMQError:
                 self._handle_error(on_error, address, socket_name)
                 socket = None
         else:  # connect the socket
+            socket.curve_serverkey = self._server_certs[0]
             socket.connect(address)
 
         return socket

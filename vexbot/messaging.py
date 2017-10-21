@@ -77,7 +77,8 @@ class Messaging:
         # protocol for socket creation.
         self._socket_factory = _SocketFactory(self.config['ip_address'],
                                               self.config['protocol'],
-                                              logger=self._logger)
+                                              logger=self._logger,
+                                              loop=self.loop)
 
         # converts from ports to zmq ip addresses
         self._config_convert_to_address_helper()
@@ -190,8 +191,8 @@ class Messaging:
                                     frame) 
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
-        target = target.encode('ascii')
-        command = command.encode('ascii')
+        target = target.encode('utf-8')
+        command = command.encode('utf-8')
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
         frame = (target, command, args, kwargs)
@@ -227,7 +228,7 @@ class Messaging:
         """
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
-        frame = (*source, b'', command.encode('ascii'), args, kwargs)
+        frame = (*source, b'', command.encode('utf8'), args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
     def _get_message_helper(self, socket):
@@ -256,7 +257,7 @@ class Messaging:
         # remove the address information from the message
         message = message[address_length:]
         # the command name is the first string in message
-        command = message.pop(0).decode('ascii')
+        command = message.pop(0).decode('utf8')
 
         # Respond to PING commands
         if command == 'PING':

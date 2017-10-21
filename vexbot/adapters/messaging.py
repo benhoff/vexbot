@@ -90,15 +90,19 @@ class Messaging:
 
         self._socket_filter = socket_filter
         self._logger = logging.getLogger(self._service_name)
+        self.loop = IOLoop()
 
-        self._socket_factory = _SocketFactory(self.config['ip_address'],
-                                              self.config['protocol'],
-                                              logger=self._logger)
+        socket = {'ip_address': self.config['ip_address'],
+                  'protocol': self.config['protocol'],
+                  'logger': self._logger}
 
+        if run_control_loop:
+            socket['loop'] = self.loop
+
+        self._socket_factory = _SocketFactory(**socket)
         # converts the config from ports to zmq ip addresses
         self._config_convert_to_address_helper()
 
-        self.loop = IOLoop()
         self._heartbeat_reciever = _HeartbeatReciever(self, self.loop)
         self.chatter = _Subject()
         self.command = _Subject()
@@ -151,7 +155,6 @@ class Messaging:
         self.set_socket_filter(self._socket_filter)
         if self._run_control_loop:
             self._setup_scheduler()
-        self._heartbeat_reciever.send_identity()
 
     def add_callback(self, callback, *args, **kwargs):
         self.loop.add_callback(callback, *args, **kwargs)
@@ -191,7 +194,7 @@ class Messaging:
         """
         For request bot to perform some action
         """
-        command = command.encode('ascii')
+        command = command.encode('utf8')
         # target = target.encode('ascii')
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
@@ -222,7 +225,7 @@ class Messaging:
         raise RuntimeError('Not implemented')
 
     def send_ping(self, target: str=''):
-        frame = (target.encode('ascii'), b'PING')
+        frame = (target.encode('utf8'), b'PING')
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart, frame)
         else:
@@ -252,12 +255,12 @@ class Messaging:
 
     def handle_raw_command(self, message) -> Request:
         # blank string
-        pong = message.pop(0).decode('ascii')
+        pong = message.pop(0).decode('utf8')
         # FIXME
         if pong == 'PONG':
             return
         # command? Not sure if we want to do it this way.
-        command = message.pop(0).decode('ascii')
+        command = message.pop(0).decode('utf8')
 
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
