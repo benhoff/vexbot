@@ -1,10 +1,9 @@
 [Unit]
-Description=Helper robot
+Description=Socket IO Adpater for Vexbot
 
 [Service]
 Type=simple
-WorkingDirectory=/home/hoff/vexbot
-ExecStart=vexbot_socket_io
+ExecStart=/path/to/socket_io/binary /path/to/config
 StandardOutput=syslog
 StandardError=syslog
 

@@ -1,10 +1,9 @@
 [Unit]
-Description=Helper robot
+Description=Youtube Adapter for Vexbot
 
 [Service]
 Type=simple
-WorkingDirectory=/home/hoff/vexbot
-ExecStart=vexbot_youtube
+ExecStart=/path/to/youtube/script /path/to/config/file
 StandardOutput=syslog
 StandardError=syslog
 
