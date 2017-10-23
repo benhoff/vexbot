@@ -10,22 +10,10 @@ except ImportError:
 from vexbot import _port_configuration_helper, _get_adapter_settings_helper
 
 from vexbot.robot import Robot
-from vexbot.util import get_kwargs as _get_kwargs
-from vexbot.util import get_config as _get_config
+from vexbot.util.get_kwargs import get_kwargs as _get_kwargs
+from vexbot.util.get_config import get_config as _get_config
 
 from vexbot.messaging import Messaging as _Messaging
-
-
-def _update_kwargs_with_command_line_arguments(**kwargs):
-    command_line_kwargs = _get_kwargs.get_kwargs()
-    kwargs.update(command_line_kwargs)
-    return kwargs
-
-
-def _get_configuration_from_file(**kwargs):
-    config_filepath = kwargs.get('configuration_filepath')
-    configuration = _get_config.get_config(filepath=config_filepath)
-    return configuration
 
 
 def _configuration_sane_defaults(configuration: dict) -> (dict, str):
@@ -45,20 +33,13 @@ def main(*args, **kwargs):
 
         `configuration_filepath`: filepath for the `ini` configuration
     """
-    # FIXME: This code seems weird
-    # Update kwargs with command line arguments
-    kwargs = _update_kwargs_with_command_line_arguments(kwargs=kwargs)
-
+    kwargs = {**kwargs, **_get_kwargs()}
     # configuration is from an `ini` file
-    # NOTE: we are done with kwargs from this point on.
-    configuration = _get_configuration_from_file(kwargs=kwargs)
-
+    configuration = _get_config(kwargs.get('configuration_filepath')
     # setup some sane defaults
     _, robot_name = _configuration_sane_defaults(configuration)
-
     # Get the port configuration out of the configuration
     port_config = _port_configuration_helper(configuration)
-
     # create the messaging
     messaging = _Messaging(robot_name, **port_config)
     # get the adapter settings
@@ -73,5 +54,4 @@ def main(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    debug = {'kill_on_exit': True}
-    main(**debug)
+    main()

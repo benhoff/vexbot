@@ -20,13 +20,11 @@ from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
 class IrcInterface:
     def __init__(self,
                  service_name: str,
-                 messaging: _Messaging=None,
                  irc_config: dict=None,
                  **kwargs):
 
         # FIXME: Should be passing in some of the kwargs here
-        self.messaging = messaging or _Messaging(service_name, run_control_loop=True)
-
+        self.messaging = _Messaging(service_name, run_control_loop=True)
 
         self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)

@@ -17,7 +17,6 @@ except ImportError as e:
 class Robot:
     def __init__(self,
                  messaging: _Messaging=None,
-                 command_observer: _BotObserver=None,
                  subprocess_manager=None):
 
         self.messaging = messaging
@@ -35,11 +34,9 @@ class Robot:
 
         self.subprocess_manager = subprocess_manager
 
-        if command_observer is None:
-            command_observer = _BotObserver(messaging,
-                                            self.subprocess_manager)
+        self.command_observer = _BotObserver(messaging,
+                                             self.subprocess_manager)
 
-        self.command_observer = command_observer
         self.messaging.command.subscribe(self.command_observer)
 
     def run(self):

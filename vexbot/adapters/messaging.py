@@ -264,7 +264,6 @@ class Messaging:
 
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
-        # FIXME: wrap in try/catch and handle gracefully
         try:
             args = json.loads(args.decode('utf8'))
         except EOFError:
@@ -277,7 +276,6 @@ class Messaging:
         except IndexError:
             pass
         else:
-            # FIXME: wrap in try/catch and handle gracefully
             try:
                 kwargs = json.loads(kwargs.decode('utf8'))
             except EOFError:
