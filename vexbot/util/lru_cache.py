@@ -5,7 +5,7 @@ class _dlnode(object):
 
 
 # https://github.com/jlhutch/pylru
-class _LRUCache(object):
+class LRUCache(object):
 
     def __init__(self, size, add_callback=None, delete_callback=None):
 

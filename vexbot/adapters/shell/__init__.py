@@ -15,7 +15,7 @@ from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 
-from vexbot.adapters.shell._lru_cache import _LRUCache
+from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
                                              AuthorObserver,

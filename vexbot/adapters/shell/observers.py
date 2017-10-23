@@ -11,7 +11,7 @@ from prompt_toolkit.styles import Attrs
 from vexmessage import Message
 
 from vexbot.adapters.shell.parser import parse
-from vexbot.adapters.shell._lru_cache import _LRUCache
+from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
 
 

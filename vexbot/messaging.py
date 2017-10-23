@@ -14,7 +14,7 @@ from vexbot import _get_default_port_config
 from vexbot.scheduler import Scheduler
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexbot.util.messaging import get_addresses as _get_addresses
-from vexbot.adapters.shell._lru_cache import _LRUCache
+from vexbot.util.lru_cache import LRUCache as _LRUCache
 
 from vexmessage import create_vex_message, decode_vex_message, Request, Message
 
