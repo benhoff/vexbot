@@ -35,7 +35,7 @@ def main(*args, **kwargs):
     """
     kwargs = {**kwargs, **_get_kwargs()}
     # configuration is from an `ini` file
-    configuration = _get_config(kwargs.get('configuration_filepath')
+    configuration = _get_config(kwargs.get('configuration_filepath'))
     # setup some sane defaults
     _, robot_name = _configuration_sane_defaults(configuration)
     # Get the port configuration out of the configuration
