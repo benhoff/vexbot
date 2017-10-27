@@ -27,8 +27,7 @@ class BotObserver(Observer):
 
         return result
 
-    # FIXME: this API is brutal
-    def do_CMD(self, *args, **kwargs):
+    def do_REMOTE(self, *args, **kwargs):
         try:
             target = kwargs.pop('target')
             command = kwargs.pop('remote_command')
@@ -76,11 +75,12 @@ class BotObserver(Observer):
     def do_stop(self, name: str, mode: str='replace'):
         self.subprocess_manager.stop(name, mode)
 
-    def on_next(self, item: Request):
-        command = item.command
-        args = item.args
-        kwargs = item.kwargs
-        source = item.source
+    def _handle_command(self,
+                        command: str,
+                        source: str,
+                        *args,
+                        **kwargs) -> None:
+
         try:
             callback = self._commands[command]
         except KeyError:
@@ -98,6 +98,13 @@ class BotObserver(Observer):
         source = item.source
         # FIXME: figure out a better API for this
         self.messaging.send_control_response(source, command, result=result)
+
+    def on_next(self, item: Request) -> None:
+        command = item.command
+        args = item.args
+        kwargs = item.kwargs
+        source = item.source
+        self._handle_command(command, source, *args, **kwargs)
 
     # FIXME: do better logging
     def on_error(self, *args, **kwargs):
