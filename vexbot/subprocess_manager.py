@@ -1,3 +1,4 @@
+import time
 # import atexit
 # import signal
 
@@ -16,6 +17,21 @@ def _name_helper(name: str):
     if name.endswith(('.service', '.socket', '.target')):
         return name
     return name + '.service'
+
+
+def _pretty_time_delta(seconds):
+    seconds = abs(int(seconds))
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    if days > 0:
+        return '%dday %dh' % (days, hours)
+    elif hours > 0:
+        return '%dh %dmin' % (hours, minutes)
+    elif minutes > 0:
+        return '%dmin %dsec' % (minutes, seconds)
+    else:
+        return '{}s'.format(seconds)
 
 
 # TODO: think of a better name
@@ -64,9 +80,19 @@ class SubprocessManager:
         name = _name_helper(name)
         unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
         # NOTE: what systemctl status shows
-        # irc.service - IRC Client
+        # freenode.service - IRC Client
         # active (running) since Tue 2017-10-17 10:36:03 UTC; 19s ago
-        return '{}: {} ({})'.format(unit.Id, unit.ActiveState, unit.SubState)
+        time_start = unit.ConditionTimestamp/1000000
+        delta = time.time() - time_start
+        delta = _pretty_time_delta(delta)
+
+        fo = '%a %b %d %H:%M:%S %Y'
+        time_stamp = time.strftime(fo, time.gmtime(time_start))
+        return '{}: {} ({}) since {}; {} ago'.format(unit.Id,
+                                                     unit.ActiveState,
+                                                     unit.SubState,
+                                                     time_stamp,
+                                                     delta)
 
     def get_units(self):
         return self.systemd.ListUnits()
