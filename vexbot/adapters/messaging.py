@@ -22,16 +22,15 @@ class _HeartbeatReciever:
     def __init__(self, messaging, loop):
         self.messaging = messaging
         self._heart_beat_check = PeriodicCallback(self._get_state, 1000, loop)
-        self._last_bot_uuid = None
         self.last_message = None
-        self.last_message_time = None
-        self._last_message = time.time()
+        self._last_bot_uuid = None
+        self._last_message_time = time.time()
 
     def start(self):
         self._heart_beat_check.start()
 
     def message_recieved(self, message):
-        self._last_message = time.time()
+        self._last_message_time = time.time()
         self.last_message = message
 
     def _get_state(self):
