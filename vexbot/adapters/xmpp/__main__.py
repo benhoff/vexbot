@@ -10,15 +10,17 @@ def _get_args():
     return parser.parse_args()
 
 
-def main():
+def main(**kwargs)
     args = _get_args()
     config = configparser.ConfigParser() 
     config.read(args.configuration_file)
     kwargs = config['xmpp']
+    # TODO: validate this works like I think it does
+    connection = config.get('connection', fallback={})
 
     jid = '{}@{}/{}'.format(kwargs['local'], kwargs['domain'], kwargs['resource'])
-    xmpp_bot = XMPPBot(jid, **kwargs)
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)-8s %(message)s')
+    xmpp_bot = XMPPBot(jid, connection=connection, **kwargs)
+    # logging.basicConfig(level=logging.DEBUG, format='%(levelname)-8s %(message)s')
     xmpp_bot.connect()
     try:
         xmpp_bot.process(block=True)

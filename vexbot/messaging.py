@@ -46,7 +46,7 @@ class Messaging:
         """
         `kwargs`:
             protocol:   'tcp'
-            ip_address: '127.0.0.1'
+            address: '*'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]
             command_port: 4002
@@ -73,9 +73,9 @@ class Messaging:
         # The poller polls each socket
         self._logger = logging.getLogger(__name__)
 
-        # Socket factory keeps the zmq context, default ip_address and
+        # Socket factory keeps the zmq context, default address and
         # protocol for socket creation.
-        self._socket_factory = _SocketFactory(self.config['ip_address'],
+        self._socket_factory = _SocketFactory(self.config['address'],
                                               self.config['protocol'],
                                               logger=self._logger,
                                               loop=self.loop)
@@ -304,7 +304,7 @@ class Messaging:
     def _publish_helper(self, msg):
         msg = decode_vex_message(msg)
         self.chatter.on_next(msg)
-        # FIXME: Awkward
+        # FIXME: Awkward way to replace the uuid by creating a new vexmessage
         msg = create_vex_message(msg.target, msg.source, self.uuid, **msg.contents)
         self.loop.add_callback(self.subscription_socket.send_multipart, msg)
         self._heartbeat_helper.message_recieved()

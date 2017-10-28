@@ -39,7 +39,8 @@ def main(**kwargs):
     if not message_plug in config['includes']:
         config['includes'].append(message_plug)
     service_name = config.get('service_name', 'irc')
-    interface = IrcInterface(service_name, irc_config=config)
+    connection = config.get('connection', {})
+    interface = IrcInterface(service_name, irc_config=config, connection=connection)
 
     interface.run()
     sys.exit()
@@ -76,6 +77,7 @@ def _from_argv(cls, argv=None, **kwargs) -> dict:
         verbose=args['--verbose'],
         debug=args['--debug'],
     )
+    print(cfg)
     cfg.update(kwargs)
     if args['--host']:  # pragma: no cover
         host = args['--host']

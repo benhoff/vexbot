@@ -25,15 +25,18 @@ except ImportError as e:
 
 class WebSocket(WebSocketApp):
     def __init__(self,
-                 streamer_name,
-                 namespace,
-                 website_url,
-                 service_name):
+                 streamer_name: str,
+                 namespace: str,
+                 website_url: str,
+                 service_name: str,
+                 connection: dict=None):
 
         self.log = logging.getLogger(__name__)
         self.log.setLevel(0)
+        if connection is None:
+            connection = {}
 
-        self.messaging = Messaging(service_name, run_control_loop=True)
+        self.messaging = Messaging(service_name, run_control_loop=True, **connection)
         self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)
 

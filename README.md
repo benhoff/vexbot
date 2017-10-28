@@ -4,19 +4,41 @@
 
 Pluggable bot
 
-Under heavy development. 
-Not ready for general use outside of driving [chatimusmaximus](https://github.com/benhoof/chatimusmaximus)
+Under development. Very useable but currently not feature complete.
 
-Requires python 3.5
+## Requirements
+Requires python 3.5 for asyncio.
+See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requires:
+[PyGI](https://wiki.gnome.org/Projects/PyGObject) which needs to be installed from your distribution's repoistory,
+[GLib](https://developer.gnome.org/glib/) 2.46+
+[girepository](https://wiki.gnome.org/Projects/GObjectIntrospection) 1.46+
+
+These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus.
 
 ## Installation
-recommend running out of a virutalenv
+`$ python3 -m venv <DIR>`
+`$ source <DIR>/bin/activate`
 
-So activate your virual environment and run:
+If you don't plan to use the process manager functions (start services from the bot):
 
-`pip3 install vexbot`
+`$ pip install vexbot`
+
+if you want to use the process manager functions and have the above requirements met, run this command instaed.
+`pip install vexbot[process_manager]`
+
+You'll also need a DBUS user session. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
+
+`$ apt-get install dbus-user-session`
+
+if you intend to use `vexshell`:
+`$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
 
 ## Configuring
+
+Make sure your virtual environment is activated. Then run:
+
+`$ vexbot_generate_certificates`
+
 Base your configuration on the [default settings](https://github.com/benhoff/vexbot/blob/master/vexbot/default_settings.yml). The configuration handeling hasn't been user proofed so if you're getting errors, that's a good place to start.
 
 ### Configuring Addresses

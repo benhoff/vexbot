@@ -21,10 +21,13 @@ class IrcInterface:
     def __init__(self,
                  service_name: str,
                  irc_config: dict=None,
+                 connection: dict=None,
                  **kwargs):
 
-        # FIXME: Should be passing in some of the kwargs here
-        self.messaging = _Messaging(service_name, run_control_loop=True)
+        if connection is None:
+            connection = {}
+
+        self.messaging = _Messaging(service_name, run_control_loop=True, **connection)
 
         self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)
