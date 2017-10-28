@@ -187,6 +187,14 @@ class CommandObserver(Observer):
     def do_quit(self, *args, **kwargs):
         _sys.exit(0)
 
+    def do_subscribe(self, *args, **kwargs):
+        for address in args:
+            try:
+                self.messaging.subscription_socket.connect(address)
+            except Exception:
+                raise RuntimeError('addresses need to be in the form of: tcp://address_here:port_number'
+                                   ' example: tcp://10.2.3.4:80')
+
     def do_authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_observer.authors.keys())
 
