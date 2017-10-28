@@ -1,21 +1,20 @@
 import re
+import time
 from os import path
 import shlex as _shlex
 import pprint as _pprint
 from threading import Thread as _Thread
 
 from prompt_toolkit.shortcuts import Prompt
-from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.shortcuts import CompleteStyle
+from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.contrib.completers import WordCompleter
-from prompt_toolkit.document import _FIND_CURRENT_WORD_INCLUDE_TRAILING_WHITESPACE_RE
+from zmq.eventloop.ioloop import PeriodicCallback
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 
-from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
                                              AuthorObserver,
@@ -50,10 +49,13 @@ class Shell(Prompt):
 
         self.history = FileHistory(history_filepath)
         self.messaging = _Messaging('shell', run_control_loop=True)
-
-        # NOTE: should be able to get rid of these lines with a cleaner api
         self._thread = _Thread(target=self.messaging.start,
                                daemon=True)
+
+        self._bot_status_monitor = PeriodicCallback(self._monitor_bot_state,
+                                                    1000,
+                                                    self.messaging.loop)
+
 
         self.shebangs = ['!', ]
 
@@ -63,6 +65,7 @@ class Shell(Prompt):
 
         commands = self.command_observer._get_commands()
         self._word_completer = WordCompleter(commands, WORD=_WORD)
+        self._bot_status = ''
 
         super().__init__(message='vexbot: ',
                          history=self.history,
@@ -91,6 +94,21 @@ class Shell(Prompt):
         self.messaging.chatter.subscribe(self.author_observer)
         self.messaging.chatter.subscribe(self.service_observer)
 
+    def _monitor_bot_state(self):
+        time_now = time.time()
+        last_message = self.messaging._heartbeat_reciever._last_message_time
+        # TODO: put in a countdown since last contact?
+        delta_time = time_now - last_message
+        # NOTE: Bot is set to send a heartbeat every 1.5 seconds
+        if time_now - last_message > 3.4:
+            self._bot_status = '<NO BOT>'
+        else:
+            if self._bot_status == '':
+                return
+            self._bot_status = ''
+
+        self.app.invalidate()
+
     def is_command(self, text: str) -> bool:
         """
         checks for presence of shebang in the first character of the text
@@ -102,11 +120,12 @@ class Shell(Prompt):
 
     def run(self):
         self._thread.start()
+        self._bot_status_monitor.start()
         with patch_stdout(raw=True):
             while True:
                 # Get our text
                 try:
-                    text = self.prompt()
+                    text = self.prompt(rprompt=self._get_rprompt_tokens)
                 # KeyboardInterrupt continues
                 except KeyboardInterrupt:
                     continue
@@ -122,6 +141,9 @@ class Shell(Prompt):
                 # Program specific handeling. Currently either first word
                 # or second word can be commands
                 self._handle_text(text)
+
+    def _get_rprompt_tokens(self):
+        return self._bot_status
 
     def _handle_text(self, text: str):
         """
@@ -198,7 +220,7 @@ class Shell(Prompt):
                 callback = self.command_observer._commands[command]
             except KeyError:
                 kwargs['remote_command'] = command
-                command= 'CMD'
+                command= 'REMOTE'
                 self.messaging.send_command(command, *args, **kwargs)
                 return
             try:
