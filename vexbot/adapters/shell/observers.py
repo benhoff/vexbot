@@ -29,7 +29,7 @@ def _get_attributes(output, color: str):
 # TODO: possible other args: Name
 def shellcommand(function=None,
                  alias: list=None,
-                 hidden: bool=False)
+                 hidden: bool=False):
     if function is None:
         return functools.partial(shellcommand,
                                  alias=alias,
@@ -44,7 +44,6 @@ def shellcommand(function=None,
         wrapper.alias = alias
 
     wrapper.hidden = hidden
-    wrapper.store_in_history = store_in_history
 
     return wrapper
 
