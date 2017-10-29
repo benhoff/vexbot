@@ -12,6 +12,7 @@ Original Author: Chris Laws
 import os
 import sys
 import shutil
+import logging
 import zmq.auth
 
 from prompt_toolkit import prompt

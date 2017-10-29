@@ -3,8 +3,8 @@ import logging as _logging
 
 from rx import Observer
 
+from vexbot import _get_default_port_config
 from vexbot.messaging import Messaging as _Messaging
-from vexbot.scheduler import Scheduler as _Scheduler
 from vexbot.observers import BotObserver as _BotObserver
 
 try:
@@ -16,11 +16,14 @@ except ImportError as e:
 
 class Robot:
     def __init__(self,
-                 messaging: _Messaging=None,
+                 bot_name: str,
+                 connection: dict=None,
                  subprocess_manager=None):
 
-        self.messaging = messaging
-        self.scheduler = messaging.scheduler
+        if connection is None:
+            connection = _get_default_port_config()
+
+        self.messaging = _Messaging(bot_name, **connection)
         log_name = __name__ if __name__ != '__main__' else 'vexbot.robot'
         self._logger = _logging.getLogger(log_name)
         if subprocess_manager is None and SubprocessManager:
@@ -34,7 +37,7 @@ class Robot:
 
         self.subprocess_manager = subprocess_manager
 
-        self.command_observer = _BotObserver(messaging,
+        self.command_observer = _BotObserver(self.messaging,
                                              self.subprocess_manager)
 
         self.messaging.command.subscribe(self.command_observer)
