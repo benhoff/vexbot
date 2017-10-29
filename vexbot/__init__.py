@@ -1,4 +1,7 @@
 from vexbot._version import __version__ # flake8: noqa
+import logging
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def _port_configuration_helper(configuration: dict) -> dict:
@@ -37,12 +40,22 @@ def _get_default_port_config() -> dict:
 
 
 def _get_default_adapter_config() -> dict:
+    """
+    protocol:   'tcp'
+    address: '127.0.0.1'
+    chatter_publish_port: 4000
+    chatter_subscription_port: [4001,]
+    command_port: 4002
+    request_port: 4003
+    control_port: 4005
+    """
     config = _get_default_port_config()
     config['address'] = '127.0.0.1'
     return config
 
 
 def _get_adapter_settings_helper(configuration: dict) -> dict:
+    # FIXME: outdated code
     vexbot = configuration.get('vexbot', {})
     vexbot_adapters = vexbot.get('vexbot_adapters', [])
     settings = {}
