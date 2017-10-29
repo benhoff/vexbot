@@ -1,7 +1,7 @@
 import sys as _sys
 import shlex as _shlex
 import functools
-from time import gmtime, strftime
+from time import localtime, strftime
 from random import randrange
 import inspect
 
@@ -150,7 +150,7 @@ class PrintObserver(Observer):
         channel = msg.contents.get('channel', msg.source)
         author = '{} {}: '.format(author, channel)
         message = msg.contents['message']
-        time = strftime(self._time_format, gmtime()) + ' '
+        time = strftime(self._time_format, localtime()) + ' '
 
         print(self._grey + time + author_color + author + self._reset_color + message)
 
@@ -341,7 +341,7 @@ class CommandObserver(Observer):
 
     def do_time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"
-        time = strftime(time_format, gmtime())
+        time = strftime(time_format, localtime())
         return time
 
     def do_commands(self, *args, **kwargs) -> list:
