@@ -2,6 +2,7 @@ import sys as _sys
 import shlex as _shlex
 from time import gmtime, strftime
 from random import randrange
+import inspect
 
 from gi._error import GError
 from rx import Observer
@@ -22,6 +23,12 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache_true_color[attr]
     else:
         return output._escape_code_cache[attr]
+
+
+def shellcommand(function, alias: list=None, suppress=False):
+    if alias is not None:
+        function.alias = alias
+    return function
 
 
 class AuthorObserver(Observer):
@@ -151,7 +158,13 @@ class CommandObserver(Observer):
         self._commands = {}
         for method in dir(self):
             if method.startswith('do_'):
-                self._commands[method[3:]] = getattr(self, method)
+                method_obj = getattr(self, method)
+                self._commands[method[3:]] = method_obj
+                try:
+                    for alias in method_obj.alias:
+                        self._commands[alias] = method_obj
+                except AttributeError:
+                    continue
 
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
@@ -178,6 +191,15 @@ class CommandObserver(Observer):
     def on_next(self, *args, **kwargs):
         pass
 
+    @shellcommand
+    def do_help(self, *arg, **kwargs):
+        try:
+            callback = self._commands[arg[0]]
+        except KeyError:
+            return
+        # FIXME: clean up the return here. It's messy
+        return callback.__doc__
+
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback
 
@@ -188,6 +210,10 @@ class CommandObserver(Observer):
         _sys.exit(0)
 
     def do_subscribe(self, *args, **kwargs):
+        """
+        Subscribe to a publish port. Example:
+        `vexbot: !subscribe tcp://127.0.0.1:3000`
+        """
         for address in args:
             try:
                 self.messaging.subscription_socket.connect(address)
@@ -221,6 +247,18 @@ class CommandObserver(Observer):
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
             return self._prompt.history.strings
+
+    def do_code(self, *args, **kwargs):
+        """
+        get the python source code from callback
+        """
+        try:
+            callback = self._commands[args[0]]
+        except (IndexError, KeyError):
+            return
+        source = inspect.getsourcelines(callback)
+        # FIXME: formatting sucks
+        return "".join(source[0])
 
     def do_autosuggestions(self, *args, **kwargs):
         if self._prompt:
