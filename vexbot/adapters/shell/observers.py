@@ -1,7 +1,9 @@
 import sys as _sys
 import shlex as _shlex
+import functools
 from time import gmtime, strftime
 from random import randrange
+import inspect
 
 from gi._error import GError
 from rx import Observer
@@ -22,6 +24,28 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache_true_color[attr]
     else:
         return output._escape_code_cache[attr]
+
+
+# TODO: possible other args: Name
+def shellcommand(function=None,
+                 alias: list=None,
+                 hidden: bool=False):
+    if function is None:
+        return functools.partial(shellcommand,
+                                 alias=alias,
+                                 hidden=hidden)
+
+    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        return function(*args, **kwargs)
+    # TODO: check for string and convert to list
+    if alias is not None:
+        wrapper.alias = alias
+
+    wrapper.hidden = hidden
+
+    return wrapper
 
 
 class AuthorObserver(Observer):
@@ -151,7 +175,13 @@ class CommandObserver(Observer):
         self._commands = {}
         for method in dir(self):
             if method.startswith('do_'):
-                self._commands[method[3:]] = getattr(self, method)
+                method_obj = getattr(self, method)
+                self._commands[method[3:]] = method_obj
+                try:
+                    for alias in method_obj.alias:
+                        self._commands[alias] = method_obj
+                except AttributeError:
+                    continue
 
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
@@ -178,6 +208,19 @@ class CommandObserver(Observer):
     def on_next(self, *args, **kwargs):
         pass
 
+    @shellcommand
+    def do_help(self, *arg, **kwargs):
+        name = arg[0]
+        self._prompt.shebangs
+        if any([name.startswith(x) for x in self._prompt.shebangs]):
+            name = name[1:]
+        try:
+            callback = self._commands[name]
+        except KeyError:
+            return
+        # FIXME: clean up the return here. It's messy
+        return callback.__doc__
+
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback
 
@@ -188,6 +231,10 @@ class CommandObserver(Observer):
         _sys.exit(0)
 
     def do_subscribe(self, *args, **kwargs):
+        """
+        Subscribe to a publish port. Example:
+        `vexbot: !subscribe tcp://127.0.0.1:3000`
+        """
         for address in args:
             try:
                 self.messaging.subscription_socket.connect(address)
@@ -221,6 +268,19 @@ class CommandObserver(Observer):
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
             return self._prompt.history.strings
+
+    @shellcommand(alias=['source',])
+    def do_code(self, *args, **kwargs):
+        """
+        get the python source code from callback
+        """
+        try:
+            callback = self._commands[args[0]]
+        except (IndexError, KeyError):
+            return
+        source = inspect.getsourcelines(callback)
+        # FIXME: formatting sucks
+        return "".join(source[0])
 
     def do_autosuggestions(self, *args, **kwargs):
         if self._prompt:
@@ -289,4 +349,10 @@ class CommandObserver(Observer):
         return commands
 
     def _get_commands(self) -> list:
-        return ['!' + x for x in self._commands.keys()]
+        results = []
+        for k, v in self._commands.items():
+            if hasattr(v, 'hidden') and v.hidden:
+                continue
+            else:
+                results.append(k)
+        return results

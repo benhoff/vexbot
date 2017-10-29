@@ -167,8 +167,10 @@ class Shell(Prompt):
             result = self._handle_command(command, args, kwargs)
 
             if result:
-                # print our results
-                _pprint.pprint(result)
+                if isinstance(result, str):
+                    print(result)
+                else:
+                    _pprint.pprint(result)
             # Exit the method here if in this block
             return
         # Else check if second word is a command
