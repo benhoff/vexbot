@@ -1,11 +1,9 @@
 import sys as _sys
 import logging as _logging
 
-from rx import Observer
-
 from vexbot import _get_default_port_config
 from vexbot.messaging import Messaging as _Messaging
-from vexbot.observers import BotObserver as _BotObserver
+from vexbot.observers import CommandObserver as _CommandObserver
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -36,9 +34,9 @@ class Robot:
             self._logger.warn(err)
 
         self.subprocess_manager = subprocess_manager
-
-        self.command_observer = _BotObserver(self.messaging,
-                                             self.subprocess_manager)
+        self.command_observer = _CommandObserver(self,
+                                                 self.messaging,
+                                                 self.subprocess_manager)
 
         self.messaging.command.subscribe(self.command_observer)
 
@@ -48,5 +46,6 @@ class Robot:
             self._logger.error(e)
             _sys.exit(1)
 
+        self._logger.info(' Start Messaging')
         # NOTE: blocking call
         self.messaging.start()

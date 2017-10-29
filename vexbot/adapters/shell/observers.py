@@ -65,13 +65,12 @@ class CommandObserver(Observer):
         self._bot_callback = None
         self._no_bot_callback = None
         self._commands = {}
-        for method in dir(self):
-            if method.startswith('do_'):
-                method_obj = getattr(self, method)
-                self._commands[method[3:]] = method_obj
+        for name, method in inspect.getmembers(self):
+            if name.startswith('do_'):
+                self._commands[name[3:]] = method
                 try:
-                    for alias in method_obj.alias:
-                        self._commands[alias] = method_obj
+                    for alias in method.alias:
+                        self._commands[alias] = method
                 except AttributeError:
                     continue
 

@@ -1,7 +1,7 @@
 import time
 import uuid
-import logging
 import json
+import logging
 
 import zmq
 import zmq.devices
@@ -17,7 +17,6 @@ from vexbot.util.messaging import get_addresses as _get_addresses
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 
 from vexmessage import create_vex_message, decode_vex_message, Request, Message
-
 
 
 class _HeartbeatHelper:

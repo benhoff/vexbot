@@ -13,8 +13,6 @@ from vexbot.robot import Robot
 from vexbot.util.get_kwargs import get_kwargs as _get_kwargs
 from vexbot.util.get_config import get_config as _get_config
 
-from vexbot.messaging import Messaging as _Messaging
-
 
 def _configuration_sane_defaults(configuration: dict) -> (dict, str):
     default_vexbot_settings = {'bot_name': 'vexbot'}

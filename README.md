@@ -8,15 +8,20 @@ Under development. Very useable but currently not feature complete.
 
 ## Requirements
 Requires python 3.5 for asyncio.
+
 See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requires:
+
 [PyGI](https://wiki.gnome.org/Projects/PyGObject) which needs to be installed from your distribution's repoistory,
+
 [GLib](https://developer.gnome.org/glib/) 2.46+
+
 [girepository](https://wiki.gnome.org/Projects/GObjectIntrospection) 1.46+
 
 These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus.
 
 ## Installation
 `$ python3 -m venv <DIR>`
+
 `$ source <DIR>/bin/activate`
 
 If you don't plan to use the process manager functions (start services from the bot):
