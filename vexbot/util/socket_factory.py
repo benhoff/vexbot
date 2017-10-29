@@ -38,6 +38,7 @@ class SocketFactory:
             self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
 
         # allow all local host
+        self.logger.debug('Auth whitelist %s', auth_whitelist)
         self.auth.allow(auth_whitelist)
         self._base_filepath = get_certificate_filepath()
         public_key_location = path.join(self._base_filepath, 'public_keys')
@@ -66,6 +67,9 @@ class SocketFactory:
         socket_name:
             used for troubleshooting/logging
         """
+        self.logger.debug('create and connect: %s %s %s',
+                          socket_type, socket_name, address)
+
         socket = self.context.socket(socket_type)
         if not any(self._server_certs):
             self._set_server_certs(bind)

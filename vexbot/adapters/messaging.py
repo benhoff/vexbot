@@ -10,6 +10,7 @@ from zmq.eventloop.ioloop import PeriodicCallback
 from rx.subjects import Subject as _Subject
 
 from vexbot import _get_default_adapter_config
+from vexbot.adapters._logging import MessagingLogger
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
 from vexmessage import create_vex_message, decode_vex_message, Request
@@ -26,19 +27,31 @@ class _HeartbeatReciever:
         self._last_bot_uuid = None
         self._last_message_time = time.time()
 
+        name = self.messaging._service_name
+        name = name + '.messaging.heartbeat'
+
+        self.logger = logging.getLogger(name)
+
     def start(self):
         self._heart_beat_check.start()
 
     def message_recieved(self, message):
         self._last_message_time = time.time()
         self.last_message = message
+        self.logger.info(' last message recieved: %s', self._last_message_time)
 
     def _get_state(self):
         if self.last_message is None:
+            self.logger.debug(' Last Message is None!')
             return
 
         uuid = self.last_message.uuid
         if uuid != self._last_bot_uuid:
+            self.logger.info(' UUID message mismatch')
+            self.logger.debug(' Old UUID: %s | New UUID: %s',
+                              self._last_bot_uuid,
+                              uuid)
+
             self.send_identity()
             self._last_bot_uuid = uuid
 
@@ -47,6 +60,8 @@ class _HeartbeatReciever:
                           b'IDENT',
                           json.dumps([]).encode('utf8'),
                           json.dumps({'service_name': self.messaging._service_name}).encode('utf8'))
+
+        self.logger.info(' Service Identity sent: %s', self.messaging._service_name)
 
         if self.messaging._run_control_loop:
             self.messaging.add_callback(self.messaging.command_socket.send_multipart, identify_frame)
@@ -90,7 +105,7 @@ class Messaging:
         self._uuid = str(uuid.uuid1())
 
         self._socket_filter = socket_filter
-        self._logger = logging.getLogger(self._service_name)
+        self._logger = logging.getLogger(self._service_name + '.messaging')
         self.loop = IOLoop()
 
         socket = {'address': self.config['address'],
@@ -108,6 +123,8 @@ class Messaging:
         self.chatter = _Subject()
         self.command = _Subject()
         self.request = _Subject()
+
+        self._messaging_logger = MessagingLogger(service_name)
 
     def _config_convert_to_address_helper(self):
         """
@@ -131,20 +148,31 @@ class Messaging:
 
     def _setup(self):
         create_n_conn = self._socket_factory.create_n_connect
+        command_address = self.config['command_port']
+        control_address = self.config['control_port']
+        request_address = self.config['request_port']
+        publish_address = self.config['chatter_publish_port']
 
         # Instantiate all the sockets
         self.command_socket = create_n_conn(zmq.DEALER,
-                                            self.config['command_port'],
+                                            command_address,
                                             socket_name='command socket')
+        self._messaging_logger.command.info(' Address: %s', command_address)
+
         self.control_socket = create_n_conn(zmq.DEALER,
-                                            self.config['control_port'],
+                                            control_address,
                                             socket_name='control socket')
+        self._messaging_logger.control.info(' Address: %s', control_address)
+
         self.request_socket = create_n_conn(zmq.ROUTER,
-                                            self.config['request_port'],
+                                            request_address,
                                             socket_name='request socket')
+        self._messaging_logger.request.info(' Address: %s', request_address)
+
         self.publish_socket = create_n_conn(zmq.PUB,
-                                            self.config['chatter_publish_port'],
+                                            publish_address,
                                             socket_name='publish socket')
+        self._messaging_logger.publish.info(' Address: %s', publish_address)
 
         iter_ = self._socket_factory.iterate_multiple_addresses
         subscription_address = iter_(self.config['chatter_subscription_port'])
@@ -152,6 +180,9 @@ class Messaging:
         self.subscription_socket = multiple_conn(zmq.SUB,
                                                  subscription_address,
                                                  socket_name='subscription socket')
+
+        info = self._messaging_logger.subscribe.info
+        [info(' Address: %s', x) for x in subscription_address]
 
         self.set_socket_filter(self._socket_filter)
         if self._run_control_loop:
@@ -161,6 +192,7 @@ class Messaging:
         self.loop.add_callback(callback, *args, **kwargs)
 
     def _setup_scheduler(self):
+        self._logger.info(' Registering sockets to the IO Loop.')
         # Control Socket
         self.scheduler.register_socket(self.control_socket,
                                        self.loop,
@@ -183,10 +215,18 @@ class Messaging:
 
         if self.subscription_socket:
             self.subscription_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
+            self._messaging_logger.subscribe.info(' Socket Filter: %s',
+                                                  filter_)
 
     def send_chatter(self, target: str='', **msg):
-        self._logger.debug('send chatter to %s: %s', target, msg)
+        self._messaging_logger.publish.info(' send_chatter to: %s %s',
+                                            target,
+                                            msg)
+
         frame = create_vex_message(target, self._service_name, self._uuid, **msg)
+        self._messaging_logger.publish.debug(' Send chatter run_control loop: %s',
+                                             self._run_control_loop)
+
         if self._run_control_loop:
             self.add_callback(self.publish_socket.send_multipart, frame)
         else:
@@ -240,7 +280,8 @@ class Messaging:
         addresses.append(b'PONG')
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart,
-                                        addresses)
+                              addresses)
+
         else:
             self.command_socket.send_multipart(addresses)
 
