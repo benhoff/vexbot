@@ -5,7 +5,7 @@ def _port_configuration_helper(configuration: dict) -> dict:
     default_port_config = _get_default_port_config()
 
     # get the port settings out of the configuration, falling back on defaults
-    port_config = configuration.get('vexbot_ports', default_port_config)
+    port_config = configuration.get('connection', default_port_config)
 
     # update the defaults with the retrived port configs
     default_port_config.update(port_config)

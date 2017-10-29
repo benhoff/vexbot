@@ -3,6 +3,7 @@ import time
 from os import path
 import shlex as _shlex
 import pprint as _pprint
+import logging
 from threading import Thread as _Thread
 
 from prompt_toolkit.shortcuts import Prompt
