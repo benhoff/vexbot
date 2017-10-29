@@ -10,24 +10,19 @@ from time import sleep
 from vexbot.adapters.messaging import Messaging
 from vexbot.adapters.scheduler import Scheduler
 
-_GOOGLE_API_INSTALLED = True
+import httplib2
 
-try:
-    pkg_resources.get_distribution('google-api-python-client')
-except pkg_resources.DistributionNotFound:
-    _GOOGLE_API_INSTALLED = False
+from apiclient.discovery import build
+from oauth2client.client import flow_from_clientsecrets
+from oauth2client.file import Storage
+from oauth2client.tools import run_flow, argparser
 
-if _GOOGLE_API_INSTALLED:
-    import httplib2
-
-    from apiclient.discovery import build
-    from oauth2client.client import flow_from_clientsecrets
-    from oauth2client.file import Storage
-    from oauth2client.tools import run_flow, argparser
 
 class Youtube:
-    def __init__(self, **kwargs):
-        self.messaging = Messaging('youtube')
+    def __init__(self, connection: dict=None, **kwargs):
+        if connection is None:
+            connection = {}
+        self.messaging = Messaging('youtube', **connection)
         scope = ['https://www.googleapis.com/auth/youtube',
                  'https://www.googleapis.com/auth/youtube.force-ssl',
                  'https://www.googleapis.com/auth/youtube.readonly']
@@ -85,25 +80,10 @@ async def _run(messaging, live_chat_messages, live_chat_id, ):
 
 
 
-def main(client_secret_filepath, publish_address, subscribe_address):
-    if not _GOOGLE_API_INSTALLED:
-        logging.error('`google-api-python-client` required to use youtube. Install using `pip install google-api-python-client')
-        return
-
-
 def _convert_to_seconds(milliseconds: str):
     return float(milliseconds)/1000.0
 
 
-def _get_kwargs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--client_secret_filepath')
-    parser.add_argument('--publish_address')
-    parser.add_argument('--subscribe_address')
-    args = parser.parse_args()
-    kwargs = vars(args)
-
-    return kwargs
 
 
 _YOUTUBE_API_SERVICE_NAME = 'youtube'
@@ -150,9 +130,3 @@ def _get_youtube_link(client_secrets_filepath):
         # TODO: add better parsing here
         youtube_id = response.get('items', [])[0]['id']
         return 'http://youtube.com/watch?v={}'.format(youtube_id)
-
-
-if __name__ == '__main__':
-    kwargs = _get_kwargs()
-    # FIXME: does not work if the google api is not installed
-    main(**kwargs)
