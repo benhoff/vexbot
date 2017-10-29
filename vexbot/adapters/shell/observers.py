@@ -26,17 +26,26 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache[attr]
 
 
-def shellcommand(function=None, alias: list=None, suppress=False):
+# TODO: possible other args: Name
+def shellcommand(function=None,
+                 alias: list=None,
+                 hidden: bool=False)
     if function is None:
-        return functools.partial(shellcommand, alias=alias, suppress=suppress)
+        return functools.partial(shellcommand,
+                                 alias=alias,
+                                 hidden=hidden)
+
     # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    # NOTE: Life's hard, wear a helmet
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         return function(*args, **kwargs)
     # TODO: check for string and convert to list
     if alias is not None:
         wrapper.alias = alias
+
+    wrapper.hidden = hidden
+    wrapper.store_in_history = store_in_history
+
     return wrapper
 
 
@@ -341,4 +350,10 @@ class CommandObserver(Observer):
         return commands
 
     def _get_commands(self) -> list:
-        return ['!' + x for x in self._commands.keys()]
+        results = []
+        for k, v in self._commands.items():
+            if hasattr(v, 'hidden') and v.hidden:
+                continue
+            else:
+                results.append(k)
+        return results
