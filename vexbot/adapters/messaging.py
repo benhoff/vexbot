@@ -185,6 +185,7 @@ class Messaging:
             self.subscription_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
 
     def send_chatter(self, target: str='', **msg):
+        self._logger.debug('send chatter to %s: %s', target, msg)
         frame = create_vex_message(target, self._service_name, self._uuid, **msg)
         if self._run_control_loop:
             self.add_callback(self.publish_socket.send_multipart, frame)
@@ -195,6 +196,7 @@ class Messaging:
         """
         For request bot to perform some action
         """
+        self._logger.debug('send command %s: %s | %s', command, args, kwargs)
         command = command.encode('utf8')
         # target = target.encode('ascii')
         args = json.dumps(args).encode('utf8')
@@ -226,6 +228,7 @@ class Messaging:
         raise RuntimeError('Not implemented')
 
     def send_ping(self, target: str=''):
+        self._logger.debug('send ping to %s', target)
         frame = (target.encode('utf8'), b'PING')
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart, frame)
@@ -233,6 +236,7 @@ class Messaging:
             self.command_socket.send_multipart(frame)
 
     def _send_pong(self, addresses: list):
+        self._logger.debug('send pong to %s', addresses)
         addresses.append(b'PONG')
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart,
@@ -259,6 +263,7 @@ class Messaging:
         pong = message.pop(0).decode('utf8')
         # FIXME
         if pong == 'PONG':
+            self._logger.debug('Pong response')
             return
         # command? Not sure if we want to do it this way.
         command = message.pop(0).decode('utf8')
