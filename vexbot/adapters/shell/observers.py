@@ -93,16 +93,18 @@ class CommandObserver(Observer):
         _, value, _ = _sys.exc_info()
         print('{}: {}'.format(value.__class__.__name__, value))
 
+    @shellcommand(hidden=True)
     def do_debug(self, *args, **kwargs):
         # FIXME: I'm not sure that I need to set the basicConfig everytime
         logging.basicConfig(level=logging.DEBUG, format=_LOG_FORMAT)
         self._root.setLevel(logging.DEBUG)
 
+    @shellcommand(hidden=True)
     def do_info(self, *args, **kwargs):
         logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT)
         self._root.setLevel(logging.INFO)
 
-    @shellcommand(alias=['warn'])
+    @shellcommand(alias=['warn'], hidden=True)
     def do_logging_default(self, *args, **kwargs):
         logging.basicConfig(level=logging.WARN, format=_LOG_FORMAT)
         self._root.setLevel(logging.WARN)
@@ -114,6 +116,11 @@ class CommandObserver(Observer):
         pass
 
     def do_help(self, *arg, **kwargs):
+        """
+        Help helps you figure out what commands do.
+        Example usage: !help code
+        To see all commands: !commands
+        """
         name = arg[0]
         self._prompt.shebangs
         if any([name.startswith(x) for x in self._prompt.shebangs]):
@@ -122,7 +129,7 @@ class CommandObserver(Observer):
             callback = self._commands[name]
         except KeyError:
             self._logger.info(' !help not found for: %s', name)
-            return
+            return self.do_help.__doc__
 
         return callback.__doc__
 
@@ -258,7 +265,7 @@ class CommandObserver(Observer):
             if hasattr(v, 'hidden') and v.hidden:
                 continue
             else:
-                results.append(k)
+                results.append('!' + k)
         return results
 
 
