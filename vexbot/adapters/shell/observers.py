@@ -1,5 +1,6 @@
 import sys as _sys
 import shlex as _shlex
+import functools
 from time import gmtime, strftime
 from random import randrange
 import inspect
@@ -25,10 +26,18 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache[attr]
 
 
-def shellcommand(function, alias: list=None, suppress=False):
+def shellcommand(function=None, alias: list=None, suppress=False):
+    if function is None:
+        return functools.partial(shellcommand, alias=alias, suppress=suppress)
+    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
+    # NOTE: Life's hard, wear a helmet
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        return function(*args, **kwargs)
+    # TODO: check for string and convert to list
     if alias is not None:
-        function.alias = alias
-    return function
+        wrapper.alias = alias
+    return wrapper
 
 
 class AuthorObserver(Observer):
@@ -193,8 +202,12 @@ class CommandObserver(Observer):
 
     @shellcommand
     def do_help(self, *arg, **kwargs):
+        name = arg[0]
+        self._prompt.shebangs
+        if any([name.startswith(x) for x in self._prompt.shebangs]):
+            name = name[1:]
         try:
-            callback = self._commands[arg[0]]
+            callback = self._commands[name]
         except KeyError:
             return
         # FIXME: clean up the return here. It's messy
@@ -248,6 +261,7 @@ class CommandObserver(Observer):
         if self._prompt:
             return self._prompt.history.strings
 
+    @shellcommand(alias=['source',])
     def do_code(self, *args, **kwargs):
         """
         get the python source code from callback
