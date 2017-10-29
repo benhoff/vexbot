@@ -1,19 +1,16 @@
 import sys as _sys
-import shlex as _shlex
 import functools
 from time import localtime, strftime
 from random import randrange
 import inspect
 import logging
 
-from gi._error import GError
 from rx import Observer
 
 from prompt_toolkit.styles import Attrs
 
 from vexmessage import Message
 
-from vexbot.adapters.shell.parser import parse
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
 
@@ -27,7 +24,7 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache[attr]
 
 
-# TODO: possible other args: Name
+# possible other args: Name
 def shellcommand(function=None,
                  alias: list=None,
                  hidden: bool=False):
@@ -49,6 +46,9 @@ def shellcommand(function=None,
     return wrapper
 
 
+_LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+
+
 class CommandObserver(Observer):
     def __init__(self,
                  messaging,
@@ -57,6 +57,10 @@ class CommandObserver(Observer):
         self.subprocess_manager = SubprocessManager()
         self._prompt = prompt
         self.messaging = messaging
+        # Get the root logger to set it to different levels
+        self._root = logging.getLogger()
+
+        self._logger = logging.getLogger(__name__)
 
         self._bot_callback = None
         self._no_bot_callback = None
@@ -90,16 +94,18 @@ class CommandObserver(Observer):
         print('{}: {}'.format(value.__class__.__name__, value))
 
     def do_debug(self, *args, **kwargs):
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-        self._root = logging.getLogger()
+        # FIXME: I'm not sure that I need to set the basicConfig everytime
+        logging.basicConfig(level=logging.DEBUG, format=_LOG_FORMAT)
         self._root.setLevel(logging.DEBUG)
 
     def do_info(self, *args, **kwargs):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT)
+        self._root.setLevel(logging.INFO)
 
+    @shellcommand(alias=['warn'])
     def do_logging_default(self, *args, **kwargs):
-        logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
-
+        logging.basicConfig(level=logging.WARN, format=_LOG_FORMAT)
+        self._root.setLevel(logging.WARN)
 
     def on_completed(self, *args, **kwargs):
         pass
@@ -107,7 +113,6 @@ class CommandObserver(Observer):
     def on_next(self, *args, **kwargs):
         pass
 
-    @shellcommand
     def do_help(self, *arg, **kwargs):
         name = arg[0]
         self._prompt.shebangs
@@ -116,8 +121,9 @@ class CommandObserver(Observer):
         try:
             callback = self._commands[name]
         except KeyError:
+            self._logger.info(' !help not found for: %s', name)
             return
-        # FIXME: clean up the return here. It's messy
+
         return callback.__doc__
 
     def set_on_bot_callback(self, callback):
@@ -125,9 +131,6 @@ class CommandObserver(Observer):
 
     def set_no_bot_callback(self, callback):
         self._no_bot_callback = callback
-
-    def do_quit(self, *args, **kwargs):
-        _sys.exit(0)
 
     def do_subscribe(self, *args, **kwargs):
         """
@@ -139,7 +142,8 @@ class CommandObserver(Observer):
                 self.messaging.subscription_socket.connect(address)
             except Exception:
                 raise RuntimeError('addresses need to be in the form of: tcp://address_here:port_number'
-                                   ' example: tcp://10.2.3.4:80')
+                                   ' example: tcp://10.2.3.4:80'
+                                   'address tried {}'.format(address))
 
     def do_authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_observer.authors.keys())
@@ -158,6 +162,7 @@ class CommandObserver(Observer):
         if self._prompt.print_observer:
             del self._prompt.print_observer._author_color[author]
 
+    @shellcommand(alias=['quit',])
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
 

@@ -33,6 +33,7 @@ class _HeartbeatReciever:
         self.logger = logging.getLogger(name)
 
     def start(self):
+        self.logger.info(' Start Heart Beat')
         self._heart_beat_check.start()
 
     def message_recieved(self, message):
@@ -142,11 +143,16 @@ class Messaging:
 
     def start(self):
         self._setup()
+
         if self._run_control_loop:
             self._heartbeat_reciever.start()
+            self._logger.info(' Start Loop')
             return self.loop.start()
+        else:
+            self._logger.debug(' run_control_loop == False')
 
     def _setup(self):
+        self._logger.info(' Setup Sockets')
         create_n_conn = self._socket_factory.create_n_connect
         command_address = self.config['command_port']
         control_address = self.config['control_port']
@@ -236,12 +242,17 @@ class Messaging:
         """
         For request bot to perform some action
         """
-        self._logger.debug('send command %s: %s | %s', command, args, kwargs)
+        self._messaging_logger.command.info('send command %s: %s | %s',
+                                            command, args, kwargs)
+
         command = command.encode('utf8')
         # target = target.encode('ascii')
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
         frame = (b'', command, args, kwargs)
+        self._messaging_logger.command.debug(' send command run_control_loop: %s',
+                                             self._run_control_loop)
+
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart, frame)
         else:
@@ -253,6 +264,7 @@ class Messaging:
         """
         # FIXME
         # frame = create_vex_message()
+        raise NotImplemented()
         self.command_socket.send_multipart(frame)
 
     def send_response(self, status, target='', **kwargs):
@@ -265,7 +277,7 @@ class Messaging:
 
         self.request_socket.send_multipart(frame)
         """
-        raise RuntimeError('Not implemented')
+        raise NotImplemented()
 
     def send_ping(self, target: str=''):
         self._logger.debug('send ping to %s', target)
@@ -276,8 +288,11 @@ class Messaging:
             self.command_socket.send_multipart(frame)
 
     def _send_pong(self, addresses: list):
-        self._logger.debug('send pong to %s', addresses)
+        self._messaging_logger.command.info(' send pong to %s', addresses)
         addresses.append(b'PONG')
+        self._messaging_logger.command.debug(' send pong run_control_loop: %s',
+                                             self._run_control_loop)
+
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart,
                               addresses)
@@ -354,9 +369,16 @@ class Messaging:
     def _subscribe_helper(self, msg):
         # TODO: error log? sometimes it's just a subscription notice
         if len(msg) == 1:
+            self._messaging_logger.subscribe.debug(' Len message == 1: %s', msg)
             return
 
         msg = decode_vex_message(msg)
+        self._messaging_logger.subscribe.info(' msg recieved: %s %s %s %s',
+                                              msg.source,
+                                              msg.target,
+                                              msg.uuid,
+                                              msg.contents)
+
         self._heartbeat_reciever.message_recieved(msg)
         self.chatter.on_next(msg)
 
