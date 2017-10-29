@@ -17,7 +17,7 @@ def _port_configuration_helper(configuration: dict) -> dict:
 def _get_default_port_config() -> dict:
     """
     protocol:   'tcp'
-    ip_address: '127.0.0.1'
+    address: '*'
     chatter_publish_port: 4000
     chatter_subscription_port: [4001,]
     command_port: 4002
@@ -26,7 +26,7 @@ def _get_default_port_config() -> dict:
     """
     # Setup some default port configurations
     default_port_config= {'protocol': 'tcp',
-                          'ip_address': '127.0.0.1',
+                          'address': '*',
                           'chatter_publish_port': 4000,
                           'chatter_subscription_port': [4001,],
                           'request_port': 4003,

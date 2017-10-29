@@ -59,11 +59,12 @@ class Messaging:
                  service_name: str,
                  socket_filter: str='',
                  run_control_loop: bool=False,
+                 socket_configuration: dict=None,
                  **kwargs):
         """
-        `kwargs`:
+        `socket_configuration`:
             protocol:   'tcp'
-            ip_address: '127.0.0.1'
+            address: '*'
             chatter_publish_port: 4000
             chatter_subscription_port: [4001,]
             command_port: 4002
@@ -75,7 +76,8 @@ class Messaging:
         # Get the default port configurations
         self.config = _get_default_port_config()
         # update the default port configurations with the kwargs
-        self.config.update(kwargs)
+        if socket_configuration is not None:
+            self.config.update(socket_configuration)
 
         self.publish_socket = None
         self.subscription_socket = None
@@ -91,7 +93,7 @@ class Messaging:
         self._logger = logging.getLogger(self._service_name)
         self.loop = IOLoop()
 
-        socket = {'ip_address': self.config['ip_address'],
+        socket = {'address': self.config['address'],
                   'protocol': self.config['protocol'],
                   'logger': self._logger}
 

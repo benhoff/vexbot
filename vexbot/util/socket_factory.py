@@ -13,20 +13,20 @@ class SocketFactory:
     """
     Abstracts out the socket creation, specifically the issues with
     transforming ports into zmq addresses.
-    Also sets up some default protocol and ip_address handeling.
+    Also sets up some default protocol and address handeling.
     For example, if everything is being run locally on one machine, and the
-    default is to use the ip_address `127.0.0.1` and the transport protocol
+    default is to bind all addresses `*` and the transport protocol
     `tcp` means tcp communication
     """
     def __init__(self,
-                 ip_address: str,
+                 address: str,
                  protocol: str='tcp',
                  context: 'zmq.Context'=None,
                  logger: 'logging.Logger'=None,
                  loop=None,
                  auth_whitelist: list='127.0.0.1'):
 
-        self.ip_address = ip_address
+        self.address = address
         self.protocol = protocol
         self.context = context or _zmq.Context.instance()
         self.logger = logger
@@ -127,7 +127,7 @@ class SocketFactory:
 
         zmq_address = '{}://{}:{}'
         return zmq_address.format(self.protocol,
-                                  self.ip_address,
+                                  self.address,
                                   port)
 
     def iterate_multiple_addresses(self, ports: (str, list, tuple)):
@@ -145,27 +145,27 @@ class SocketFactory:
 
         return result
 
-    def _handle_error(self, how_to: str, ip_address: str, socket_name: str):
+    def _handle_error(self, how_to: str, address: str, socket_name: str):
         if socket_name == '':
             socket_name = 'unknown type'
 
         if how_to == 'exit':
-            self._handle_bind_error_by_exit(ip_address, socket_name)
+            self._handle_bind_error_by_exit(address, socket_name)
         else:
-            self._handle_bind_error_by_log(ip_address, socket_name)
+            self._handle_bind_error_by_log(address, socket_name)
 
-    def _handle_bind_error_by_log(self, ip_address: str, socket_name: str):
+    def _handle_bind_error_by_log(self, address: str, socket_name: str):
         if self.logger is None:
             return
         s = 'Address bind attempt fail. Address tried: {}'
-        s = s.format(ip_address)
+        s = s.format(address)
         self.logger.error(s)
         self.logger.error('socket type: {}'.format(socket_name))
 
-    def _handle_bind_error_by_exit(self, ip_address: str, socket_type: str):
+    def _handle_bind_error_by_exit(self, address: str, socket_type: str):
         if self.logger is not None:
             s = 'Address bind attempt fail. Alredy in use? Address tried: {}'
-            s = s.format(ip_address)
+            s = s.format(address)
             self.logger.error(s)
             self.logger.error('socket type: {}'.format(socket_type))
 

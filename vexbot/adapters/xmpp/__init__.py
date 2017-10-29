@@ -17,17 +17,21 @@ from sleekxmpp.exceptions import IqError, IqTimeout
 
 class XMPPBot(ClientXMPP):
     def __init__(self,
-                 jid,
-                 password,
-                 room,
-                 service_name,
-                 bot_nick='EchoBot',
+                 jid: str,
+                 password: str,
+                 room: str,
+                 service_name: str,
+                 bot_nick: str='EchoBot',
+                 connection: dict=None,
                  **kwargs):
 
         # Initialize the parent class
         super().__init__(jid, password)
+        if connection is None:
+            connection = {}
         self.messaging = Messaging(service_name,
-                                   run_control_loop=True)
+                                   run_control_loop=True,
+                                   **connection)
 
         self.room = room
         self.nick = bot_nick
