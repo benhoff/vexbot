@@ -36,6 +36,12 @@ def _get_default_port_config() -> dict:
     return default_port_config
 
 
+def _get_default_adapter_config() -> dict:
+    config = _get_default_port_config()
+    config['address'] = '127.0.0.1'
+    return config
+
+
 def _get_adapter_settings_helper(configuration: dict) -> dict:
     vexbot = configuration.get('vexbot', {})
     vexbot_adapters = vexbot.get('vexbot_adapters', [])
