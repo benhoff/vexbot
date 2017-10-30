@@ -125,7 +125,7 @@ class CommandObserver(Observer):
         self._root_logger.setLevel(logging.INFO)
         self.messaging.pub_handler.setLevel(logging.INFO)
 
-    def do_start(self, name: str, mode: str='replace'):
+    def do_start(self, name: str, mode: str='replace', *args, **kwargs):
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)
 
@@ -133,17 +133,16 @@ class CommandObserver(Observer):
         commands = tuple(self._commands.keys())
         return commands
 
-    def do_restart(self, name: str, mode: str='replace'):
+    def do_restart(self, name: str, mode: str='replace', *args, **kwargs):
         self.logger.info(' restart service %s in mode %s', name, mode)
         self.subprocess_manager.restart(name, mode)
 
-    def do_stop(self, name: str, mode: str='replace'):
+    def do_stop(self, name: str, mode: str='replace', *args, **kwargs):
         self.logger.info(' stop service %s in mode %s', name, mode)
         self.subprocess_manager.stop(name, mode)
 
     def _handle_command(self,
                         command: str,
-                        source: str,
                         *args,
                         **kwargs) -> None:
 
@@ -152,9 +151,8 @@ class CommandObserver(Observer):
         except KeyError:
             self.logger.info(' command not found! %s', command)
             return
-
         try:
-            result = callback(*args, **kwargs, source=source)
+            result = callback(*args, **kwargs)
         except Exception as e:
             self.on_error(e, command)
             return
@@ -175,7 +173,7 @@ class CommandObserver(Observer):
         self.logger.info(' Request recieved, %s %s %s %s',
                          command, source, args, kwargs)
 
-        self._handle_command(command, source, *args, **kwargs)
+        self._handle_command(command, source=source, *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
         # FIXME: Better name
