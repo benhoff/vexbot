@@ -43,6 +43,9 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self._commands = self._get_commands()
         self.logger = logging.getLogger(self.messaging._service_name + '.command.observer')
+        #
+
+        self._root_logger = logging.getLogger()
 
     def _get_commands(self) -> dict:
         result = {}
@@ -104,6 +107,18 @@ class CommandObserver(Observer):
 
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
+
+    def do_debug(self, *args, **kwargs):
+        if not self.messaging.pub_handler in self._root_logger.handlers:
+            self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.DEBUG)
+        self.messaging.pub_handler.setLevel(logging.DEBUG)
+
+    def do_warn(self, *args, **kwargs):
+        if not self.messaging.pub_handler in self._root_logger.handlers:
+            self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.WARN)
+        self.messaging.pub_handler.setLevel(logging.WARN)
 
     def do_start(self, name: str, mode: str='replace'):
         self.logger.info(' start service %s in mode %s', name, mode)

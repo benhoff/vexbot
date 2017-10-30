@@ -94,18 +94,14 @@ class CommandObserver(Observer):
 
     @shellcommand(hidden=True)
     def do_debug(self, *args, **kwargs):
-        # FIXME: I'm not sure that I need to set the basicConfig everytime
-        logging.basicConfig(level=logging.DEBUG, format=_LOG_FORMAT)
         self._root.setLevel(logging.DEBUG)
 
     @shellcommand(hidden=True)
     def do_info(self, *args, **kwargs):
-        logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT)
         self._root.setLevel(logging.INFO)
 
     @shellcommand(alias=['warn'], hidden=True)
     def do_logging_default(self, *args, **kwargs):
-        logging.basicConfig(level=logging.WARN, format=_LOG_FORMAT)
         self._root.setLevel(logging.WARN)
 
     def on_completed(self, *args, **kwargs):

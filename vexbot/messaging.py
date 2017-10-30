@@ -15,6 +15,8 @@ from vexbot.scheduler import Scheduler
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexbot.util.messaging import get_addresses as _get_addresses
 from vexbot.util.lru_cache import LRUCache as _LRUCache
+from vexbot.adapters._logging import MessagingLogger
+from vexbot.adapters._logging import LoopPubHandler
 
 from vexmessage import create_vex_message, decode_vex_message, Request, Message
 
@@ -24,24 +26,33 @@ class _HeartbeatHelper:
         self.messaging = messaging
         self.last_message_time = time.time()
         self._heart_beat = PeriodicCallback(self._send_state, 1000, loop)
+        name = self.messaging._service_name + '.messaging.heartbeat'
+        self.logger = logging.getLogger(name)
 
     def start(self):
+        self.logger.info(' Start Heart Beat')
         self._heart_beat.start()
 
     def message_recieved(self):
         self.last_message_time = time.time()
+        self.logger.info(' last message recieved: %s',
+                         self.last_message_time)
 
     def _send_state(self):
         time_now = time.time()
         delta_time = time_now - self.last_message_time
+        self.logger.debug(' delta time: %s', delta_time)
         if delta_time > 1.5:
+            self.logger.debug(' delta time > 1.5s')
             msg = create_vex_message('', self.messaging._service_name, self.messaging.uuid)
+            self.logger.info(' send heartbeat')
             self.messaging.add_callback(self.messaging.subscription_socket.send_multipart, msg)
             self.last_message_time = time_now
 
+
 class Messaging:
     # TODO: add an `update_messaging` command
-    def __init__(self, botname: str='Vexbot', **kwargs):
+    def __init__(self, botname: str='vexbot', **kwargs):
         """
         `kwargs`:
             protocol:   'tcp'
@@ -57,20 +68,22 @@ class Messaging:
         # override the default with the `kwargs`
         self.config = {**self.config, **kwargs}
         self._service_name = botname
+        self._logger = logging.getLogger(__name__)
+        self._messaging_logger = MessagingLogger(botname)
         self.uuid = str(uuid.uuid1())
+        self._logger.info(' uuid: %s', self.uuid)
 
         self.subscription_socket = None
         self.publish_socket = None
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
+        self.pub_handler = LoopPubHandler(self)
 
         self.loop = IOLoop()
         self.scheduler = Scheduler()
         self._heartbeat_helper = _HeartbeatHelper(messaging=self, loop=self.loop)
 
-        # The poller polls each socket
-        self._logger = logging.getLogger(__name__)
 
         # Socket factory keeps the zmq context, default address and
         # protocol for socket creation.
@@ -109,6 +122,7 @@ class Messaging:
 
     def _close_sockets(self):
         sockets = self._get_sockets()
+        # self._logger.warn(' closing sockets!')
         for socket in sockets:
             if socket is not None:
                 socket.close()
@@ -116,6 +130,7 @@ class Messaging:
     def start(self):
         self._setup()
         self._heartbeat_helper.start()
+        self._logger.info(' start loop')
         return self.loop.start()
 
     def _setup(self):
@@ -125,24 +140,33 @@ class Messaging:
         self._close_sockets()
         create_n_conn = self._socket_factory.create_n_connect
 
+        control_address = self.config['control_port']
+        publish_address = self.config['chatter_publish_port']
+        request_address = self.config['request_port']
+        command_address = self.config['command_port']
+
+        self._messaging_logger.control.info(' Address: %s', control_address)
         # NOTE: These sockets will exit the program to exit if there's an issue
         self.control_socket = create_n_conn(zmq.ROUTER,
-                                            self.config['control_port'],
+                                            control_address,
                                             on_error='exit',
                                             bind=True,
                                             socket_name='control socket')
+        self._messaging_logger.publish.info(' Address: %s', publish_address)
         # publish socket is an XSUB socket
         self.publish_socket = create_n_conn(zmq.XSUB,
-                                            self.config['chatter_publish_port'],
+                                            publish_address,
                                             bind=True,
                                             on_error='exit',
                                             socket_name='publish socket')
+        self._messaging_logger.command.info(' Address: %s', command_address)
         # NOTE: these sockets will only log an error if there's an issue
         self.command_socket = create_n_conn(zmq.ROUTER,
-                                            self.config['command_port'],
+                                            command_address,
                                             bind=True)
+        self._messaging_logger.request.info(' Address: %s', request_address)
         self.request_socket = create_n_conn(zmq.DEALER,
-                                            self.config['request_port'],
+                                            request_address,
                                             bind=True,
                                             socket_name='request socket')
 
@@ -157,9 +181,13 @@ class Messaging:
                                                    bind=True,
                                                    socket_name=name)
 
+        info = self._messaging_logger.subscribe.info
+        [info(' Address: %s', x) for x in sub_addresses]
+
         self._setup_scheduler()
 
     def _setup_scheduler(self):
+        self._logger.info(' Registering Sockets')
         # Control Socket
         self.scheduler.register_socket(self.control_socket,
                                        self.loop,
@@ -182,18 +210,31 @@ class Messaging:
                                        self._request_helper)
 
     def send_chatter(self, target: str='', from_='', *args, **chatter: dict):
+        # FIXME: This code is unused
         if from_ == '':
             from_ = self._service_name
 
-        frame = create_vex_message(target, self._service_name, self._uuid, **chatter)
+        self._messaging_logger.publish.info(' send_chatter to: %s %s',
+                                            target,
+                                            chatter)
+        frame = create_vex_message(target, self._service_name, self.uuid, **chatter)
         self.add_callback(self.subscription_socket.send_multipart,
-                                    frame) 
+                          frame) 
+
+    def send_log(self, topic, message, *args, **kwargs):
+        message = topic + message
+        kwargs['message'] = message
+        frame = create_vex_message('', self._service_name, self.uuid, **kwargs)
+        self.add_callback(self.subscription_socket.send_multipart,
+                          frame) 
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
         target = target.encode('utf-8')
         command = command.encode('utf-8')
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
+        self._messaging_logger.command.info('send command %s: %s | %s',
+                                            command, args, kwargs)
         frame = (target, command, args, kwargs)
         self.command_socket.send_multipart(frame)
 

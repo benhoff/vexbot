@@ -196,9 +196,11 @@ class Shell(Prompt):
             self._first_word_not_cmd(first_word, command, args, kwargs)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
-        # TODO: Command fallthrough to bot? Currently just sees if command local
-        # and exits if not
+        if kwargs.get('--force-remote', False):
+            self.messaging.send_command(command, *args, **kwargs)
+            return
         if self.command_observer.is_command(command):
+            # NOTE: Commands fall through to bot currently
             try:
                 return self.command_observer.handle_command(command, *args, **kwargs)
             except Exception as e:
