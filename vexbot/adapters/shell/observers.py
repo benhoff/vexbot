@@ -104,6 +104,15 @@ class CommandObserver(Observer):
     def do_logging_default(self, *args, **kwargs):
         self._root.setLevel(logging.WARN)
 
+    def do_hidden(self, *args, **kwargs):
+        results = []
+        for k, v in self._commands.items():
+            if hasattr(v, 'hidden') and v.hidden:
+                results.append('!' + k)
+            else:
+                continue
+        return results
+
     def on_completed(self, *args, **kwargs):
         pass
 
