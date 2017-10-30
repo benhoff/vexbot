@@ -269,17 +269,6 @@ class Messaging:
         frame = (*source, b'', command.encode('utf8'), args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
-    def _get_message_helper(self, socket):
-        try:
-            msg = socket.recv_multipart(zmq.NOBLOCK)
-            try:
-                msg = decode_vex_message(msg)
-            except Exception as e:
-                # FIXME: log error
-                pass
-        except zmq.error.Again:
-            pass
-
     def _create_frame(self, type_, target='', **contents):
         return create_vex_message(target,
                                   self._service_name,
@@ -304,16 +293,23 @@ class Messaging:
             return
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
-        # FIXME: wrap in try/catch and handle gracefully
-        args = json.loads(args.decode('utf8'))
+        try:
+            args = json.loads(args.decode('utf8'))
+        except Exception:
+            self._logger.exception(' could not load command. Is the json dump\'d correctly?')
+            args = ()
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
         except IndexError:
             kwargs = {}
         else:
-            # FIXME: wrap in try/catch and handle gracefully
-            kwargs = json.loads(kwargs.decode('utf8'))
+            try:
+                kwargs = json.loads(kwargs.decode('utf8'))
+            except Exception:
+                self._logger.exception(' could not load command. Is the json dump\'d correctly?')
+                kwargs = {}
+
         # TODO: use better names, request? command
         request = Request(command, addresses)
         request.args = args
