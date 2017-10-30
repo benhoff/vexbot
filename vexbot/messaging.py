@@ -221,9 +221,7 @@ class Messaging:
         self.add_callback(self.subscription_socket.send_multipart,
                           frame) 
 
-    def send_log(self, topic, message, *args, **kwargs):
-        message = topic + message
-        kwargs['message'] = message
+    def send_log(self, *args, **kwargs):
         frame = create_vex_message('', self._service_name, self.uuid, **kwargs)
         self.add_callback(self.subscription_socket.send_multipart,
                           frame) 

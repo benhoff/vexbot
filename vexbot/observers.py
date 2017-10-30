@@ -120,6 +120,12 @@ class CommandObserver(Observer):
         self._root_logger.setLevel(logging.WARN)
         self.messaging.pub_handler.setLevel(logging.WARN)
 
+    def do_info(self, *args, **kwargs) -> None:
+        if not self.messaging.pub_handler in self._root_logger.handlers:
+            self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.INFO)
+        self.messaging.pub_handler.setLevel(logging.INFO)
+
     def do_start(self, name: str, mode: str='replace'):
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)

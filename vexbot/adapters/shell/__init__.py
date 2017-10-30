@@ -19,7 +19,8 @@ from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
                                              AuthorObserver,
-                                             ServiceObserver)
+                                             ServiceObserver,
+                                             LogObserver)
 
 
 # add in ! and # to our word completion regex
@@ -94,6 +95,7 @@ class Shell(Prompt):
         self._print_subscription = self.messaging.chatter.subscribe(self.print_observer)
         self.messaging.chatter.subscribe(self.author_observer)
         self.messaging.chatter.subscribe(self.service_observer)
+        self.messaging.chatter.subscribe(LogObserver())
 
     def _monitor_bot_state(self):
         time_now = time.time()

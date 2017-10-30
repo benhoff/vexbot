@@ -1,53 +1,25 @@
 import logging
 
+_TOPIC_DELIM="::"
 
 class LoopPubHandler(logging.Handler):
-    root_topic=""
-    
-    formatters = {
-        logging.DEBUG: logging.Formatter(
-        "%(levelname)s %(filename)s:%(lineno)d - %(message)s\n"),
-        logging.INFO: logging.Formatter("%(message)s\n"),
-        logging.WARN: logging.Formatter(
-        "%(levelname)s %(filename)s:%(lineno)d - %(message)s\n"),
-        logging.ERROR: logging.Formatter(
-        "%(levelname)s %(filename)s:%(lineno)d - %(message)s - %(exc_info)s\n"),
-        logging.CRITICAL: logging.Formatter(
-        "%(levelname)s %(filename)s:%(lineno)d - %(message)s\n")}
-    
     def __init__(self, messaging, level=logging.NOTSET):
         super().__init__(level)
         self.messaging = messaging
 
-    def format(self,record):
-        """Format a record."""
-        return self.formatters[record.levelno].format(record)
-
     def emit(self, record):
-        """Emit a log message on my socket."""
-        try:
-            topic, record.msg = record.msg.split(TOPIC_DELIM,1)
-        except Exception:
-            topic = ""
-        try:
-            msg = self.format(record)
-        except Exception:
-            self.handleError(record)
-            return
-        
-        topic_list = []
+        info = {'name': record.name,
+                'level': record.levelno,
+                'pathname': record.pathname,
+                'lineno': record.lineno,
+                'msg': record.msg,
+                'args': [str(x) for x in record.args],
+                'exc_info': record.exc_info,
+                'func': record.funcName,
+                'sinfo': record.stack_info,
+                'type': 'log'}
 
-        if self.root_topic:
-            topic_list.append(self.root_topic)
-
-        topic_list.append(record.levelname)
-
-        if topic:
-            topic_list.append(topic)
-
-        topic = '.'.join(t for t in topic_list)
-        self.messaging.send_log(topic, msg)
-
+        self.messaging.send_log(**info)
 
 
 class MessagingLogger:

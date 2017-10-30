@@ -193,6 +193,7 @@ class CommandObserver(Observer):
             callback = self._commands[args[0]]
         except (IndexError, KeyError):
             return
+        # TODO: syntax color would be nice
         source = inspect.getsourcelines(callback)
         # FIXME: formatting sucks
         return "\n" + "".join(source[0])
@@ -358,6 +359,32 @@ class ServiceObserver(Observer):
             service = self.channels[service]
         kwargs['target'] = service
         return args, kwargs
+
+
+class LogObserver(Observer):
+    def __init__(self):
+        super().__init__()
+        self.root = logging.getLogger()
+
+    def on_next(self, msg: Message):
+        type_ = msg.contents.get('type')
+        if type_ is None:
+            return
+        elif type_ != 'log':
+            return
+        # remove unused 'type' value
+        msg.contents.pop('type')
+        # NOTE: Fixes formatting issue used by logging lib, I.E. msg % args
+        msg.contents['args'] = tuple(msg.contents['args'])
+
+        record = logging.LogRecord(**msg.contents)
+        self.root.handle(record)
+
+    def on_error(self, *args, **kwargs):
+        pass
+
+    def on_completed(self, *args, **kwargs):
+        pass
 
 
 class AuthorObserver(Observer):
