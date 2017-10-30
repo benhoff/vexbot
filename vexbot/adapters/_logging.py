@@ -1,6 +1,5 @@
 import logging
-
-_TOPIC_DELIM="::"
+from tblib import Traceback
 
 class LoopPubHandler(logging.Handler):
     def __init__(self, messaging, level=logging.NOTSET):
@@ -18,6 +17,14 @@ class LoopPubHandler(logging.Handler):
                 'func': record.funcName,
                 'sinfo': record.stack_info,
                 'type': 'log'}
+        exc_info = info['exc_info']
+
+        if exc_info is not None:
+            new_exc_info = []
+            new_exc_info.append(exc_info[0].__name__)
+            new_exc_info.append(exc_info[1].args)
+            new_exc_info.append(Traceback(exc_info[2]).to_dict())
+            info['exc_info'] = new_exc_info
 
         self.messaging.send_log(**info)
 

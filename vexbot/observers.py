@@ -43,7 +43,6 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self._commands = self._get_commands()
         self.logger = logging.getLogger(self.messaging._service_name + '.command.observer')
-        #
 
         self._root_logger = logging.getLogger()
 
@@ -178,11 +177,9 @@ class CommandObserver(Observer):
 
         self._handle_command(command, source, *args, **kwargs)
 
-    # FIXME: do better logging
-    def on_error(self, error: Exception, *args, **kwargs):
-        _, value, _ = _sys.exc_info()
-        self.logger.warn(' error: %s: %s',
-                         value.__class__.__name__, value)
+    def on_error(self, error: Exception, command, *args, **kwargs):
+        # FIXME: Better name
+        self.logger.exception(' on_next error for {}'.format(command))
 
     def on_completed(self, *args, **kwargs):
         self.logger.info(' command observer completed!')

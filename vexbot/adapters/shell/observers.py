@@ -6,6 +6,7 @@ import inspect
 import logging
 
 from rx import Observer
+from tblib import Traceback
 
 from prompt_toolkit.styles import Attrs
 
@@ -376,6 +377,20 @@ class LogObserver(Observer):
         msg.contents.pop('type')
         # NOTE: Fixes formatting issue used by logging lib, I.E. msg % args
         msg.contents['args'] = tuple(msg.contents['args'])
+
+        exc_info = msg.contents['exc_info']
+        # deserialize exc_info
+        if exc_info:
+            new_exc_info = []
+            # Exception type
+            type_ = globals()['__builtins__'][exc_info[0]]
+            new_exc_info.append(type_)
+            # pass in excption arguments
+            new_exc_info.append(type_(*exc_info[1]))
+            # deserialize the traceback
+            new_exc_info.append(Traceback.from_dict(exc_info[2]).as_traceback())
+            # overwrite the member
+            msg.contents['exc_info'] = new_exc_info
 
         record = logging.LogRecord(**msg.contents)
         self.root.handle(record)

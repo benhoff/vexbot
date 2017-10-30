@@ -55,6 +55,7 @@ setup(
         'pyzmq',
         'vexmessage>=0.4.0',
         'rx',
+        'tblib',
         ],
 
     extras_require={
