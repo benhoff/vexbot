@@ -31,17 +31,20 @@ class IrcObserver(Observer):
     def do_part(self, *args, **kwargs):
         self.bot.part(*args)
 
-    def do_kick(self, channel, target, reason=None):
+    def do_kick(self, channel, target, reason=None, *args, **kwargs):
         self.bot.kick(channel, target, reason)
 
-    def do_away(self, message=None):
+    def do_away(self, message=None, *args, **kwargs):
         self.bot.away(message)
 
     def do_unaway(self, *args, **kwargs):
         self.bot.unaway()
 
-    def do_topic(self, channel, topic=None):
+    def do_topic(self, channel, topic=None, *args, **kwargs)
         self.bot.topic(channel, topic)
+
+    def do_commands(self, *args, **kwargs):
+        return self._get_commands()
 
     def on_next(self, item: Request):
         command = item.command
