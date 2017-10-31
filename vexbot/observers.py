@@ -42,9 +42,10 @@ class CommandObserver(Observer):
         self.messaging = messaging
         self.subprocess_manager = subprocess_manager
         self._commands = self._get_commands()
-        self.logger = logging.getLogger(self.messaging._service_name + '.command.observer')
+        self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
+        self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_commands(self) -> dict:
         result = {}
@@ -107,6 +108,9 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
+    def do_services(self, *args, **kwargs):
+        return tuple(self.messaging._address_map.keys())
+
     def do_help(self, *arg, **kwargs):
         """
         Help helps you figure out what commands do.
@@ -123,10 +127,9 @@ class CommandObserver(Observer):
         return callback.__doc__
 
     def do_debug(self, *args, **kwargs):
-        if not self.messaging.pub_handler in self._root_logger.handlers:
-            self._root_logger.addHandler(self.messaging.pub_handler)
         self._root_logger.setLevel(logging.DEBUG)
         self.messaging.pub_handler.setLevel(logging.DEBUG)
+        print(self._root_logger.handlers)
 
     @vexcommand(alias=['source',])
     def do_code(self, *args, **kwargs):
@@ -143,14 +146,10 @@ class CommandObserver(Observer):
         return "\n" + "".join(source[0])
 
     def do_warn(self, *args, **kwargs):
-        if not self.messaging.pub_handler in self._root_logger.handlers:
-            self._root_logger.addHandler(self.messaging.pub_handler)
         self._root_logger.setLevel(logging.WARN)
         self.messaging.pub_handler.setLevel(logging.WARN)
 
     def do_info(self, *args, **kwargs) -> None:
-        if not self.messaging.pub_handler in self._root_logger.handlers:
-            self._root_logger.addHandler(self.messaging.pub_handler)
         self._root_logger.setLevel(logging.INFO)
         self.messaging.pub_handler.setLevel(logging.INFO)
 
@@ -189,7 +188,7 @@ class CommandObserver(Observer):
             return
 
         if result is None:
-            self.logger.debug('no result for command: %s', command)
+            self.logger.debug(' no result for command: %s', command)
             return
 
         self.logger.info('send response %s %s %s', source, command, result)
