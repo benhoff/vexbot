@@ -60,9 +60,6 @@ class Shell(Prompt):
 
 
         self.shebangs = ['!', ]
-
-        # NOTE: the command observer is currently NOT hooked up to the
-        # scheduler
         self.command_observer = CommandObserver(self.messaging, prompt=self)
 
         commands = self.command_observer._get_commands()
@@ -96,6 +93,7 @@ class Shell(Prompt):
         self.messaging.chatter.subscribe(self.author_observer)
         self.messaging.chatter.subscribe(self.service_observer)
         self.messaging.chatter.subscribe(LogObserver())
+        self.messaging.command.subscribe(self.command_observer)
 
     def _monitor_bot_state(self):
         time_now = time.time()

@@ -4,17 +4,18 @@ from time import localtime, strftime
 from random import randrange
 import inspect
 import logging
+import pprint
 
 from rx import Observer
 from tblib import Traceback
-
+from pygments.lexers.python import CythonLexer
 from prompt_toolkit.styles import Attrs
+from prompt_toolkit.layout.lexers import PygmentsLexer
 
-from vexmessage import Message
+from vexmessage import Message, Request
 
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
-
 
 def _get_attributes(output, color: str):
     attr = Attrs(color=color, bgcolor='', bold=False, underline=False,
@@ -117,8 +118,15 @@ class CommandObserver(Observer):
     def on_completed(self, *args, **kwargs):
         pass
 
-    def on_next(self, *args, **kwargs):
-        pass
+    def on_next(self, request: Request):
+        # FIXME: these are the responses to our commands!!!!
+        result = request.kwargs.get('result')
+        if result is None:
+            return
+        if isinstance(result, str):
+            print(result)
+        else:
+            pprint.pprint(result)
 
     def do_help(self, *arg, **kwargs):
         """
@@ -190,14 +198,15 @@ class CommandObserver(Observer):
         """
         get the python source code from callback
         """
-        try:
-            callback = self._commands[args[0]]
-        except (IndexError, KeyError):
-            return
+        callback = self._commands[args[0]]
         # TODO: syntax color would be nice
-        source = inspect.getsourcelines(callback)
+        source = inspect.getsourcelines(callback)[0]
+        """
+        source_len = len(source)
+        source = PygmentsLexer(CythonLexer).lex_document(source)()
+        """
         # FIXME: formatting sucks
-        return "\n" + "".join(source[0])
+        return "\n" + "".join(source)
 
     def do_autosuggestions(self, *args, **kwargs):
         if self._prompt:

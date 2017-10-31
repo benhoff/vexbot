@@ -28,7 +28,8 @@ If you don't plan to use the process manager functions (start services from the 
 
 `$ pip install vexbot`
 
-if you want to use the process manager functions and have the above requirements met, run this command instaed.
+if you want to use the process manager functions and have the above requirements met, run this command instead:
+
 `pip install vexbot[process_manager]`
 
 You'll also need a DBUS user session. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
@@ -36,6 +37,7 @@ You'll also need a DBUS user session. Depending on your distro, you might alread
 `$ apt-get install dbus-user-session`
 
 if you intend to use `vexshell`:
+
 `$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
 
 ## Configuring

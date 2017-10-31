@@ -113,6 +113,20 @@ class CommandObserver(Observer):
         self._root_logger.setLevel(logging.DEBUG)
         self.messaging.pub_handler.setLevel(logging.DEBUG)
 
+    @vexcommand(alias=['source',])
+    def do_code(self, *args, **kwargs):
+        """
+        get the python source code from callback
+        """
+        try:
+            callback = self._commands[args[0]]
+        except (IndexError, KeyError):
+            return
+        # TODO: syntax color would be nice
+        source = _inspect.getsourcelines(callback)
+        # FIXME: formatting sucks
+        return "\n" + "".join(source[0])
+
     def do_warn(self, *args, **kwargs):
         if not self.messaging.pub_handler in self._root_logger.handlers:
             self._root_logger.addHandler(self.messaging.pub_handler)
@@ -129,7 +143,7 @@ class CommandObserver(Observer):
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)
 
-    def do_bot_commands(self, *args, **kwargs):
+    def do_commands(self, *args, **kwargs):
         commands = tuple(self._commands.keys())
         return commands
 
@@ -143,6 +157,7 @@ class CommandObserver(Observer):
 
     def _handle_command(self,
                         command: str,
+                        source: str,
                         *args,
                         **kwargs) -> None:
 
@@ -151,6 +166,7 @@ class CommandObserver(Observer):
         except KeyError:
             self.logger.info(' command not found! %s', command)
             return
+        kwargs['source'] = source
         try:
             result = callback(*args, **kwargs)
         except Exception as e:
@@ -173,7 +189,7 @@ class CommandObserver(Observer):
         self.logger.info(' Request recieved, %s %s %s %s',
                          command, source, args, kwargs)
 
-        self._handle_command(command, source=source, *args, **kwargs)
+        self._handle_command(command, source, *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
         # FIXME: Better name

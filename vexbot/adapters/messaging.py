@@ -317,15 +317,18 @@ class Messaging:
     def handle_raw_command(self, message) -> Request:
         # blank string
         pong = message.pop(0).decode('utf8')
-        # FIXME
         if pong == 'PONG':
-            self._logger.debug('Pong response')
+            self._messaging_logger.command.info('Pong response')
             return
-        # command? Not sure if we want to do it this way.
+        # FIXME: bad logging description
+        self._messaging_logger.command.debug(' first bye: %s', pong)
+        # command.
         command = message.pop(0).decode('utf8')
+        self._messaging_logger.command.debug(' command: %s', command)
 
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
+        self._messaging_logger.command.debug('args: %s', args)
         try:
             args = json.loads(args.decode('utf8'))
         except EOFError:
@@ -342,7 +345,7 @@ class Messaging:
                 kwargs = json.loads(kwargs.decode('utf8'))
             except EOFError:
                 kwargs = {}
-        
+        self._messaging_logger.command.debug(' kwargs: %s', kwargs) 
         # TODO: use better names, request? command?
         # NOTE: this might be different since it's on the other side of the command
         request = Request(command, None)
@@ -351,6 +354,7 @@ class Messaging:
         return request
 
     def _control_helper(self, msg):
+        self._messaging_logger.control.info(' recieved message')
         request = self.handle_raw_command(msg)
 
         if request is None:
@@ -359,6 +363,7 @@ class Messaging:
         self.control.on_next(request)
 
     def _command_helper(self, msg):
+        self._messaging_logger.command.info(' recieved message')
         request = self.handle_raw_command(msg)
 
         if request is None:
