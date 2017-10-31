@@ -384,7 +384,11 @@ class LogObserver(Observer):
         # remove unused 'type' value
         msg.contents.pop('type')
         # NOTE: Fixes formatting issue used by logging lib, I.E. msg % args
-        msg.contents['args'] = tuple(msg.contents['args'])
+        args = msg.contents['args']
+        if isinstance(args, list):
+            msg.contents['args'] = tuple(args)
+        else:
+            msg.contents['args'] = args
 
         exc_info = msg.contents['exc_info']
         # deserialize exc_info

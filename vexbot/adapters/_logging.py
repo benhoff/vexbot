@@ -7,12 +7,21 @@ class LoopPubHandler(logging.Handler):
         self.messaging = messaging
 
     def emit(self, record):
+        args = record.args
+        if isinstance(args, tuple):
+            args = [str(x) for x in record.args]
+        elif isinstance(args, dict):
+            args = str(args)
+        # NOTE: Might need more specific handling in the future
+        else:
+            args = str(args)
+
         info = {'name': record.name,
                 'level': record.levelno,
                 'pathname': record.pathname,
                 'lineno': record.lineno,
                 'msg': record.msg,
-                'args': [str(x) for x in record.args],
+                'args': args,
                 'exc_info': record.exc_info,
                 'func': record.funcName,
                 'sinfo': record.stack_info,
