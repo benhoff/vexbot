@@ -1,5 +1,6 @@
 import sys as _sys
 import zmq as _zmq
+import logging
 from os import path
 
 from zmq.auth.thread import ThreadAuthenticator
@@ -25,35 +26,41 @@ class SocketFactory:
                  logger: 'logging.Logger'=None,
                  loop=None,
                  auth_whitelist: list='127.0.0.1',
-                 auth=True):
+                 using_auth: bool=True):
 
         self.address = address
         self.protocol = protocol
         self.context = context or _zmq.Context.instance()
+        if logger is None:
+            logger = logging.getLogger(__name__)
         self.logger = logger
         self._server_certs = (None, None)
-        self.using_auth = auth
+        self.using_auth = using_auth 
 
         if self.using_auth:
-            if loop is None:
-                self.auth = ThreadAuthenticator(self.context)
-            else:
-                self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
+            self._setup_auth(auth_whitelist, loop)
 
-            # allow all local host
-            self.logger.debug('Auth whitelist %s', auth_whitelist)
-            self.auth.allow(auth_whitelist)
-            self._base_filepath = get_certificate_filepath()
-            public_key_location = path.join(self._base_filepath, 'public_keys')
-            self.auth.configure_curve(domain='*', location=public_key_location)
-            self.auth.start()
+    def _setup_auth(self, auth_whitelist: list, loop):
+        if loop is None:
+            self.auth = ThreadAuthenticator(self.context)
+        else:
+            self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
+
+        # allow all local host
+        self.logger.debug('Auth whitelist %s', auth_whitelist)
+        self.auth.allow(auth_whitelist)
+        self._base_filepath = get_certificate_filepath()
+        public_key_location = path.join(self._base_filepath, 'public_keys')
+        self.auth.configure_curve(domain='*', location=public_key_location)
+        self.auth.start()
 
     def _set_server_certs(self, any_=True):
         secret_filepath, secret = get_vexbot_certificate_filepath()
         if not secret and not any_:
-            # FIXME: This err sucks. Also, build in no Auth case
-            err = 'Could not find the vexbot certificates. Did you generate them'
+            err = ('Could not find the vexbot certificates. Generate them '
+                   'using `vexbot_generate_certificates` from command line')
             raise FileNotFoundError(err)
+
         self._server_certs = _zmq.auth.load_certificate(secret_filepath)
 
     def _create_using_auth(self, socket, address, bind, on_error, socket_name):
@@ -61,11 +68,13 @@ class SocketFactory:
             self._set_server_certs(bind)
         if bind:
             if self._server_certs[1] is None:
-                # FIXME: This error sucks
-                raise FileNotFoundError('Server Secret File Not Found!')
+                err = ('Server Secret File Not Found! Generate using '
+                       '`vexbot_generate_certificates` from the command line')
+                raise FileNotFoundError(err)
+                                        
             public, private = self._server_certs
         else:
-            # NOTE: This raises a `FileNotFoundError` currently if not found
+            # NOTE: This raises a `FileNotFoundError` if not found
             secret_filepath = get_client_certificate_filepath()
             public, private = _zmq.auth.load_certificate(secret_filepath)
 
@@ -84,9 +93,16 @@ class SocketFactory:
             socket.connect(address)
 
     def _create_no_auth(self, socket, address, bind, on_error, socket_name):
-        # FIXME
-        pass
+        if bind:
+            try:
+                socket.bind(address)
+            except _zmq.error.ZMQError:
+                self._handle_error(on_error, address, socket_name)
+                socket = None
+        else:  # connect the socket
+            socket.connect(address)
 
+    # TODO: Allow authentication override
     def create_n_connect(self,
                          socket_type,
                          address: str,
@@ -119,18 +135,14 @@ class SocketFactory:
                                   on_error='log',
                                   socket_name=''):
 
-        # FIXME: No auth?
+        # TODO: Refactor this to remove code duplication with create_n_connect
+        # Or at least make better sense
         socket = self.context.socket(socket_type)
         for address in addresses:
-            if bind:
-                try:
-                    socket.bind(address)
-                except _zmq.error.ZMQError:
-                    self._handle_error(on_error, address, socket_name)
-                    socket = None
-            else:  # connect the socket
-                socket.connect(address)
-
+            if self.auth:
+                self._create_using_auth(socket, address, bind, on_error, socket_name)
+            else:
+                self._create_no_auth(socket, address, bind, on_error, socket_name)
         return socket
 
     def to_address(self, port: str):
