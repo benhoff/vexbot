@@ -46,9 +46,12 @@ def _get_default_history_filepath():
 
 class Shell(Prompt):
     def __init__(self, history_filepath=None):
+        self._logger = logging.getLogger(__name__)
         if history_filepath is None:
+            self._logger.info(' getting default history filepath.')
             history_filepath = _get_default_history_filepath()
 
+        self._logger.info(' history filepath %s', history_filepath)
         self.history = FileHistory(history_filepath)
         self.messaging = _Messaging('shell', run_control_loop=True)
         self._thread = _Thread(target=self.messaging.start,
@@ -138,6 +141,7 @@ class Shell(Prompt):
                 text = text.lstrip()
                 # Handle empty text
                 if text == '':
+                    self._logger.debug(' empty string found')
                     continue
                 # Program specific handeling. Currently either first word
                 # or second word can be commands
@@ -163,6 +167,7 @@ class Shell(Prompt):
         if self.is_command(text):
             # get the command, args, and kwargs out using `shlex`
             command, args, kwargs = _get_cmd_args_kwargs(text)
+            self._logger.info(' command: %s, %s %s', command, args, kwargs)
             # hand off to the `handle_command` method
             result = self._handle_command(command, args, kwargs)
 
@@ -196,7 +201,7 @@ class Shell(Prompt):
             self._first_word_not_cmd(first_word, command, args, kwargs)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
-        if kwargs.get('--force-remote', False):
+        if kwargs.get('force-remote', False):
             self.messaging.send_command(command, *args, **kwargs)
             return
         if self.command_observer.is_command(command):

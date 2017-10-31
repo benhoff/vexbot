@@ -85,8 +85,8 @@ class CommandObserver(Observer):
         try:
             source = self.messaging._address_map[target]
         except KeyError:
-            # FIXME: Tell the user possible reasons WHY this is the case
-            self.logger.warn(' Target: %s, not found in the addresses.', target)
+            warn = ' Target %s, not found in addresses. Are you sure the %s sent an IDENT message?'
+            self.logger.warn(warn, target)
             # NOTE: Bail here since there's no point in going forward
             return
         

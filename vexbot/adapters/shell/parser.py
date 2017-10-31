@@ -18,6 +18,10 @@ def parse(strings: list):
     kwargs = {}
     while strings:
         string = strings.pop(0)
+        if string.startswith('--'):
+            string = string[2:]
+        elif string.startswith('-'):
+            string = string[1:]
         try:
             value = strings[0]
         except IndexError:
