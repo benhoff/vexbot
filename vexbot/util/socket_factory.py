@@ -24,26 +24,29 @@ class SocketFactory:
                  context: 'zmq.Context'=None,
                  logger: 'logging.Logger'=None,
                  loop=None,
-                 auth_whitelist: list='127.0.0.1'):
+                 auth_whitelist: list='127.0.0.1',
+                 auth=True):
 
         self.address = address
         self.protocol = protocol
         self.context = context or _zmq.Context.instance()
         self.logger = logger
         self._server_certs = (None, None)
+        self.using_auth = auth
 
-        if loop is None:
-            self.auth = ThreadAuthenticator(self.context)
-        else:
-            self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
+        if self.using_auth:
+            if loop is None:
+                self.auth = ThreadAuthenticator(self.context)
+            else:
+                self.auth = IOLoopAuthenticator(self.context, io_loop=loop)
 
-        # allow all local host
-        self.logger.debug('Auth whitelist %s', auth_whitelist)
-        self.auth.allow(auth_whitelist)
-        self._base_filepath = get_certificate_filepath()
-        public_key_location = path.join(self._base_filepath, 'public_keys')
-        self.auth.configure_curve(domain='*', location=public_key_location)
-        self.auth.start()
+            # allow all local host
+            self.logger.debug('Auth whitelist %s', auth_whitelist)
+            self.auth.allow(auth_whitelist)
+            self._base_filepath = get_certificate_filepath()
+            public_key_location = path.join(self._base_filepath, 'public_keys')
+            self.auth.configure_curve(domain='*', location=public_key_location)
+            self.auth.start()
 
     def _set_server_certs(self, any_=True):
         secret_filepath, secret = get_vexbot_certificate_filepath()
@@ -53,24 +56,7 @@ class SocketFactory:
             raise FileNotFoundError(err)
         self._server_certs = _zmq.auth.load_certificate(secret_filepath)
 
-    def create_n_connect(self,
-                         socket_type,
-                         address: str,
-                         bind=False,
-                         on_error='log',
-                         socket_name=''):
-        """
-        Creates and connects or binds the sockets
-        on_error:
-            'log': will log error
-            'exit': will exit the program
-        socket_name:
-            used for troubleshooting/logging
-        """
-        self.logger.debug('create and connect: %s %s %s',
-                          socket_type, socket_name, address)
-
-        socket = self.context.socket(socket_type)
+    def _create_using_auth(self, socket, address, bind, on_error, socket_name):
         if not any(self._server_certs):
             self._set_server_certs(bind)
         if bind:
@@ -97,6 +83,33 @@ class SocketFactory:
             socket.curve_serverkey = self._server_certs[0]
             socket.connect(address)
 
+    def _create_no_auth(self, socket, address, bind, on_error, socket_name):
+        # FIXME
+        pass
+
+    def create_n_connect(self,
+                         socket_type,
+                         address: str,
+                         bind=False,
+                         on_error='log',
+                         socket_name=''):
+        """
+        Creates and connects or binds the sockets
+        on_error:
+            'log': will log error
+            'exit': will exit the program
+        socket_name:
+            used for troubleshooting/logging
+        """
+        self.logger.debug('create and connect: %s %s %s',
+                          socket_type, socket_name, address)
+
+        socket = self.context.socket(socket_type)
+        if self.using_auth:
+            self._create_using_auth(socket, address, bind, on_error, socket_name)
+        else:
+            self._create_no_auth(socket, address, bind, on_error, socket_name)
+
         return socket
 
     def multiple_create_n_connect(self,
@@ -106,6 +119,7 @@ class SocketFactory:
                                   on_error='log',
                                   socket_name=''):
 
+        # FIXME: No auth?
         socket = self.context.socket(socket_type)
         for address in addresses:
             if bind:

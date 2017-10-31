@@ -107,6 +107,21 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
+    def do_help(self, *arg, **kwargs):
+        """
+        Help helps you figure out what commands do.
+        Example usage: !help code
+        To see all commands: !commands
+        """
+        name = arg[0]
+        try:
+            callback = self._commands[name]
+        except KeyError:
+            self._logger.info(' !help not found for: %s', name)
+            return self.do_help.__doc__
+
+        return callback.__doc__
+
     def do_debug(self, *args, **kwargs):
         if not self.messaging.pub_handler in self._root_logger.handlers:
             self._root_logger.addHandler(self.messaging.pub_handler)

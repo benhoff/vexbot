@@ -135,7 +135,6 @@ class CommandObserver(Observer):
         To see all commands: !commands
         """
         name = arg[0]
-        self._prompt.shebangs
         if any([name.startswith(x) for x in self._prompt.shebangs]):
             name = name[1:]
         try:
