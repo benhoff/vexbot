@@ -22,24 +22,7 @@ from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
 from vexbot.util.get_certificate_filepath import get_certificate_filepath
 
 
-def _handle_secret_exists():
-    answer = prompt('Found some stuff, continue? [Y/N]: ')
-    answer = answer.lower()
-
-
-def _handle_public_exists():
-    pass
-
-
-def _generate_client_certificates():
-    pass
-
-
-def _generate_server_certificates():
-    pass
-
-
-def generate_certificates(base_dir):
+def generate_certificates(base_dir: str, remove_certificates: bool=False):
     ''' Generate client and server CURVE certificate files'''
     public_keys_dir = os.path.join(base_dir, 'public_keys')
     secret_keys_dir = os.path.join(base_dir, 'private_keys')
@@ -59,19 +42,25 @@ def generate_certificates(base_dir):
     vexbot_secret = os.path.join(secret_keys_dir, 'vexbot.key_secret')
     client_secret = os.path.join(secret_keys_dir, 'client.key_secret')
 
-    # FIXME
-    if os.path.exists(vexbot_public):
-        pass
+    if os.path.exists(vexbot_public) and remove_certificates:
+        os.unlink(vexbot_public)
+        try:
+            os.unlink(vexbot_secret)
+        except OSError:
+            pass
+    elif os.path.exists(vexbot_public) and not remove_certificates:
+        os.unlink(server_public_file)
+        os.unlink(server_secret_file)
 
-    if os.path.exists(client_public):
-        pass
-
-    if os.path.exists(vexbot_secret):
-        pass
-
-    if os.path.exists(client_secret):
-        pass
-
+    if os.path.exists(client_public) and remove_certificates:
+        os.unlink(client_public)
+        try:
+            os.unlink(client_secret)
+        except OSError:
+            pass
+    elif os.path.exists(client_public) and not remove_certificates:
+        os.unlink(client_public_file)
+        os.unlink(client_secret_file)
 
     # move public keys to appropriate directory
     for key_file in os.listdir(base_dir):
@@ -102,7 +91,13 @@ def main():
     if not os.path.exists(cert_path):
         os.mkdir(cert_path)
 
-    generate_certificates(cert_path)
+    remove_certificates = input('Remove certificates if present? Y/n: ')
+    remove_certificates = remove_certificates.lower()
+    if remove_certificates == 'y':
+        remove_certificates = True
+    else:
+        remove_certificates = False
+    generate_certificates(cert_path, remove_certificates)
 
 
 if __name__ == '__main__':
