@@ -61,7 +61,6 @@ class CommandObserver(Observer):
         self.messaging = messaging
         # Get the root logger to set it to different levels
         self._root = logging.getLogger()
-
         self._logger = logging.getLogger(__name__)
 
         self._bot_callback = None
@@ -75,6 +74,12 @@ class CommandObserver(Observer):
                         self._commands[alias] = method
                 except AttributeError:
                     continue
+
+    def do_log_level(self, *args, **kwargs):
+        if not args:
+            return self._root.getEffectiveLevel()
+        else:
+            self._root.setLevel(args[0])
 
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
@@ -242,6 +247,26 @@ class CommandObserver(Observer):
     def do_services(self, *args, **kwargs) -> list:
         return self._prompt.service_observer.services
 
+    def do_filter(self, *args, **kwargs):
+        if not args:
+            raise ValueError('Must supply something to filter against!')
+        for name in args:
+            for handler in self._root.handlers:
+                handler.addFilter(logging.Filter(name))
+
+    def do_filter_heartbeating(self, *args, **kwargs):
+        self.do_anti_filter('shell.messaging.heartbeat',
+                            'shell.messaging.subscribe',
+                            'vexbot.messaging.heartbeat')
+
+    def do_anti_filter(self, *args, **kwargs):
+        def filter_(record: logging.LogRecord):
+            if record.name in args:
+                return False
+            return True
+        for handler in self._root.handlers:
+            handler.addFilter(filter_)
+
     def do_channels(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.service_observer.channels.keys())
 
@@ -405,7 +430,8 @@ class LogObserver(Observer):
             msg.contents['exc_info'] = new_exc_info
 
         record = logging.LogRecord(**msg.contents)
-        self.root.handle(record)
+        if record.levelno >= self.root.level:
+            self.root.handle(record)
 
     def on_error(self, *args, **kwargs):
         pass

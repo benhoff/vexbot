@@ -201,7 +201,7 @@ class Shell(Prompt):
             self._first_word_not_cmd(first_word, command, args, kwargs)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
-        if kwargs.get('force-remote', False):
+        if kwargs.get('remote', False):
             self.messaging.send_command(command, *args, **kwargs)
             return
         if self.command_observer.is_command(command):
