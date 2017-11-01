@@ -15,8 +15,8 @@ from vexbot.scheduler import Scheduler
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 from vexbot.util.messaging import get_addresses as _get_addresses
 from vexbot.util.lru_cache import LRUCache as _LRUCache
-from vexbot.adapters._logging import MessagingLogger
-from vexbot.adapters._logging import LoopPubHandler
+from vexbot._logging import MessagingLogger
+from vexbot._logging import LoopPubHandler
 
 from vexmessage import create_vex_message, decode_vex_message, Request, Message
 
@@ -283,13 +283,18 @@ class Messaging:
         address_length = len(addresses) + 1
         # remove the address information from the message
         message = message[address_length:]
+        self._messaging_logger.command.debug(' addresses: %s', addresses)
         # the command name is the first string in message
         command = message.pop(0).decode('utf8')
+        self._messaging_logger.command.debug(' command: %s', command)
 
         # Respond to PING commands
         if command == 'PING':
             addresses.append(b'PONG')
-            self.command_socket.send_multipart(addresses)
+            self._messaging_logger.command.info(' Send Pong')
+            self.add_callback(self.command_socket.send_multipart,
+                              addresses)
+
             return
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
@@ -298,6 +303,7 @@ class Messaging:
         except Exception:
             self._logger.exception(' could not load command. Is the json dump\'d correctly?')
             args = ()
+        self._messaging_logger.command.debug(' args: %s', args)
         # need to see if we have kwargs, so we'll try and pop them off
         try:
             kwargs = message.pop(0)
@@ -307,8 +313,10 @@ class Messaging:
             try:
                 kwargs = json.loads(kwargs.decode('utf8'))
             except Exception:
-                self._logger.exception(' could not load command. Is the json dump\'d correctly?')
+                err = ' could not load command. Is the json dump\'d correctly?'
+                self._messaging_logger.command.exception(err)
                 kwargs = {}
+        self._messaging_logger.command.debug(' kwargs: %s', kwargs)
 
         # TODO: use better names, request? command
         request = Request(command, addresses)

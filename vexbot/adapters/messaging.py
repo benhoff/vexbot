@@ -10,7 +10,7 @@ from zmq.eventloop.ioloop import PeriodicCallback
 from rx.subjects import Subject as _Subject
 
 from vexbot import _get_default_adapter_config
-from vexbot.adapters._logging import MessagingLogger
+from vexbot._logging import MessagingLogger
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
 from vexmessage import create_vex_message, decode_vex_message, Request
