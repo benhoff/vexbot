@@ -40,7 +40,7 @@ class IrcObserver(Observer):
     def do_unaway(self, *args, **kwargs):
         self.bot.unaway()
 
-    def do_topic(self, channel, topic=None, *args, **kwargs)
+    def do_topic(self, channel, topic=None, *args, **kwargs):
         self.bot.topic(channel, topic)
 
     def do_commands(self, *args, **kwargs):

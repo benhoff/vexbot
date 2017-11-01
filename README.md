@@ -17,7 +17,9 @@ See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requir
 
 [girepository](https://wiki.gnome.org/Projects/GObjectIntrospection) 1.46+
 
-These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus.
+These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
+
+`$ apt-get install dbus-user-session`
 
 ## Installation
 `$ python3 -m venv <DIR>`
@@ -32,10 +34,6 @@ if you want to use the process manager functions and have the above requirements
 
 `pip install vexbot[process_manager]`
 
-You'll also need a DBUS user session. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
-
-`$ apt-get install dbus-user-session`
-
 if you intend to use `vexshell`:
 
 `$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
@@ -46,7 +44,15 @@ Make sure your virtual environment is activated. Then run:
 
 `$ vexbot_generate_certificates`
 
-Base your configuration on the [default settings](https://github.com/benhoff/vexbot/blob/master/vexbot/default_settings.yml). The configuration handeling hasn't been user proofed so if you're getting errors, that's a good place to start.
+`$ vexbot_generate_unit_file`
+
+`$ systemctl --user daemon-reload`
+
+Your bot is ready to run!
+
+## Running
+
+`systemctl --user start vexbot`
 
 ### Configuring Addresses
  Vexbot uses messaging and subprocesses for different services. This has some advantages/disadvantages of this approach, but the reason it's staying is it allows the developer some decreased congnitive load while developing this project.

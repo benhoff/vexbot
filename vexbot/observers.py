@@ -108,6 +108,17 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
+    def do_log_level(self, *args, **kwargs):
+        if not args:
+            return self._root_logger.getEffectiveLevel()
+        value = args[0]
+        try:
+            value = int(value)
+        except ValueError:
+            pass
+
+        self._root_logger.setLevel(value)
+
     def do_services(self, *args, **kwargs):
         return tuple(self.messaging._address_map.keys())
 

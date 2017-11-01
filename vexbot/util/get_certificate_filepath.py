@@ -34,8 +34,8 @@ def get_vexbot_certificate_filepath() -> (str, bool):
     if path.isfile(secret_filepath):
         return secret_filepath, True
     if not path.isfile(public_filepath):
-        # FIXME: bad error
-        err = 'certificates not found. Where they generated?'
+        err = ('certificates not found. Generate certificates from the '
+               'command line using `vexbot_generate_certificates`')
         raise FileNotFoundError(err)
     return public_filepath, False
 
