@@ -140,7 +140,6 @@ class CommandObserver(Observer):
     def do_debug(self, *args, **kwargs):
         self._root_logger.setLevel(logging.DEBUG)
         self.messaging.pub_handler.setLevel(logging.DEBUG)
-        print(self._root_logger.handlers)
 
     @vexcommand(alias=['source',])
     def do_code(self, *args, **kwargs):

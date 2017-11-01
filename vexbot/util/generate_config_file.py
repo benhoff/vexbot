@@ -1,11 +1,19 @@
+import logging
 from os import path
+import os
 import inspect
 import configparser
 import pkg_resources
 
+from vexbot.util.get_vexdir_filepath import get_config_dir
+
 
 def _systemd_user_filepath() -> str:
-    pass
+    config = get_config_dir()
+    config = path.join(config, 'systemd', 'user')
+    os.mkdirs(config, exist_ok=True)
+    return path.join(config, 'vexbot.ini')
+
 
 def _get_vexbot_robot():
     for entry_point in pkg_resources.iter_entry_points('console_scripts'):
@@ -15,12 +23,15 @@ def _get_vexbot_robot():
             return insepct.getsourcefile(entry_point.resolve())
 
 
-def config(filepath=None):
+def config(filepath=None, remove_config=False):
     if filepath is None:
         filepath = _systemd_user_filepath()
-    # FIXME: Handle
-    if path.exists(filepath):
-        pass
+    if path.exists(filepath) and remove_config:
+        os.unlink(filepath)
+    elif path.exists(filepath) and not remove_config:
+        logging.error(' Configuration filepath already exsists at: %s',
+                      filepath)
+        return
 
     parser = configparser.ConfigParser()
     parser['Unit'] = {'Description': 'Helper Bot'}
@@ -31,3 +42,20 @@ def config(filepath=None):
 
     with open(filepath, 'w') as f:
         parser.write(f)
+
+    print('Config file created at: {}'.format(filepath))
+
+
+def main():
+    remove_config = input('Remove config if present? Y/n: ')
+    remove_config = remove_config.lower()
+    if remove_config == 'y':
+        remove_config = True
+    else:
+        remove_config = False
+
+    config(remove_config=remove_config)
+
+
+if __name__ == '__main__':
+    main()
