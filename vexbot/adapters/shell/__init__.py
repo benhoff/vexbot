@@ -165,6 +165,7 @@ class Shell(Prompt):
         """
         # If first word is command
         if self.is_command(text):
+            self._logger.debug(' first word is a command')
             # get the command, args, and kwargs out using `shlex`
             command, args, kwargs = _get_cmd_args_kwargs(text)
             self._logger.info(' command: %s, %s %s', command, args, kwargs)
@@ -180,18 +181,28 @@ class Shell(Prompt):
             return
         # Else check if second word is a command
         else:
+            self._logger.debug(' first word is not a command')
             # get the first word and then the rest of the text. Text reassign
             # here
             try:
                 first_word, text = text.split(' ', 1)
+                self._logger.debug(' first word: %s', first_word)
             except ValueError:
                 return
             # check if second word/string is a command
             if self.is_command(text):
+                self._logger.info(' second word is a command')
                 # get the command, args, and kwargs out using `shlex`
                 command, args, kwargs = _get_cmd_args_kwargs(text)
+                self._logger.debug(' second word: %s', command)
+                self._logger.debug(' command %s', command)
+                self._logger.debug('args %s ', args)
+                self._logger.debug('kwargs %s', kwargs)
             # if second word is not a command, default to message
             else:
+                self._logger.info(' defaulting to message since second word '
+                                  'isn\'t a command')
+
                 command = 'MSG'
                 args = ()
                 kwargs = {'message': text}
@@ -202,10 +213,11 @@ class Shell(Prompt):
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
         if kwargs.get('remote', False):
+            self._logger.debug(' `remote` in kwargs, sending command')
             self.messaging.send_command(command, *args, **kwargs)
             return
         if self.command_observer.is_command(command):
-            # NOTE: Commands fall through to bot currently
+            self._logger.debug(' %s is command', command)
             try:
                 return self.command_observer.handle_command(command, *args, **kwargs)
             except Exception as e:
@@ -222,26 +234,20 @@ class Shell(Prompt):
         This method does high level control handling
         """
         if self.service_observer.is_service(first_word):
+            self._logger.debug(' first word is a service')
             args, kwargs = self._handle_service(first_word, args, kwargs)
+            self._logger.debug(' service transform args: %s', args)
+            self._logger.debug(' service transform kwargs: %s', kwargs)
         elif self._is_author(first_word):
+            self._logger.debug(' first word is an author')
             args, kwargs = self._handle_author(first_word, args, kwargs)
-        if not kwargs.get('force-remote'):
-            try:
-                callback = self.command_observer._commands[command]
-            except KeyError:
-                kwargs['remote_command'] = command
-                command= 'REMOTE'
-                self.messaging.send_command(command, *args, **kwargs)
-                return
-            try:
-                result = callback(*args, **kwargs)
-            except Exception as e:
-                self.command_observer.on_error(e, command)
-                return
-
-            if result:
-                message = _pprint.pformat(result)
-                self.messaging.send_command('MSG', message=message, *args, **kwargs)
+            self._logger.debug(' author transform args: %s', args)
+            self._logger.debug(' author transform kwargs: %s', kwargs)
+        if not kwargs.get('remote'):
+            kwargs['remote_command'] = command
+            command= 'REMOTE'
+            self.messaging.send_command(command, *args, **kwargs)
+            return
         else:
             self.messaging.send_command(command, *args, **kwargs)
 
@@ -249,6 +255,7 @@ class Shell(Prompt):
                         service: str,
                         args: tuple,
                         kwargs: dict) -> (str, tuple, dict):
+
         return self.service_observer.handle_command(service, args, kwargs)
 
     def _is_author(self, author: str):
