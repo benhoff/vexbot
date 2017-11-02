@@ -73,19 +73,15 @@ class CommandObserver(Observer):
             self.logger.debug(' do_REMOTE KeyError, %s %s', args, kwargs)
             return
 
-        # TODO: Revist to see if want to do something better with this
         if target == self.messaging._service_name:
             warn = 'target for remote command is the bot itself! Returning the function'
             self.logger.warn(warn)
-            # FIXME: handle command
-            return
-
-        # FIXME: Need to handle the binary better here.
+            return self._handle_command(command, source, *args, **kwargs)
 
         try:
             target = self.messaging._address_map[target]
         except KeyError:
-            warn = ' Target %s, not found in addresses. Are you sure the %s sent an IDENT message?'
+            warn = ' Target %s, not found in addresses. Are you sure that %s sent an IDENT message?'
             self.logger.warn(warn, target, target)
             # NOTE: Bail here since there's no point in going forward
             return
@@ -94,9 +90,10 @@ class CommandObserver(Observer):
                          command, target, args, kwargs)
 
         source = target + source
-
-        # FIXME: Figure out a better API for this
-        self.messaging.send_control_response(source, command, *args, **kwargs)
+        self.messaging.send_command_response(source,
+                                             command,
+                                             *args, 
+                                             **kwargs)
 
     def do_IDENT(self, source, *args, **kwargs):
         service_name = kwargs.get('service_name')
@@ -182,8 +179,7 @@ class CommandObserver(Observer):
 
     def _handle_result(self, command: str, source: list, result, *args, **kwargs):
         self.logger.info('send response %s %s %s', source, command, result)
-        # FIXME: figure out a better API for this
-        self.messaging.send_control_response(source, command, result=result)
+        self.messaging.send_command_response(source, command, result=result, *args, **kwargs)
 
     def _handle_command(self,
                         command: str,
@@ -196,18 +192,21 @@ class CommandObserver(Observer):
         except KeyError:
             self.logger.info(' command not found! %s', command)
             return
-        kwargs['source'] = source
+
         self.logger.debug(' handle_command kwargs: %s', kwargs)
+        kwargs['source'] = source
         try:
             result = callback(*args, **kwargs)
         except Exception as e:
             self.on_error(e, command)
             return
+        kwargs.pop('source')
 
         if result is None:
             self.logger.debug(' No result from callback on command: %s', command)
         else:
-            self._handle_result(command, source, result, *args, **kwargs)
+            service = self.messaging._service_name
+            self._handle_result(command, source, result, service=service, *args, **kwargs)
 
 
     def on_next(self, item: Request) -> None:
@@ -227,8 +226,8 @@ class CommandObserver(Observer):
             self._handle_result(command, source, kwargs.pop('result'), *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
-        # FIXME: Better name
-        self.logger.exception(' on_next error for {}'.format(command))
+        print(_sys.exc_info())
+        self.logger.exception(' on_next error for command {}'.format(command))
 
     def on_completed(self, *args, **kwargs):
         self.logger.info(' command observer completed!')

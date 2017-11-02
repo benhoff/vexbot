@@ -239,6 +239,7 @@ class Messaging:
         """
         raise NotImplemented()
 
+    # FIXME: Not implemented
     def send_request(self, target: str, *args, **kwargs):
         """
         address must a list instance. Or a string which will be transformed into a address
@@ -252,25 +253,18 @@ class Messaging:
         kwargs = json.dumps(kwargs).encode('utf8')
 
         # TODO: test that this works
-        # FIXME: pop out command?
+        # NOTE: pop out command?
         frame = (*address, b'', b'MSG', args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
-    # FIXME: rename to send_command_repsonse
-    def send_control_response(self, source: list, command: str, *args, **kwargs):
+    def send_command_response(self, source: list, command: str, *args, **kwargs):
         """
         Used in bot observer `on_next` method
         """
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
         frame = (*source, b'', command.encode('utf8'), args, kwargs)
-        # FIXME: debug code
-        def _blah():
-            try:
-                self.command_socket.send_multipart(frame)
-            except Exception:
-                self._logger.exception('caught ererro')
-        self.add_callback(_blah)
+        self.add_callback(self.command_socket.send_multipart, frame)
 
     def _create_frame(self, type_, target='', **contents):
         return create_vex_message(target,

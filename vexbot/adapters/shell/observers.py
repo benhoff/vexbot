@@ -128,6 +128,10 @@ class CommandObserver(Observer):
         result = request.kwargs.get('result')
         if result is None:
             return
+
+        if request.kwargs.get('suppress'):
+            return
+
         if isinstance(result, str):
             print(result)
         else:
@@ -424,6 +428,9 @@ class LogObserver(Observer):
         exc_info = msg.contents['exc_info']
         # deserialize exc_info
         if exc_info:
+            # FIXME 
+            exc_info = (None, None, Traceback.from_dict(exc_info[2]).as_traceback())
+            """
             new_exc_info = []
             # Exception type
             # FIXME: bad exception handeling
@@ -437,6 +444,7 @@ class LogObserver(Observer):
             except KeyError:
                 # FIXME 
                 pass
+            """
 
             # overwrite the member
 
@@ -478,3 +486,32 @@ class AuthorObserver(Observer):
 
     def on_completed(self, *args, **kwargs):
         return
+
+
+class ServicesObserver(Observer):
+    def __init__(self, set_services_callback, set_command_callback):
+        super().__init__()
+        self.services_callback = set_services_callback
+        self.command_callback = set_command_callback
+
+    def on_next(self, request: Request):
+        command = request.command
+        if not command in ('services', 'commands'):
+            return
+        result = request.kwargs['result']
+        if result is None:
+            return
+        if command == 'services':
+            self.services_callback(result)
+        elif command == 'commands':
+            service = request.kwargs.get('service')
+            if service is None:
+                # FIXME: LOG ERROR
+                return
+            self.command_callback(service, result)
+
+    def on_error(self, *args, **kwargs):
+        pass
+
+    def on_completed(self, *args, **kwargs):
+        pass

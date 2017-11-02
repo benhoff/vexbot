@@ -20,7 +20,10 @@ from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
                                              AuthorObserver,
                                              ServiceObserver,
-                                             LogObserver)
+                                             LogObserver,
+                                             ServicesObserver)
+
+from vexbot.adapters.shell.completers import ServiceCompleter
 
 
 # add in ! and # to our word completion regex
@@ -54,6 +57,9 @@ class Shell(Prompt):
         self._logger.info(' history filepath %s', history_filepath)
         self.history = FileHistory(history_filepath)
         self.messaging = _Messaging('shell', run_control_loop=True)
+
+        # TODO: Cleanup this API access
+        self.messaging._heartbeat_reciever.identity_callback = self._identity_callback
         self._thread = _Thread(target=self.messaging.start,
                                daemon=True)
 
@@ -67,11 +73,12 @@ class Shell(Prompt):
 
         commands = self.command_observer._get_commands()
         self._word_completer = WordCompleter(commands, WORD=_WORD)
+        self._services_completer = ServiceCompleter(self._word_completer)
         self._bot_status = ''
 
         super().__init__(message='vexbot: ',
                          history=self.history,
-                         completer=self._word_completer,
+                         completer=self._services_completer,
                          enable_system_prompt=True,
                          enable_suspend=True,
                          enable_open_in_editor=True,
@@ -97,6 +104,38 @@ class Shell(Prompt):
         self.messaging.chatter.subscribe(self.service_observer)
         self.messaging.chatter.subscribe(LogObserver())
         self.messaging.command.subscribe(self.command_observer)
+        observer = self.messaging.command.subscribe(ServicesObserver(self._identity_setter,
+                                                                     self._set_service_completion))
+
+    def _identity_setter(self, services: list):
+        try:
+            services.remove(self.messaging._service_name)
+        except ValueError:
+            pass
+
+        self.service_observer.services = set(services)
+        # NOTE: should probably clean up the cache as well rather than just
+        # adding to it
+        for service in services:
+            self.messaging.send_command('REMOTE',
+                                        remote_command='commands',
+                                        target=service,
+                                        suppress=True)
+
+            if not service in self._word_completer.words:
+                self._word_completer.words.append(service)
+
+            self.service_observer.services.add(service)
+
+    def _set_service_completion(self, service: str, commands: list):
+        shebang = self.shebangs[0]
+        commands = [shebang + command for command in commands]
+        completer = WordCompleter(commands, WORD=_WORD)
+        self._services_completer.set_service_completer(service, completer)
+
+    def _identity_callback(self):
+        self.messaging.send_command('services', suppress=True)
+        self.messaging.send_command('commands', suppress=True)
 
     def _monitor_bot_state(self):
         time_now = time.time()

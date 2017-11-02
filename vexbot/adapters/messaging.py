@@ -20,7 +20,7 @@ from vexbot.scheduler import Scheduler
 
 
 class _HeartbeatReciever:
-    def __init__(self, messaging, loop):
+    def __init__(self, messaging, loop, identity_callback=None):
         self.messaging = messaging
         self._heart_beat_check = PeriodicCallback(self._get_state, 1000, loop)
         self.last_message = None
@@ -31,6 +31,7 @@ class _HeartbeatReciever:
         name = name + '.messaging.heartbeat'
 
         self.logger = logging.getLogger(name)
+        self.identity_callback = identity_callback
 
     def start(self):
         self.logger.info(' Start Heart Beat')
@@ -66,6 +67,9 @@ class _HeartbeatReciever:
             self.messaging.add_callback(self.messaging.command_socket.send_multipart, identify_frame)
         else:
             self.messaging.command_socket.send_multipart(identify_frame)
+
+        if self.identity_callback:
+            self.identity_callback()
 
 
 class Messaging:
@@ -293,13 +297,12 @@ class Messaging:
         else:
             self.command_socket.send_multipart(frame)
 
-    def send_command_response(self, source, command: str, *args, **kwargs):
+    def send_command_response(self, source: list, command: str, *args, **kwargs):
         """
         Used in bot observer `on_next` method
         """
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
-        # FIXME: AttributError: source is not defined
         if isinstance(source, list):
             frame = (*source, b'', command.encode('utf8'), args, kwargs)
         else:
@@ -362,8 +365,7 @@ class Messaging:
         else:
             addresses = None
 
-        # FIXME: bad logging description
-        self._messaging_logger.command.debug(' first bye: %s', first_char)
+        self._messaging_logger.command.debug(' first index in message: %s', first_char)
         # command.
         command = message.pop(0).decode('utf8')
         self._messaging_logger.command.debug(' command: %s', command)

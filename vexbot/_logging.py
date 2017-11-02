@@ -31,7 +31,7 @@ class LoopPubHandler(logging.Handler):
 
         if exc_info is not None:
             # FIXME 
-            info['exc_info'] = None
+            info['exc_info'] = Traceback(exc_info[2]).to_dict()
             """
             new_exc_info = []
             first = exc_info[0]

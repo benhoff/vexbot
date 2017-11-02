@@ -84,8 +84,8 @@ class IrcObserver(Observer):
         source = item.source
         # NOTE: probably need more here
         self.logger.debug(' send command response %s %s %s', source, command, result)
-        # FIXME: send more here?
-        self.messaging.send_command_response(source, 'RESULT', result=result)
+        service = self.messaging._service_name
+        self.messaging.send_command_response(source, command, result=result, service=service, *args, **kwargs)
 
     def on_completed(self, *args, **kwargs):
         pass
