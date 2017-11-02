@@ -4,6 +4,7 @@ import logging as _logging
 from vexbot import _get_default_port_config
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.observers import CommandObserver as _CommandObserver
+from vexbot.adapters.shell.observers import LogObserver
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -39,6 +40,7 @@ class Robot:
                                                  self.subprocess_manager)
 
         self.messaging.command.subscribe(self.command_observer)
+        self.messaging.chatter.subscribe(LogObserver(pass_through=True))
 
     def run(self):
         if self.messaging is None:
@@ -48,4 +50,7 @@ class Robot:
 
         self._logger.info(' Start Messaging')
         # NOTE: blocking call
-        self.messaging.start()
+        try:
+            self.messaging.start()
+        except KeyboardInterrupt:
+            pass

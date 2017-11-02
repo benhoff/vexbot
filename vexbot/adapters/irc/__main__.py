@@ -77,7 +77,6 @@ def _from_argv(cls, argv=None, **kwargs) -> dict:
         verbose=args['--verbose'],
         debug=args['--debug'],
     )
-    print(cfg)
     cfg.update(kwargs)
     if args['--host']:  # pragma: no cover
         host = args['--host']

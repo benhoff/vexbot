@@ -1,15 +1,18 @@
 import inspect as _inspect
+import logging
 
 from rx import Observer
 from vexmessage import Request
 
 
 class IrcObserver(Observer):
-    def __init__(self, bot, messaging):
+    def __init__(self, bot, messaging, irc_interface):
         super().__init__()
         self.bot = bot
         self.messaging = messaging
+        self.irc_interface = irc_interface
         self._commands = self._get_commands()
+        self.logger = logging.getLogger(__name__)
 
     def _get_commands(self) -> dict:
         result = {}
@@ -18,6 +21,19 @@ class IrcObserver(Observer):
                 result[name[3:]] = method
 
         return result
+
+    def do_log_level(self, *args, **kwargs):
+        if not args:
+            # FIXME
+            return self.irc_interface.root_logger.level
+
+    def do_debug(self, *args, **kwargs):
+        self.irc_interface.root_logger.setLevel(logging.DEBUG)
+        self.irc_interface.root_handler.setLevel(logging.DEBUG)
+
+    def do_info(self, *args, **kwargs):
+        self.irc_interface.root_logger.setLevel(logging.INFO)
+        self.irc_interface.root_handler.setLevel(logging.INFO)
 
     def do_MSG(self, message, channel, *args, **kwargs):
         msg_target = kwargs.get('msg_target')
@@ -44,12 +60,13 @@ class IrcObserver(Observer):
         self.bot.topic(channel, topic)
 
     def do_commands(self, *args, **kwargs):
-        return self._get_commands()
+        return list(self._commands.keys())
 
     def on_next(self, item: Request):
         command = item.command
         args = item.args
         kwargs = item.kwargs
+        self.logger.debug(' command recieved: %s %s %s', command, args, kwargs)
         try:
             callback = self._commands[command]
         except KeyError:
@@ -65,10 +82,13 @@ class IrcObserver(Observer):
             return
 
         source = item.source
-        self.messaging.send_control_response(source, result, command)
+        # NOTE: probably need more here
+        self.logger.debug(' send command response %s %s %s', source, command, result)
+        # FIXME: send more here?
+        self.messaging.send_command_response(source, 'RESULT', result=result)
 
     def on_completed(self, *args, **kwargs):
         pass
 
     def on_error(self, *args, **kwargs):
-        print(args)
+        self.logger.exception('command failed')

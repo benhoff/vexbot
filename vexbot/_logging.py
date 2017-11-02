@@ -1,6 +1,7 @@
 import logging
 from tblib import Traceback
 
+
 class LoopPubHandler(logging.Handler):
     def __init__(self, messaging, level=logging.NOTSET):
         super().__init__(level)
@@ -29,11 +30,23 @@ class LoopPubHandler(logging.Handler):
         exc_info = info['exc_info']
 
         if exc_info is not None:
+            # FIXME 
+            info['exc_info'] = None
+            """
             new_exc_info = []
-            new_exc_info.append(exc_info[0].__name__)
-            new_exc_info.append(exc_info[1].args)
+            first = exc_info[0]
+            if isinstance(first, Exception):
+                try:
+                    first = first.__name__
+                except AttributeError:
+                    first = first.__class__.__name__
+            print(first, dir(first), isinstance(first, Exception))
+            new_exc_info.append(first)
+            new_exc_info.append([str(x) for x in exc_info[1].args])
             new_exc_info.append(Traceback(exc_info[2]).to_dict())
             info['exc_info'] = new_exc_info
+            """
+
 
         self.messaging.send_log(**info)
 

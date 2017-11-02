@@ -13,6 +13,7 @@ if not irc3:
     raise ImportError('irc3 is not installed. Install irc3 using `pip install '
                       'irc3` on the command line')
 
+from vexbot._logging import LoopPubHandler
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.irc.observer import IrcObserver as _IrcObserver
 
@@ -24,10 +25,15 @@ class IrcInterface:
                  connection: dict=None,
                  **kwargs):
 
+
         if connection is None:
             connection = {}
 
         self.messaging = _Messaging(service_name, run_control_loop=True, **connection)
+
+        self.root_handler = LoopPubHandler(self.messaging)
+        self.root_logger = logging.getLogger()
+        self.root_logger.addHandler(self.root_handler)
 
         self._scheduler_thread = Thread(target=self.messaging.start,
                                         daemon=True)
@@ -36,7 +42,7 @@ class IrcInterface:
         # Duck type messaging to irc bot. Could also subclass `irc3.IrcBot`,
         # but seems like overkill
         self.irc_bot.messaging = self.messaging
-        self.command_parser = _IrcObserver(self.irc_bot, self.messaging)
+        self.command_parser = _IrcObserver(self.irc_bot, self.messaging, self)
         self.messaging.command.subscribe(self.command_parser)
 
     def run(self):

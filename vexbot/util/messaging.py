@@ -1,3 +1,5 @@
+from zmq.utils.interop import cast_int_addr
+
 def get_addresses(message: list) -> list:
     """
     parses a raw list from zmq to get back the components that are the address
@@ -10,7 +12,6 @@ def get_addresses(message: list) -> list:
         # if we hit a blank string, then we've got all the addresses
         if address == b'':
             break
-
         addresses.append(address)
 
     return addresses

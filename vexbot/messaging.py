@@ -35,17 +35,12 @@ class _HeartbeatHelper:
 
     def message_recieved(self):
         self.last_message_time = time.time()
-        self.logger.info(' last message recieved: %s',
-                         self.last_message_time)
 
     def _send_state(self):
         time_now = time.time()
         delta_time = time_now - self.last_message_time
-        self.logger.debug(' delta time: %s', delta_time)
         if delta_time > 1.5:
-            self.logger.debug(' delta time > 1.5s')
             msg = create_vex_message('', self.messaging._service_name, self.messaging.uuid)
-            self.logger.info(' send heartbeat')
             self.messaging.add_callback(self.messaging.subscription_socket.send_multipart, msg)
             self.last_message_time = time_now
 
@@ -223,8 +218,9 @@ class Messaging:
 
     def send_log(self, *args, **kwargs):
         frame = create_vex_message('', self._service_name, self.uuid, **kwargs)
-        self.add_callback(self.subscription_socket.send_multipart,
-                          frame) 
+        if self.subscription_socket:
+            self.add_callback(self.subscription_socket.send_multipart,
+                              frame) 
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
         target = target.encode('utf-8')
@@ -234,7 +230,7 @@ class Messaging:
         self._messaging_logger.command.info('send command %s: %s | %s',
                                             command, args, kwargs)
         frame = (target, command, args, kwargs)
-        self.command_socket.send_multipart(frame)
+        self.add_callback(self.command_socket.send_multipart, frame)
 
     def _get_address_from_source(self, source: str) -> list:
         """
@@ -258,8 +254,9 @@ class Messaging:
         # TODO: test that this works
         # FIXME: pop out command?
         frame = (*address, b'', b'MSG', args, kwargs)
-        self.command_socket.send_multipart(frame)
+        self.add_callback(self.command_socket.send_multipart, frame)
 
+    # FIXME: rename to send_command_repsonse
     def send_control_response(self, source: list, command: str, *args, **kwargs):
         """
         Used in bot observer `on_next` method
@@ -267,7 +264,13 @@ class Messaging:
         args = json.dumps(args).encode('utf8')
         kwargs = json.dumps(kwargs).encode('utf8')
         frame = (*source, b'', command.encode('utf8'), args, kwargs)
-        self.add_callback(self.command_socket.send_multipart, frame)
+        # FIXME: debug code
+        def _blah():
+            try:
+                self.command_socket.send_multipart(frame)
+            except Exception:
+                self._logger.exception('caught ererro')
+        self.add_callback(_blah)
 
     def _create_frame(self, type_, target='', **contents):
         return create_vex_message(target,
@@ -328,6 +331,7 @@ class Messaging:
         self.loop.add_callback(callback, *args, **kwargs)
 
     def _control_helper(self, msg):
+        self._messaging_logger.control.info(' msg recieved')
         request = self.handle_raw_command(msg)
 
         if request is None:
@@ -336,6 +340,7 @@ class Messaging:
         self.control.on_next(request)
 
     def _command_helper(self, msg):
+        self._messaging_logger.command.info('msg recieved')
         request = self.handle_raw_command(msg)
 
         if request is None:
@@ -352,7 +357,8 @@ class Messaging:
         self._heartbeat_helper.message_recieved()
 
     def _subscribe_helper(self, msg):
+        # TODO: log here?
         self.loop.add_callback(self.publish_socket.send_multipart, msg)
 
     def _request_helper(self, msg):
-        print(msg)
+        self._messaging_logger.request.info(' request recieved: %s', msg)

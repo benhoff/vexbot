@@ -45,7 +45,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.DEBUG)
+        logging.basicConfig()
+        # self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_commands(self) -> dict:
         result = {}
@@ -60,9 +62,8 @@ class CommandObserver(Observer):
 
         return result
 
-    # TODO: validate that this alias works
     @vexcommand(alias=['MSG',])
-    def do_REMOTE(self, *args, **kwargs):
+    def do_REMOTE(self, source: list, *args, **kwargs):
         try:
             target = kwargs.pop('target')
             self.logger.debug(' do_REMOTE target: %s', target)
@@ -71,28 +72,28 @@ class CommandObserver(Observer):
         except KeyError:
             self.logger.debug(' do_REMOTE KeyError, %s %s', args, kwargs)
             return
-        try:
-            original_source = kwargs.pop('source')
-        except KeyError:
-            kwargs['original_source'] = original_source
-            self.logger.debug(' original source: %s', original_source)
 
         # TODO: Revist to see if want to do something better with this
         if target == self.messaging._service_name:
             warn = 'target for remote command is the bot itself! Returning the function'
             self.logger.warn(warn)
+            # FIXME: handle command
             return
 
+        # FIXME: Need to handle the binary better here.
+
         try:
-            source = self.messaging._address_map[target]
+            target = self.messaging._address_map[target]
         except KeyError:
             warn = ' Target %s, not found in addresses. Are you sure the %s sent an IDENT message?'
-            self.logger.warn(warn, target)
+            self.logger.warn(warn, target, target)
             # NOTE: Bail here since there's no point in going forward
             return
-        
+
         self.logger.info(' REMOTE %s, target: %s | %s, %s',
                          command, target, args, kwargs)
+
+        source = target + source
 
         # FIXME: Figure out a better API for this
         self.messaging.send_control_response(source, command, *args, **kwargs)
@@ -179,9 +180,14 @@ class CommandObserver(Observer):
         self.logger.info(' stop service %s in mode %s', name, mode)
         self.subprocess_manager.stop(name, mode)
 
+    def _handle_result(self, command: str, source: list, result, *args, **kwargs):
+        self.logger.info('send response %s %s %s', source, command, result)
+        # FIXME: figure out a better API for this
+        self.messaging.send_control_response(source, command, result=result)
+
     def _handle_command(self,
                         command: str,
-                        source: str,
+                        source: list,
                         *args,
                         **kwargs) -> None:
 
@@ -191,6 +197,7 @@ class CommandObserver(Observer):
             self.logger.info(' command not found! %s', command)
             return
         kwargs['source'] = source
+        self.logger.debug(' handle_command kwargs: %s', kwargs)
         try:
             result = callback(*args, **kwargs)
         except Exception as e:
@@ -198,12 +205,10 @@ class CommandObserver(Observer):
             return
 
         if result is None:
-            self.logger.debug(' no result for command: %s', command)
-            return
+            self.logger.debug(' No result from callback on command: %s', command)
+        else:
+            self._handle_result(command, source, result, *args, **kwargs)
 
-        self.logger.info('send response %s %s %s', source, command, result)
-        # FIXME: figure out a better API for this
-        self.messaging.send_control_response(source, command, result=result)
 
     def on_next(self, item: Request) -> None:
         command = item.command
@@ -213,7 +218,13 @@ class CommandObserver(Observer):
         self.logger.info(' Request recieved, %s %s %s %s',
                          command, source, args, kwargs)
 
-        self._handle_command(command, source, *args, **kwargs)
+        if not kwargs.get('result'):
+            self._handle_command(command, source, *args, **kwargs)
+        else:
+            # TODO: Verify that this makes sense
+            # NOTE: Stripping the first address on here as it should be the bot address
+            source = source[1:]
+            self._handle_result(command, source, kwargs.pop('result'), *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
         # FIXME: Better name

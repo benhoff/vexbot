@@ -124,7 +124,7 @@ class CommandObserver(Observer):
         pass
 
     def on_next(self, request: Request):
-        # FIXME: these are the responses to our commands!!!!
+        # NOTE: these are the responses to our commands
         result = request.kwargs.get('result')
         if result is None:
             return
@@ -254,6 +254,7 @@ class CommandObserver(Observer):
             for handler in self._root.handlers:
                 handler.addFilter(logging.Filter(name))
 
+    @shellcommand(alias=['stop_heartbeating'])
     def do_filter_heartbeating(self, *args, **kwargs):
         self.do_anti_filter('shell.messaging.heartbeat',
                             'shell.messaging.subscribe',
@@ -396,12 +397,17 @@ class ServiceObserver(Observer):
 
 
 class LogObserver(Observer):
-    def __init__(self):
+    def __init__(self, logger: logging.Logger=None, pass_through=False):
         super().__init__()
-        self.root = logging.getLogger()
+        if logger is None:
+            logger = logging.getLogger()
+        self.root = logger
+        self.passthrough = pass_through
+        self.logger = logging.getLogger(__name__ + '.log')
 
     def on_next(self, msg: Message):
         type_ = msg.contents.get('type')
+        # self.logger.debug(' type: %s', type_)
         if type_ is None:
             return
         elif type_ != 'log':
@@ -420,18 +426,26 @@ class LogObserver(Observer):
         if exc_info:
             new_exc_info = []
             # Exception type
-            type_ = globals()['__builtins__'][exc_info[0]]
-            new_exc_info.append(type_)
-            # pass in excption arguments
-            new_exc_info.append(type_(*exc_info[1]))
-            # deserialize the traceback
-            new_exc_info.append(Traceback.from_dict(exc_info[2]).as_traceback())
+            # FIXME: bad exception handeling
+            try:
+                type_ = globals()['__builtins__'][exc_info[0]]
+                # pass in excption arguments
+                value = type_(*exc_info[1])
+                traceback = Traceback.from_dict(exc_info[2]).as_traceback()
+                new_exc_info = [type_, value, traceback]
+                msg.contents['exc_info'] = new_exc_info
+            except KeyError:
+                # FIXME 
+                pass
+
             # overwrite the member
-            msg.contents['exc_info'] = new_exc_info
 
         record = logging.LogRecord(**msg.contents)
-        if record.levelno >= self.root.level:
+        if self.passthrough:
             self.root.handle(record)
+        else:
+            if record.levelno >= self.root.level:
+                self.root.handle(record)
 
     def on_error(self, *args, **kwargs):
         pass

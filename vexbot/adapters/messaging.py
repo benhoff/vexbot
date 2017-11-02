@@ -39,11 +39,9 @@ class _HeartbeatReciever:
     def message_recieved(self, message):
         self._last_message_time = time.time()
         self.last_message = message
-        self.logger.info(' last message recieved: %s', self._last_message_time)
 
     def _get_state(self):
         if self.last_message is None:
-            self.logger.debug(' Last Message is None!')
             return
 
         uuid = self.last_message.uuid
@@ -238,6 +236,14 @@ class Messaging:
         else:
             self.publish_socket.send_multipart(frame)
 
+    def send_log(self, *args, **kwargs):
+        frame = create_vex_message('', self._service_name, self._uuid, **kwargs)
+        if self._run_control_loop:
+            self.add_callback(self.publish_socket.send_multipart,
+                              frame) 
+        else:
+            self.publish_socket.send_multipart(frame)
+
     def send_command(self, command: str, *args, **kwargs):
         """
         For request bot to perform some action
@@ -287,6 +293,22 @@ class Messaging:
         else:
             self.command_socket.send_multipart(frame)
 
+    def send_command_response(self, source, command: str, *args, **kwargs):
+        """
+        Used in bot observer `on_next` method
+        """
+        args = json.dumps(args).encode('utf8')
+        kwargs = json.dumps(kwargs).encode('utf8')
+        # FIXME: AttributError: source is not defined
+        if isinstance(source, list):
+            frame = (*source, b'', command.encode('utf8'), args, kwargs)
+        else:
+            frame = (b'', command.encode('utf8'), args, kwargs)
+        if self._run_control_loop:
+            self.add_callback(self.command_socket.send_multipart, frame)
+        else:
+            self.command_socket.send_multipart(frame)
+
     def _send_pong(self, addresses: list):
         self._messaging_logger.command.info(' send pong to %s', addresses)
         addresses.append(b'PONG')
@@ -314,14 +336,34 @@ class Messaging:
 
         self._address[socket_name] = None
 
-    def handle_raw_command(self, message) -> Request:
-        # blank string
-        pong = message.pop(0).decode('utf8')
+    def _is_pong(self, pong: str):
         if pong == 'PONG':
             self._messaging_logger.command.info('Pong response')
+            return True
+
+    def handle_raw_command(self, message) -> Request:
+        # blank string
+        first_char = message.pop(0)
+        is_address = False
+        try:
+            first_char = first_char.decode('utf-8')
+            is_pong = self._is_pong(first_char)
+        except UnicodeDecodeError:
+            is_pong = False
+            is_address = True
+
+        if is_pong:
             return
+
+        if is_address:
+            addresses = _get_addresses(message)
+            addresses.insert(0, first_char)
+            message.pop(0)
+        else:
+            addresses = None
+
         # FIXME: bad logging description
-        self._messaging_logger.command.debug(' first bye: %s', pong)
+        self._messaging_logger.command.debug(' first bye: %s', first_char)
         # command.
         command = message.pop(0).decode('utf8')
         self._messaging_logger.command.debug(' command: %s', command)
@@ -348,7 +390,7 @@ class Messaging:
         self._messaging_logger.command.debug(' kwargs: %s', kwargs) 
         # TODO: use better names, request? command?
         # NOTE: this might be different since it's on the other side of the command
-        request = Request(command, None)
+        request = Request(command, addresses)
         request.args = args
         request.kwargs = kwargs
         return request
@@ -378,11 +420,13 @@ class Messaging:
             return
 
         msg = decode_vex_message(msg)
+        """
         self._messaging_logger.subscribe.info(' msg recieved: %s %s %s %s',
                                               msg.source,
                                               msg.target,
                                               msg.uuid,
                                               msg.contents)
+        """
 
         self._heartbeat_reciever.message_recieved(msg)
         self.chatter.on_next(msg)
