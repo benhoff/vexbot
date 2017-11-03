@@ -63,7 +63,7 @@ class CommandObserver(Observer):
         return result
 
     @vexcommand(alias=['MSG',])
-    def do_REMOTE(self, source: list, *args, **kwargs):
+    def do_REMOTE(self, *args, **kwargs):
         try:
             target = kwargs.pop('target')
             self.logger.debug(' do_REMOTE target: %s', target)
@@ -72,6 +72,8 @@ class CommandObserver(Observer):
         except KeyError:
             self.logger.debug(' do_REMOTE KeyError, %s %s', args, kwargs)
             return
+
+        source = kwargs.pop('source')
 
         if target == self.messaging._service_name:
             warn = 'target for remote command is the bot itself! Returning the function'
@@ -95,13 +97,14 @@ class CommandObserver(Observer):
                                              *args, 
                                              **kwargs)
 
-    def do_IDENT(self, source, *args, **kwargs):
+    def do_IDENT(self, *args, **kwargs):
         service_name = kwargs.get('service_name')
         if service_name is None:
             warn = (' No service name found for IDENT command. Not '
                     'identifying due to lack of human readable string! %s %s %s')
             self.logger.warn(warn, source, args, kwargs)
             return
+        source = kwargs.pop('source')
 
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
@@ -226,7 +229,8 @@ class CommandObserver(Observer):
             self._handle_result(command, source, kwargs.pop('result'), *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
-        print(_sys.exc_info())
+        self.logger.warn('on_error called %s', error.__class__.__name__)
+        self.logger.warn('on_error called %s', error.args)
         self.logger.exception(' on_next error for command {}'.format(command))
 
     def on_completed(self, *args, **kwargs):
@@ -239,3 +243,32 @@ class CommandObserver(Observer):
         """
         self.logger.warn(' Exiting bot!')
         _sys.exit()
+
+    def do_help(self, *arg, **kwargs):
+        """
+        Help helps you figure out what commands do.
+        Example usage: !help code
+        To see all commands: !commands
+        """
+        name = arg[0]
+        try:
+            callback = self._commands[name]
+        except KeyError:
+            self._logger.info(' !help not found for: %s', name)
+            return self.do_help.__doc__
+
+        return callback.__doc__
+
+    def do_code(self, *args, **kwargs):
+        """
+        get the python source code from callback
+        """
+        callback = self._commands[args[0]]
+        # TODO: syntax color would be nice
+        source = inspect.getsourcelines(callback)[0]
+        """
+        source_len = len(source)
+        source = PygmentsLexer(CythonLexer).lex_document(source)()
+        """
+        # FIXME: formatting sucks
+        return "\n" + "".join(source)

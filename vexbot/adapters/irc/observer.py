@@ -87,6 +87,7 @@ class IrcObserver(Observer):
             return
 
         if result is None:
+            self.logger.info('no result for callback: %s', command)
             return
 
         source = item.source
@@ -100,3 +101,32 @@ class IrcObserver(Observer):
 
     def on_error(self, *args, **kwargs):
         self.logger.exception('command failed')
+
+    def do_help(self, *arg, **kwargs):
+        """
+        Help helps you figure out what commands do.
+        Example usage: !help code
+        To see all commands: !commands
+        """
+        name = arg[0]
+        try:
+            callback = self._commands[name]
+        except KeyError:
+            self._logger.info(' !help not found for: %s', name)
+            return self.do_help.__doc__
+
+        return callback.__doc__
+
+    def do_code(self, *args, **kwargs):
+        """
+        get the python source code from callback
+        """
+        callback = self._commands[args[0]]
+        # TODO: syntax color would be nice
+        source = _inspect.getsourcelines(callback)[0]
+        """
+        source_len = len(source)
+        source = PygmentsLexer(CythonLexer).lex_document(source)()
+        """
+        # FIXME: formatting sucks
+        return "\n" + "".join(source)
