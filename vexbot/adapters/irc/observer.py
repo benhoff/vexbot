@@ -1,3 +1,4 @@
+import sys
 import inspect as _inspect
 import logging
 
@@ -59,6 +60,12 @@ class IrcObserver(Observer):
     def do_topic(self, channel, topic=None, *args, **kwargs):
         self.bot.topic(channel, topic)
 
+    def do_get_nick(self, *args, **kwargs):
+        return self.bot.get_nick()
+
+    def do_get_ip(self, *args, **kwargs):
+        return str(self.bot.ip)
+
     def do_commands(self, *args, **kwargs):
         return list(self._commands.keys())
 
@@ -70,6 +77,7 @@ class IrcObserver(Observer):
         try:
             callback = self._commands[command]
         except KeyError:
+            self.logger.info(' command not found: %s', command)
             return
 
         try:

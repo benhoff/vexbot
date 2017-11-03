@@ -45,9 +45,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        self._root_logger.setLevel(logging.DEBUG)
-        logging.basicConfig()
-        # self._root_logger.addHandler(self.messaging.pub_handler)
+        # self._root_logger.setLevel(logging.DEBUG)
+        # logging.basicConfig()
+        self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_commands(self) -> dict:
         result = {}

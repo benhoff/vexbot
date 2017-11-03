@@ -49,7 +49,10 @@ class SocketObserver(Observer):
             return
 
         source = item.source
-        self.messaging.send_control_response(source, result, command)
+        self.messaging.send_command_response(source, command, result=result, *args, **kwargs)
+
+    def do_commands(self, *args, **kwargs):
+        return list(self._commands.keys())
 
     def on_error(self, *args, **kwargs):
         pass

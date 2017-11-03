@@ -428,8 +428,11 @@ class LogObserver(Observer):
         exc_info = msg.contents['exc_info']
         # deserialize exc_info
         if exc_info:
+            import traceback
             # FIXME 
-            exc_info = (None, None, Traceback.from_dict(exc_info[2]).as_traceback())
+            traceback.print_tb(Traceback.from_dict(exc_info).as_traceback())
+            return
+            # exc_info = (None, None, Traceback.from_dict(exc_info[2]).as_traceback())
             """
             new_exc_info = []
             # Exception type
