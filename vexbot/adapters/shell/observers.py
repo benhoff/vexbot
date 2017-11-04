@@ -16,6 +16,8 @@ from vexmessage import Message, Request
 
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
+from vexbot.command import command
+
 
 def _get_attributes(output, color: str):
     attr = Attrs(color=color, bgcolor='', bold=False, underline=False,
@@ -149,7 +151,7 @@ class CommandObserver(Observer):
                                    'address tried {}'.format(address))
 
     def do_authors(self, *args, **kwargs) -> tuple:
-        return tuple(self._prompt.author_observer.authors.keys())
+        return tuple(self._prompt.author_interface.authors.keys())
 
     def do_color(self, *args, **kwargs):
         author = None
@@ -227,7 +229,7 @@ class CommandObserver(Observer):
         return status
 
     def do_services(self, *args, **kwargs) -> list:
-        return self._prompt.service_observer.services
+        return self._prompt.service_interface.services
 
     def do_filter(self, *args, **kwargs):
         if not args:
@@ -245,7 +247,7 @@ class CommandObserver(Observer):
             handler.addFilter(filter_)
 
     def do_channels(self, *args, **kwargs) -> tuple:
-        return tuple(self._prompt.service_observer.channels.keys())
+        return tuple(self._prompt.service_interface.channels.keys())
 
     def do_restart(self, target: str=None, *args, **kwargs):
         if target is None:
@@ -336,40 +338,20 @@ class PrintObserver(Observer):
 
 
 class ServiceObserver(Observer):
-    def __init__(self, add_callback=None, remove_callback=None):
+    def __init__(self, interface):
         super().__init__()
-        self.services = set()
-        self.channels = _LRUCache(100, add_callback, remove_callback)
-        self._add_callback = add_callback
+        self.interface = interface
 
     def on_next(self, msg: Message):
         source = msg.source
-        if source not in self.services and self._add_callback:
-            self._add_callback(source)
-        self.services.add(source)
         channel = msg.contents.get('channel')
-
-        if channel:
-            self.channels[channel] = source
+        self.interface.add_service(source, channel)
 
     def on_error(self, *args, **kwargs):
-        print(args, kwargs)
+        pass
 
     def on_completed(self, *args, **kwargs):
         pass
-
-    def is_service(self, service: str):
-        in_service = service in self.services
-        in_channel = service in self.channels
-        return in_service or in_channel
-
-    # FIXME: this API is brutal
-    def handle_command(self, service: str, args: tuple, kwargs: dict) -> (str, tuple, dict):
-        if service in self.channels:
-            kwargs['channel'] = service
-            service = self.channels[service]
-        kwargs['target'] = service
-        return args, kwargs
 
 
 class LogObserver(Observer):
@@ -438,23 +420,13 @@ class LogObserver(Observer):
 
 
 class AuthorObserver(Observer):
-    def __init__(self, add_callback=None, delete_callback=None):
+    def __init__(self, interface):
         super().__init__()
-        self.authors = _LRUCache(100, add_callback, delete_callback)
-        self.author_metadata = _LRUCache(100)
-        self.metadata_words = ['channel', ]
+        self.interface = interface
 
     def on_next(self, msg: Message):
-        author = msg.contents.get('author')
-        if author is None:
-            return
-
-        # NOTE: this fixes the parsing for usernames
-        author = author.replace(' ', '_')
-
-        self.authors[author] = msg.source
-        self.author_metadata[author] = {k: v for k, v in msg.contents.items()
-                                        if k in self.metadata_words} 
+        if msg.contents.get('author') is not None:
+            self.interface.add_author(source=msg.source, **msg.contents)
 
     def on_error(self, *args, **kwargs):
         return
@@ -471,7 +443,7 @@ class ServicesObserver(Observer):
 
     def on_next(self, request: Request):
         command = request.command
-        if not command in ('services', 'commands'):
+        if command not in ('services', 'commands'):
             return
         result = request.kwargs['result']
         if result is None:

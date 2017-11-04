@@ -9,12 +9,12 @@ from threading import Thread as _Thread
 from prompt_toolkit.shortcuts import Prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
-from prompt_toolkit.contrib.completers import WordCompleter
 from zmq.eventloop.ioloop import PeriodicCallback
 
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
+from vexbot.adapters.shell.interfaces import AuthorInterface, ServiceInterface
 
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
@@ -23,7 +23,7 @@ from vexbot.adapters.shell.observers import (PrintObserver,
                                              LogObserver,
                                              ServicesObserver)
 
-from vexbot.adapters.shell.completers import ServiceCompleter
+from vexbot.adapters.shell.completers import ServiceCompleter, WordCompleter
 
 
 # add in ! and # to our word completion regex
@@ -67,13 +67,17 @@ class Shell(Prompt):
                                                     1000,
                                                     self.messaging.loop)
 
-
         self.shebangs = ['!', ]
         self.command_observer = CommandObserver(self.messaging, prompt=self)
-
         commands = self.command_observer._get_commands()
         self._word_completer = WordCompleter(commands, WORD=_WORD)
         self._services_completer = ServiceCompleter(self._word_completer)
+        self.author_interface = AuthorInterface(self._word_completer,
+                                                self.messaging)
+
+        self.service_interface = ServiceInterface(self._word_completer,
+                                                   self.messaging)
+
         self._bot_status = ''
 
         super().__init__(message='vexbot: ',
@@ -84,50 +88,29 @@ class Shell(Prompt):
                          enable_open_in_editor=True,
                          complete_while_typing=False)
 
-        # NOTE: This method is used to add words to the word completer
-        def add_word(word: str):
-            self._word_completer.words.append(word)
-
-        # NOTE: This method is used to add words to the word completer
-        def remove_word(word: str):
-            try:
-                self._word_completer.words.remove(word)
-            except Exception:
-                pass
 
         self.print_observer = PrintObserver(self.app)
-        self.author_observer = AuthorObserver(add_word, remove_word)
-        self.service_observer = ServiceObserver(add_word, remove_word)
 
         self._print_subscription = self.messaging.chatter.subscribe(self.print_observer)
-        self.messaging.chatter.subscribe(self.author_observer)
-        self.messaging.chatter.subscribe(self.service_observer)
         self.messaging.chatter.subscribe(LogObserver())
         self.messaging.command.subscribe(self.command_observer)
-        observer = self.messaging.command.subscribe(ServicesObserver(self._identity_setter,
-                                                                     self._set_service_completion))
+        self.messaging.command.subscribe(ServicesObserver(self._identity_setter,
+                                                          self._set_service_completion))
 
-    def _identity_setter(self, services: list):
+    def _identity_setter(self, services: list) -> None:
         try:
             services.remove(self.messaging._service_name)
         except ValueError:
             pass
 
-        self.service_observer.services = set(services)
-        # NOTE: should probably clean up the cache as well rather than just
-        # adding to it
         for service in services:
+            self.service_interface.add_service(service)
             self.messaging.send_command('REMOTE',
                                         remote_command='commands',
                                         target=service,
                                         suppress=True)
 
-            if not service in self._word_completer.words:
-                self._word_completer.words.append(service)
-
-            self.service_observer.services.add(service)
-
-    def _set_service_completion(self, service: str, commands: list):
+    def _set_service_completion(self, service: str, commands: list) -> None:
         shebang = self.shebangs[0]
         commands = [shebang + command for command in commands]
         completer = WordCompleter(commands, WORD=_WORD)
@@ -218,37 +201,38 @@ class Shell(Prompt):
                     _pprint.pprint(result)
             # Exit the method here if in this block
             return
-        # Else check if second word is a command
+        # Else first word is not a command
         else:
             self._logger.debug(' first word is not a command')
             # get the first word and then the rest of the text. Text reassign
             # here
             try:
-                first_word, text = text.split(' ', 1)
+                first_word, second_word = text.split(' ', 1)
                 self._logger.debug(' first word: %s', first_word)
             except ValueError:
+                # FIXME: Log this error/logic chain
                 return
             # check if second word/string is a command
-            if self.is_command(text):
+            if self.is_command(second_word):
                 self._logger.info(' second word is a command')
                 # get the command, args, and kwargs out using `shlex`
-                command, args, kwargs = _get_cmd_args_kwargs(text)
+                command, args, kwargs = _get_cmd_args_kwargs(second_word)
                 self._logger.debug(' second word: %s', command)
                 self._logger.debug(' command %s', command)
                 self._logger.debug('args %s ', args)
                 self._logger.debug('kwargs %s', kwargs)
-            # if second word is not a command, default to message
+                return self._first_word_not_cmd(first_word, command, args, kwargs)
+            # if second word is not a command, default to NLP
             else:
                 self._logger.info(' defaulting to message since second word '
                                   'isn\'t a command')
 
-                command = 'MSG'
-                args = ()
-                kwargs = {'message': text}
+                return self._handle_NLP(text)
 
-            # since we've defaulted to message if not command, this api makes
-            # sense for now. If we don't default to message, need to refactor
-            self._first_word_not_cmd(first_word, command, args, kwargs)
+    # FIXME: implement
+    def _handle_NLP(self, text: str):
+        author_entites = []
+        service_entites = self.service_interface.get_entites(text)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
         if kwargs.get('remote', False):
@@ -272,15 +256,13 @@ class Shell(Prompt):
         check to see if this is an author or service.
         This method does high level control handling
         """
-        if self.service_observer.is_service(first_word):
+        if self.service_interface.is_service(first_word):
             self._logger.debug(' first word is a service')
-            args, kwargs = self._handle_service(first_word, args, kwargs)
-            self._logger.debug(' service transform args: %s', args)
+            kwargs = self.service_interface.get_metadata(first_word, kwargs)
             self._logger.debug(' service transform kwargs: %s', kwargs)
-        elif self._is_author(first_word):
+        elif self.author_interface.is_author(first_word):
             self._logger.debug(' first word is an author')
-            args, kwargs = self._handle_author(first_word, args, kwargs)
-            self._logger.debug(' author transform args: %s', args)
+            kwargs = self.author_interface.get_metadata(first_word, kwargs)
             self._logger.debug(' author transform kwargs: %s', kwargs)
         if not kwargs.get('remote'):
             kwargs['remote_command'] = command
@@ -289,22 +271,3 @@ class Shell(Prompt):
             return
         else:
             self.messaging.send_command(command, *args, **kwargs)
-
-    def _handle_service(self,
-                        service: str,
-                        args: tuple,
-                        kwargs: dict) -> (str, tuple, dict):
-
-        return self.service_observer.handle_command(service, args, kwargs)
-
-    def _is_author(self, author: str):
-        return author in self.author_observer.authors
-
-    def _handle_author(self, author: str, args: tuple, kwargs: dict) -> (tuple, dict):
-        source = self.author_observer.authors[author]
-        metadata = self.author_observer.author_metadata[author]
-        metadata.update(kwargs)
-        kwargs = metadata
-        kwargs['target'] = source
-        kwargs['msg_target'] = author
-        return args, kwargs
