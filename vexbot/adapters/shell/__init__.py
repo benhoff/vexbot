@@ -14,7 +14,7 @@ from zmq.eventloop.ioloop import PeriodicCallback
 from vexbot.adapters.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
-from vexbot.adapters.shell.interfaces import AuthorInterface, ServiceInterface
+from vexbot.adapters.shell.interfaces import AuthorInterface, ServiceInterface, EntityInterface
 
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
@@ -77,6 +77,9 @@ class Shell(Prompt):
 
         self.service_interface = ServiceInterface(self._word_completer,
                                                    self.messaging)
+
+        self.entity_interface = EntityInterface(self.author_interface,
+                                                self.service_interface)
 
         self._bot_status = ''
 
@@ -229,10 +232,9 @@ class Shell(Prompt):
 
                 return self._handle_NLP(text)
 
-    # FIXME: implement
     def _handle_NLP(self, text: str):
-        author_entites = []
-        service_entites = self.service_interface.get_entites(text)
+        entites = self.entity_interface.get_entities(text)
+        self.messaging.send_command('NLP', text=text, entites=entites)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
         if kwargs.get('remote', False):
