@@ -26,31 +26,6 @@ def _get_attributes(output, color: str):
         return output._escape_code_cache[attr]
 
 
-# possible other args: Name
-def shellcommand(function=None,
-                 alias: list=None,
-                 hidden: bool=False):
-    if function is None:
-        return functools.partial(shellcommand,
-                                 alias=alias,
-                                 hidden=hidden)
-
-    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    @functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        return function(*args, **kwargs)
-    # TODO: check for string and convert to list
-    if alias is not None:
-        wrapper.alias = alias
-
-    wrapper.hidden = hidden
-
-    return wrapper
-
-
-_LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
-
-
 class CommandObserver(Observer):
     def __init__(self,
                  messaging,
@@ -99,15 +74,15 @@ class CommandObserver(Observer):
         _, value, _ = _sys.exc_info()
         print('{}: {}'.format(value.__class__.__name__, value))
 
-    @shellcommand(hidden=True)
+    @command(hidden=True)
     def do_debug(self, *args, **kwargs):
         self._root.setLevel(logging.DEBUG)
 
-    @shellcommand(hidden=True)
+    @command(hidden=True)
     def do_info(self, *args, **kwargs):
         self._root.setLevel(logging.INFO)
 
-    @shellcommand(alias=['warn'], hidden=True)
+    @command(alias=['warn'], hidden=True)
     def do_logging_default(self, *args, **kwargs):
         self._root.setLevel(logging.WARN)
 
@@ -190,7 +165,7 @@ class CommandObserver(Observer):
         if self._prompt.print_observer:
             del self._prompt.print_observer._author_color[author]
 
-    @shellcommand(alias=['quit',])
+    @command(alias=['quit',])
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
 
@@ -201,12 +176,15 @@ class CommandObserver(Observer):
         if self._prompt:
             return self._prompt.history.strings
 
-    @shellcommand(alias=['source',])
+    @command(alias=['source',])
     def do_code(self, *args, **kwargs):
         """
         get the python source code from callback
         """
-        callback = self._commands[args[0]]
+        name = args[0]
+        if any([name.startswith(x) for x in self._prompt.shebangs]):
+            name = name[1:]
+        callback = self._commands[name]
         # TODO: syntax color would be nice
         source = inspect.getsourcelines(callback)[0]
         """
@@ -257,12 +235,6 @@ class CommandObserver(Observer):
         for name in args:
             for handler in self._root.handlers:
                 handler.addFilter(logging.Filter(name))
-
-    @shellcommand(alias=['stop_heartbeating'])
-    def do_filter_heartbeating(self, *args, **kwargs):
-        self.do_anti_filter('shell.messaging.heartbeat',
-                            'shell.messaging.subscribe',
-                            'vexbot.messaging.heartbeat')
 
     def do_anti_filter(self, *args, **kwargs):
         def filter_(record: logging.LogRecord):

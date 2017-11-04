@@ -1,41 +1,23 @@
 import sys as _sys
 import logging
 import inspect as _inspect
-import functools as _functools
+import typing
 
 from rx import Observer
 
 from vexmessage import Request
 from vexbot.messaging import Messaging
+from vexbot.intent import intent
+from vexbot.command import command
 
 
-def vexcommand(function=None,
-               alias: list=None,
-               hidden: bool=False):
-    if function is None:
-        return _functools.partial(vexcommand,
-                                  alias=alias,
-                                  hidden=hidden)
-
-    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    @_functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        return function(*args, **kwargs)
-    # TODO: check for string and convert to list
-    if alias is not None:
-        wrapper.alias = alias
-    wrapper.hidden = hidden
-    return wrapper
-
-
-_SUBPROCESS_MANAGER = 'vexbot.subprocess_manager.SubprocessManager'
 
 
 class CommandObserver(Observer):
     def __init__(self,
                  bot,
                  messaging: Messaging,
-                 subprocess_manager: _SUBPROCESS_MANAGER):
+                 subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager'):
 
         super().__init__()
         self.bot = bot
@@ -45,9 +27,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        # self._root_logger.setLevel(logging.DEBUG)
-        # logging.basicConfig()
-        self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.DEBUG)
+        logging.basicConfig()
+        # self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_commands(self) -> dict:
         result = {}
@@ -62,73 +44,93 @@ class CommandObserver(Observer):
 
         return result
 
-    @vexcommand(alias=['MSG',])
-    def do_REMOTE(self, *args, **kwargs):
-        try:
-            target = kwargs.pop('target')
-            self.logger.debug(' do_REMOTE target: %s', target)
-            command = kwargs.pop('remote_command')
-            self.logger.debug(' do_REMOTE command: %s', command)
-        except KeyError:
-            self.logger.debug(' do_REMOTE KeyError, %s %s', args, kwargs)
-            return
+    @command(alias=['MSG',])
+    def do_REMOTE(self,
+                  target: str,
+                  remote_command: str,
+                  source: list,
+                  *args,
+                  **kwargs) -> None:
+        """
+        Send a remote command to a service. Used 
 
-        source = kwargs.pop('source')
-
+        Args:
+            target: The service that the command gets set to
+            remote_command: The command to do remotely.
+            source: the binary source of the zmq_socket. Packed to send to the
+        """
         if target == self.messaging._service_name:
-            warn = 'target for remote command is the bot itself! Returning the function'
-            self.logger.warn(warn)
-            return self._handle_command(command, source, *args, **kwargs)
+            info = 'target for remote command is the bot itself! Returning the function'
+            self.logger.info(info)
+            return self._handle_command(remote_command, source, *args, **kwargs)
 
         try:
             target = self.messaging._address_map[target]
         except KeyError:
             warn = ' Target %s, not found in addresses. Are you sure that %s sent an IDENT message?'
             self.logger.warn(warn, target, target)
+            # TODO: raise an error instead of returning?
             # NOTE: Bail here since there's no point in going forward
             return
 
         self.logger.info(' REMOTE %s, target: %s | %s, %s',
-                         command, target, args, kwargs)
+                         remote_command, target, args, kwargs)
 
+        # package the binary together
         source = target + source
         self.messaging.send_command_response(source,
-                                             command,
+                                             remote_command,
                                              *args, 
                                              **kwargs)
 
-    def do_IDENT(self, *args, **kwargs):
-        service_name = kwargs.get('service_name')
-        if service_name is None:
-            warn = (' No service name found for IDENT command. Not '
-                    'identifying due to lack of human readable string! %s %s %s')
-            self.logger.warn(warn, source, args, kwargs)
-            return
-        source = kwargs.pop('source')
+    def do_IDENT(self, service_name: str, source: list, *args, **kwargs) -> None:
+        """
+        Perform identification of a service to a binary representation.
 
+        Args:
+            service_name: human readable name for service
+            source: zmq representation for the socket source
+        """
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
-    def do_log_level(self, *args, **kwargs):
-        if not args:
+    @action(intent='get_log')
+    @action(intent='set_log')
+    def do_log_level(self,
+                     level: typing.Union[str, int]=None,
+                     *args,
+                     **kwargs) -> typing.Union[None, str]:
+        """
+        Args:
+            level:
+
+        Returns:
+            The log level if a `level` is passed in
+        """
+        if level is None:
             return self._root_logger.getEffectiveLevel()
-        value = args[0]
         try:
-            value = int(value)
+            value = int(level)
         except ValueError:
             pass
 
         self._root_logger.setLevel(value)
 
-    def do_services(self, *args, **kwargs):
+    @action(intent='get_services')
+    def do_services(self, *args, **kwargs) -> tuple:
         return tuple(self.messaging._address_map.keys())
 
-    def do_help(self, *arg, **kwargs):
+    @action(intent='get_help')
+    def do_help(self, *arg, **kwargs) -> str:
         """
         Help helps you figure out what commands do.
         Example usage: !help code
         To see all commands: !commands
+
+        Raises:
+            IndexError: if no argument is passed in
         """
+        # TODO: return general help if there is a IndexError here
         name = arg[0]
         try:
             callback = self._commands[name]
@@ -138,49 +140,80 @@ class CommandObserver(Observer):
 
         return callback.__doc__
 
-    def do_debug(self, *args, **kwargs):
+    def do_debug(self, *args, **kwargs) -> None:
         self._root_logger.setLevel(logging.DEBUG)
         self.messaging.pub_handler.setLevel(logging.DEBUG)
 
-    @vexcommand(alias=['source',])
-    def do_code(self, *args, **kwargs):
+    @command(alias=['source',])
+    @action(intent='get_code')
+    def do_code(self, command: str, *args, **kwargs) -> str:
         """
         get the python source code from callback
+        Returns:
+            str: the source code of the argument
+
+        Raises:
+            KeyError: if the `command` is not found in `self._commands`
         """
-        try:
-            callback = self._commands[args[0]]
-        except (IndexError, KeyError):
-            return
+        # TODO: Throw a better error here
+        callback = self._commands[command]
         # TODO: syntax color would be nice
         source = _inspect.getsourcelines(callback)
         # FIXME: formatting sucks
         return "\n" + "".join(source[0])
 
-    def do_warn(self, *args, **kwargs):
+    def do_warn(self, *args, **kwargs) -> None:
+        """
+        Sets the log level to `WARN`
+        """
         self._root_logger.setLevel(logging.WARN)
         self.messaging.pub_handler.setLevel(logging.WARN)
 
     def do_info(self, *args, **kwargs) -> None:
+        """
+        Sets the log level to `INFO`
+        """
         self._root_logger.setLevel(logging.INFO)
         self.messaging.pub_handler.setLevel(logging.INFO)
 
-    def do_start(self, name: str, mode: str='replace', *args, **kwargs):
+    @action(intent='start_program')
+    def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
+        """
+        Start a program.
+
+        Args:
+            name: The name of the serivce. Will often end with `.service` or
+                `.target`. If no argument is provided, will default to
+                `.service`
+            mode:
+
+        Raises:
+            GError: if the service is not found
+        """
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)
 
-    def do_commands(self, *args, **kwargs):
+    @action(intent='get_commands')
+    def do_commands(self, *args, **kwargs) -> tuple:
         commands = tuple(self._commands.keys())
         return commands
 
-    def do_restart(self, name: str, mode: str='replace', *args, **kwargs):
+    @action(intent='restart_program')
+    def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         self.logger.info(' restart service %s in mode %s', name, mode)
         self.subprocess_manager.restart(name, mode)
 
-    def do_stop(self, name: str, mode: str='replace', *args, **kwargs):
+    @action(intent='stop_program')
+    def do_stop(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         self.logger.info(' stop service %s in mode %s', name, mode)
         self.subprocess_manager.stop(name, mode)
 
-    def _handle_result(self, command: str, source: list, result, *args, **kwargs):
+    @action(intent='get_status')
+    def do_status(self, name: str) -> str:
+        self.logger.info(' get status for %s', name)
+        return self.subprocess_manager.status(name)
+
+    def _handle_result(self, command: str, source: list, result, *args, **kwargs) -> None:
         self.logger.info('send response %s %s %s', source, command, result)
         self.messaging.send_command_response(source, command, result=result, *args, **kwargs)
 
@@ -201,7 +234,7 @@ class CommandObserver(Observer):
         try:
             result = callback(*args, **kwargs)
         except Exception as e:
-            self.on_error(e, command)
+            self.on_error(e, command, *args, **kwargs)
             return
         kwargs.pop('source')
 
@@ -229,6 +262,7 @@ class CommandObserver(Observer):
             self._handle_result(command, source, kwargs.pop('result'), *args, **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
+        self.logger.warn('on_error called for %s %s %s', command, args, kwargs)
         self.logger.warn('on_error called %s', error.__class__.__name__)
         self.logger.warn('on_error called %s', error.args)
         self.logger.exception(' on_next error for command {}'.format(command))
@@ -236,7 +270,8 @@ class CommandObserver(Observer):
     def on_completed(self, *args, **kwargs):
         self.logger.info(' command observer completed!')
 
-    @vexcommand(alias=['quit', 'exit'])
+    @command(alias=['quit', 'exit'])
+    @action(intent='exit')
     def do_kill_bot(self, *args, **kwargs):
         """
         Kills the instance of vexbot
@@ -244,6 +279,7 @@ class CommandObserver(Observer):
         self.logger.warn(' Exiting bot!')
         _sys.exit()
 
+    @action(intent='help')
     def do_help(self, *arg, **kwargs):
         """
         Help helps you figure out what commands do.
@@ -258,17 +294,3 @@ class CommandObserver(Observer):
             return self.do_help.__doc__
 
         return callback.__doc__
-
-    def do_code(self, *args, **kwargs):
-        """
-        get the python source code from callback
-        """
-        callback = self._commands[args[0]]
-        # TODO: syntax color would be nice
-        source = inspect.getsourcelines(callback)[0]
-        """
-        source_len = len(source)
-        source = PygmentsLexer(CythonLexer).lex_document(source)()
-        """
-        # FIXME: formatting sucks
-        return "\n" + "".join(source)

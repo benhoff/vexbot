@@ -62,21 +62,21 @@ class SubprocessManager:
         # signal.signal(signal.SIGINT, self._handle_close_signal)
         # signal.signal(signal.SIGTERM, self._handle_close_signal)
 
-    def start(self, name: str, mode: str='replace'):
+    def start(self, name: str, mode: str='replace') -> None:
         # TODO: add in some parsing if fail
         # https://github.com/LEW21/pydbus/issues/35
         name = _name_helper(name)
         self.systemd.StartUnit(name, mode)
 
-    def restart(self, name: str, mode: str='replace'):
+    def restart(self, name: str, mode: str='replace') -> None:
         name = _name_helper(name)
         self.systemd.ReloadOrRestartUnit(name, mode)
 
-    def stop(self, name: str, mode: str='replace'):
+    def stop(self, name: str, mode: str='replace') -> None:
         name = _name_helper(name)
         self.systemd.StopUnit(name, mode)
 
-    def status(self, name: str):
+    def status(self, name: str) -> str:
         name = _name_helper(name)
         unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
         # NOTE: what systemctl status shows
