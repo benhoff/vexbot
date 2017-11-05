@@ -47,6 +47,7 @@ def action(function=None,
 
     # TODO: Do things here to the wrapper
     # TODO: Get entities from the examples
+    return wrapper
 
 
 
@@ -64,6 +65,8 @@ def intent(function=None,
 
     wrapper._vex_intent = True
     wrapper._vex_intent_name = name
+
+    return wrapper
 
 
 class BotIntents:
