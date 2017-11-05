@@ -21,15 +21,16 @@ class Entity:
             value = name
         self.value = value
 
-class FindEntity(text, value, name):
-    pass
+class FindEntity:
+    def __init__(text, value, name):
+        pass
 
 
 # http://rasa-nlu.readthedocs.io/en/latest/tutorial.html#preparing-the-training-data
 def action(function=None,
            intent: str=None,
            name: str=None,
-           examples: list,
+           examples: list=None,
            **defaults):
 
     if function is None:
@@ -141,7 +142,7 @@ class BotIntents:
     def do_status(self) -> tuple:
         pass
 
-    def do_error(self) - > tuple:
+    def do_error(self) -> tuple:
         values = ('show me the error',
                   'what\'s wrong with you',
                   'tell me how you\'re broken',
@@ -158,7 +159,7 @@ class BotIntents:
 
         return values
 
-    def do_lint(self): -> tuple:
+    def do_lint(self) -> tuple:
         values ('lint file',
                 'flake file')
 

@@ -1,5 +1,4 @@
 import sys as _sys
-import functools
 from time import localtime, strftime
 from random import randrange
 import inspect
@@ -8,15 +7,14 @@ import pprint
 
 from rx import Observer
 from tblib import Traceback
-from pygments.lexers.python import CythonLexer
 from prompt_toolkit.styles import Attrs
-from prompt_toolkit.layout.lexers import PygmentsLexer
 
 from vexmessage import Message, Request
 
+from vexbot.command import command
+from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.subprocess_manager import SubprocessManager
-from vexbot.command import command
 
 
 def _get_attributes(output, color: str):
@@ -58,12 +56,14 @@ class CommandObserver(Observer):
         else:
             self._root.setLevel(args[0])
 
+    @intent(name='stop_chatter')
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
 
     def is_command(self, command: str) -> bool:
         return command in self._commands
 
+    @intent(name='start_chatter')
     def do_start_print(self, *args, **kwargs):
         if not self._prompt._print_subscription.is_disposed:
             return
@@ -120,7 +120,10 @@ class CommandObserver(Observer):
         Example usage: !help code
         To see all commands: !commands
         """
-        name = arg[0]
+        try:
+            name = arg[0]
+        except IndexError:
+            return 'welcome to vexbot! !commands will list all availabe commands'
         if any([name.startswith(x) for x in self._prompt.shebangs]):
             name = name[1:]
         try:
@@ -176,7 +179,8 @@ class CommandObserver(Observer):
 
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
-            return self._prompt.history.strings
+            print(type(self._prompt.history.strings))
+            return self._prompt.history.strings[-15:]
 
     @command(alias=['source',])
     def do_code(self, *args, **kwargs):
@@ -189,10 +193,6 @@ class CommandObserver(Observer):
         callback = self._commands[name]
         # TODO: syntax color would be nice
         source = inspect.getsourcelines(callback)[0]
-        """
-        source_len = len(source)
-        source = PygmentsLexer(CythonLexer).lex_document(source)()
-        """
         # FIXME: formatting sucks
         return "\n" + "".join(source)
 

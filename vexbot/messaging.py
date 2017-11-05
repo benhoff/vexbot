@@ -205,13 +205,13 @@ class Messaging:
                                        self._request_helper)
 
     def send_chatter(self, target: str='', from_='', *args, **chatter: dict):
-        # FIXME: This code is unused
         if from_ == '':
             from_ = self._service_name
 
         self._messaging_logger.publish.info(' send_chatter to: %s %s',
                                             target,
                                             chatter)
+
         frame = create_vex_message(target, self._service_name, self.uuid, **chatter)
         self.add_callback(self.subscription_socket.send_multipart,
                           frame) 
