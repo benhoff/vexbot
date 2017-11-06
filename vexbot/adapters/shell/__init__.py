@@ -233,8 +233,8 @@ class Shell(Prompt):
                 return self._handle_NLP(text)
 
     def _handle_NLP(self, text: str):
-        entites = self.entity_interface.get_entities(text)
-        self.messaging.send_command('NLP', text=text, entites=entites)
+        entities = self.entity_interface.get_entities(text)
+        self.messaging.send_command('NLP', text=text, entities=entities)
 
     def _handle_command(self, command: str, args: tuple, kwargs: dict):
         if kwargs.get('remote', False):
