@@ -120,7 +120,7 @@ class EntityInterface:
             for match in re.finditer(author, text):
                 a = {'start': match.start(),
                      'end': match.end(),
-                     'name': 'channel',
+                     'name': 'author',
                      'value': author}
                 result.append(a)
 

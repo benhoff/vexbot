@@ -17,19 +17,37 @@ class CommandObserver(Observer):
     def __init__(self,
                  bot,
                  messaging: Messaging,
-                 subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager'):
+                 subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager',
+                 language):
 
         super().__init__()
         self.bot = bot
         self.messaging = messaging
         self.subprocess_manager = subprocess_manager
+        self.language = language
         self._commands = self._get_commands()
+        self._intents = self._get_intents()
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
         # self._root_logger.setLevel(logging.DEBUG)
         # logging.basicConfig()
         self._root_logger.addHandler(self.messaging.pub_handler)
+
+    def _get_intents(self) -> dict:
+        result = {}
+        # FIXME: define a `None` callback
+        result[None] = self.do_commands
+        for name, method in _inspect.getmembers(self):
+            is_intent = getattr(method, '_vex_intent', False)
+            if name.startswith('do_') or is_intent:
+                try:
+                    name = method._vex_intent_name
+                except AttributeError:
+                    name = name[3:]
+                result[name] = method
+
+        return result
 
     def _get_commands(self) -> dict:
         result = {}
@@ -82,6 +100,22 @@ class CommandObserver(Observer):
                                              remote_command,
                                              *args, 
                                              **kwargs)
+
+    def do_NLP(self, *args, **kwargs):
+        # TODO: Add bot in entity parsing?
+        intent = self.language.get_intent(*args, **kwargs)
+        self.logger.debug('intent from do_NLP: %s', intent)
+        try:
+            callback = self._intents[intent]
+        except NameError:
+            self.logger.debug('intent not found! intent: %s', intent)
+            # TODO: send intent back to source
+            return
+
+        # FIXME:Pass entites in as kwargs?
+        result = callback(*args, **kwargs)
+        return result
+
 
     def do_IDENT(self, service_name: str, source: list, *args, **kwargs) -> None:
         """

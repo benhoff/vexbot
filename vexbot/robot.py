@@ -5,6 +5,7 @@ from vexbot import _get_default_port_config
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.observers import CommandObserver as _CommandObserver
 from vexbot.adapters.shell.observers import LogObserver
+from vexbot.language import Language
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -34,10 +35,13 @@ class Robot:
 
             self._logger.warn(err)
 
+        # NOTE: probably need some kind of config here
+        self.language = Language()
         self.subprocess_manager = subprocess_manager
         self.command_observer = _CommandObserver(self,
                                                  self.messaging,
-                                                 self.subprocess_manager)
+                                                 self.subprocess_manager,
+                                                 self.language)
 
         self.messaging.command.subscribe(self.command_observer)
         self.messaging.chatter.subscribe(LogObserver(pass_through=True))

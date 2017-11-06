@@ -27,30 +27,6 @@ class FindEntity:
 
 
 # http://rasa-nlu.readthedocs.io/en/latest/tutorial.html#preparing-the-training-data
-def action(function=None,
-           intent: str=None,
-           name: str=None,
-           examples: list=None,
-           **defaults):
-
-    if function is None:
-        return _functools.partial(action,
-                                  intent=intent,
-                                  name=name,
-                                  examples=examples,
-                                  defaults=defaults)
-
-    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    @_functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        return function(*args, **kwargs)
-
-    # TODO: Do things here to the wrapper
-    # TODO: Get entities from the examples
-    return wrapper
-
-
-
 def intent(function=None,
            name: str=None):
 
