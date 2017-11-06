@@ -10,6 +10,7 @@ except ImportError:
 from vexbot import _port_configuration_helper
 
 from vexbot.robot import Robot
+from vexbot.util.get_config_filepath import get_config_filepath
 from vexbot.util.get_kwargs import get_kwargs as _get_kwargs
 from vexbot.util.get_config import get_config as _get_config
 
@@ -31,7 +32,11 @@ def main(*args, **kwargs):
         `configuration_filepath`: filepath for the `ini` configuration
     """
     kwargs = {**kwargs, **_get_kwargs()}
+    # FIXME: This filepath handeling is messed up and not transparent as it should be
+    default_filepath = get_config_filepath()
     configuration_filepath = kwargs.get('configuration_filepath')
+    if configuration_filepath is None:
+        configuration_filepath = default_filepath
     # configuration is from an `ini` file
     configuration = _get_config(configuration_filepath)
     # setup some sane defaults

@@ -25,7 +25,7 @@ class SocketFactory:
                  context: 'zmq.Context'=None,
                  logger: 'logging.Logger'=None,
                  loop=None,
-                 auth_whitelist: list='127.0.0.1',
+                 auth_whitelist: list=None,
                  using_auth: bool=True):
 
         self.address = address
@@ -48,7 +48,8 @@ class SocketFactory:
 
         # allow all local host
         self.logger.debug('Auth whitelist %s', auth_whitelist)
-        self.auth.allow(auth_whitelist)
+        if auth_whitelist is not None:
+            self.auth.allow(auth_whitelist)
         self._base_filepath = get_certificate_filepath()
         public_key_location = path.join(self._base_filepath, 'public_keys')
         self.auth.configure_curve(domain='*', location=public_key_location)

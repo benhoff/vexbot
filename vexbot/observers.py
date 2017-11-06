@@ -7,7 +7,7 @@ from rx import Observer
 
 from vexmessage import Request
 from vexbot.messaging import Messaging
-from vexbot.intent import intent
+from vexbot.intents import intent
 from vexbot.command import command
 
 
@@ -27,9 +27,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        self._root_logger.setLevel(logging.DEBUG)
-        logging.basicConfig()
-        # self._root_logger.addHandler(self.messaging.pub_handler)
+        # self._root_logger.setLevel(logging.DEBUG)
+        # logging.basicConfig()
+        self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_commands(self) -> dict:
         result = {}
@@ -94,8 +94,8 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
-    @action(intent='get_log')
-    @action(intent='set_log')
+    @intent(name='get_log')
+    @intent(name='set_log')
     def do_log_level(self,
                      level: typing.Union[str, int]=None,
                      *args,
@@ -116,11 +116,11 @@ class CommandObserver(Observer):
 
         self._root_logger.setLevel(value)
 
-    @action(intent='get_services')
+    @intent(name='get_services')
     def do_services(self, *args, **kwargs) -> tuple:
         return tuple(self.messaging._address_map.keys())
 
-    @action(intent='get_help')
+    @intent(name='get_help')
     def do_help(self, *arg, **kwargs) -> str:
         """
         Help helps you figure out what commands do.
@@ -145,7 +145,7 @@ class CommandObserver(Observer):
         self.messaging.pub_handler.setLevel(logging.DEBUG)
 
     @command(alias=['source',])
-    @action(intent='get_code')
+    @intent(name='get_code')
     def do_code(self, command: str, *args, **kwargs) -> str:
         """
         get the python source code from callback
@@ -176,7 +176,7 @@ class CommandObserver(Observer):
         self._root_logger.setLevel(logging.INFO)
         self.messaging.pub_handler.setLevel(logging.INFO)
 
-    @action(intent='start_program')
+    @intent(name='start_program')
     def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         """
         Start a program.
@@ -193,22 +193,22 @@ class CommandObserver(Observer):
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)
 
-    @action(intent='get_commands')
+    @intent(name='get_commands')
     def do_commands(self, *args, **kwargs) -> tuple:
         commands = tuple(self._commands.keys())
         return commands
 
-    @action(intent='restart_program')
+    @intent(name='restart_program')
     def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         self.logger.info(' restart service %s in mode %s', name, mode)
         self.subprocess_manager.restart(name, mode)
 
-    @action(intent='stop_program')
+    @intent(name='stop_program')
     def do_stop(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         self.logger.info(' stop service %s in mode %s', name, mode)
         self.subprocess_manager.stop(name, mode)
 
-    @action(intent='get_status')
+    @intent(name='get_status')
     def do_status(self, name: str) -> str:
         self.logger.info(' get status for %s', name)
         return self.subprocess_manager.status(name)
@@ -271,7 +271,7 @@ class CommandObserver(Observer):
         self.logger.info(' command observer completed!')
 
     @command(alias=['quit', 'exit'])
-    @action(intent='exit')
+    @intent(name='exit')
     def do_kill_bot(self, *args, **kwargs):
         """
         Kills the instance of vexbot
@@ -279,7 +279,7 @@ class CommandObserver(Observer):
         self.logger.warn(' Exiting bot!')
         _sys.exit()
 
-    @action(intent='help')
+    @intent(name='help')
     def do_help(self, *arg, **kwargs):
         """
         Help helps you figure out what commands do.

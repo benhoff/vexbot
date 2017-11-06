@@ -43,7 +43,7 @@ def _get_default_port_config() -> dict:
 def _get_default_adapter_config() -> dict:
     """
     protocol:   'tcp'
-    address: '127.0.0.1'
+    address: '*'
     chatter_publish_port: 4000
     chatter_subscription_port: [4001,]
     command_port: 4002

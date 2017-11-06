@@ -42,6 +42,8 @@ if you intend to use `vexshell`:
 
 Make sure your virtual environment is activated. Then run:
 
+FIXME: currently get FileNotFoundError No such file or directory since `~.config` `~.config/vexbot` does not exsit
+
 `$ vexbot_generate_certificates`
 
 `$ vexbot_generate_unit_file`

@@ -2,8 +2,6 @@ import time
 # import atexit
 # import signal
 
-# TODO: Determine if there's a better way to import this
-from gi._error import GError as _GError
 
 from pydbus import SessionBus as _SessionBus
 from pydbus import SystemBus as _SystemBus
@@ -40,7 +38,8 @@ class SubprocessManager:
         self.session_bus_available = True
         try:
             self.bus = _SessionBus()
-        except _GError:
+        # NOTE: GError from package `gi`
+        except Exception:
             # No session bus if we're here. Depending on linux distro, that's
             # not surprising
             self.session_bus_available = False
