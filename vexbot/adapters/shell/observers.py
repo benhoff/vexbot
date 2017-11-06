@@ -14,7 +14,10 @@ from vexmessage import Message, Request
 from vexbot.command import command
 from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
-from vexbot.subprocess_manager import SubprocessManager
+try:
+    from vexbot.subprocess_manager import SubprocessManager
+except ImportError:
+    SubprocessManager = None
 
 
 def _get_attributes(output, color: str):
@@ -31,7 +34,11 @@ class CommandObserver(Observer):
                  messaging,
                  prompt=None):
 
-        self.subprocess_manager = SubprocessManager()
+        if SubprocessManager is not None:
+            self.subprocess_manager = SubprocessManager()
+        else:
+            self.subprocess_manager = None
+
         self._prompt = prompt
         self.messaging = messaging
         # Get the root logger to set it to different levels
