@@ -218,13 +218,12 @@ class CommandObserver(Observer):
         result = callback(*args, **kwargs)
         return result
 
-    def do_start(self, target: str, *args, **kwargs):
-        mode = kwargs.get('mode', 'replace')
+    def do_start(self, *args, mode: str='replace', **kwargs):
         # TODO: Better aliasing for more commands
-        if target == 'bot':
-            target = 'vexbot'
-
-        self.subprocess_manager.start(target, mode)
+        for target in args:
+            if target == 'bot':
+                target = 'vexbot'
+            self.subprocess_manager.start(target, mode)
 
     def do_status(self, target: str=None, *args, **kwargs):
         if target is None:
@@ -256,24 +255,22 @@ class CommandObserver(Observer):
     def do_channels(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.service_interface.channels.keys())
 
-    def do_restart(self, target: str=None, *args, **kwargs):
-        if target is None:
+    def do_restart(self, *args, mode: str='replace', **kwargs):
+        if not args:
             err = ('!restart requires a target name to inquire about. Example'
                    ' usage: `!restart vexbot.service`')
             raise RuntimeError(err)
 
-        mode = kwargs.get('mode', 'replace')
-        if target == 'bot':
-            target = 'vexbot'
+        for target in args:
+            if target == 'bot':
+                target = 'vexbot'
+            self.subprocess_manager.restart(target, mode)
 
-        self.subprocess_manager.restart(target, mode)
-
-    def do_stop(self, target: str, *args, **kwargs):
-        mode = kwargs.get('mode', 'replace')
-        if target == 'bot':
-            target = 'vexbot'
-
-        self.subprocess_manager.stop(target, mode)
+    def do_stop(self, *args, mode: str='replace', **kwargs):
+        for target in args:
+            if target == 'bot':
+                target = 'vexbot'
+            self.subprocess_manager.stop(target, mode)
 
     def do_time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"
