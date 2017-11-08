@@ -1,11 +1,12 @@
 import sys as _sys
 import logging as _logging
 
-from vexbot import _get_default_port_config
-from vexbot.messaging import Messaging as _Messaging
-from vexbot.observers import CommandObserver as _CommandObserver
-from vexbot.adapters.shell.observers import LogObserver
 from vexbot.language import Language
+from vexbot import _get_default_port_config
+from vexbot.intents import BotIntents
+from vexbot.messaging import Messaging as _Messaging
+from vexbot.adapters.shell.observers import LogObserver
+from vexbot.observers import CommandObserver as _CommandObserver
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -37,6 +38,7 @@ class Robot:
 
         # NOTE: probably need some kind of config here
         self.language = Language()
+        self.intents = BotIntents()
         self.subprocess_manager = subprocess_manager
         self.command_observer = _CommandObserver(self,
                                                  self.messaging,

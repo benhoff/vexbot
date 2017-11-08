@@ -103,7 +103,6 @@ class SocketFactory:
         else:  # connect the socket
             socket.connect(address)
 
-    # TODO: Allow authentication override
     def create_n_connect(self,
                          socket_type,
                          address: str,

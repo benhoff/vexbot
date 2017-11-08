@@ -49,10 +49,15 @@ class BotIntents:
     def get_intents(self) -> dict:
         result = {}
         for name, method in _inspect.getmembers(self):
-            if name.startswith('do_'):
-                result[name[3:]] = method
-            elif method._vex_intent:
-                result[method._vex_intent_name] = method
+            isintent = getattr(method, '_vex_intent', False)
+
+            if name.startswith('do_') or isintent:
+                if isintent:
+                    name = method._vex_intent_name
+                else:
+                    name = name[3:]
+
+                result[name] = method
 
         return result
 

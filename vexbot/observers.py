@@ -11,8 +11,6 @@ from vexbot.intents import intent
 from vexbot.command import command
 
 
-
-
 class CommandObserver(Observer):
     def __init__(self,
                  bot,
@@ -102,9 +100,11 @@ class CommandObserver(Observer):
                                              **kwargs)
 
     def do_NLP(self, *args, **kwargs):
-        # TODO: Add bot in entity parsing?
-        intent = self.language.get_intent(*args, **kwargs)
+        # NOTE: entity feature extraction is already considered in this
+        # as part of the classifier
+        intent, confidence = self.language.get_intent(*args, **kwargs)
         self.logger.debug('intent from do_NLP: %s', intent)
+
         try:
             callback = self._intents[intent]
         except NameError:
@@ -112,10 +112,19 @@ class CommandObserver(Observer):
             # TODO: send intent back to source
             return
 
+        # FIXME
+        # entities = self.language.get_entities(*args, **kwargs)
+
         # FIXME:Pass entites in as kwargs?
         result = callback(*args, **kwargs)
         return result
 
+    def do_TRAIN_INTENT(self, *args, **kwargs):
+        self.logger.debug('starting training!')
+        intents = self.bot.intents.get_intents()
+        self.logger.debug('intents: %s', intents)
+        self.language.train_classifier(intents)
+        self.logger.debug('training finished')
 
     def do_IDENT(self, service_name: str, source: list, *args, **kwargs) -> None:
         """
@@ -232,6 +241,7 @@ class CommandObserver(Observer):
         commands = tuple(self._commands.keys())
         return commands
 
+    @command(alias=['reboot',])
     @intent(name='restart_program')
     def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         self.logger.info(' restart service %s in mode %s', name, mode)

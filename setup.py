@@ -55,7 +55,10 @@ setup(
         'pyzmq',
         'vexmessage>=0.4.0',
         'rx',
+        # traceback serilization
         'tblib',
+        'spacy',
+        'sklearn'
         ],
 
     extras_require={
