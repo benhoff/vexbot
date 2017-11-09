@@ -170,7 +170,8 @@ class Shell(Prompt):
                     continue
                 # Program specific handeling. Currently either first word
                 # or second word can be commands
-                self._handle_text(text)
+                for string in text.split('&&'):
+                    self._handle_text(string)
 
     def _get_rprompt_tokens(self):
         return self._bot_status

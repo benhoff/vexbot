@@ -255,6 +255,7 @@ class CommandObserver(Observer):
     def do_channels(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.service_interface.channels.keys())
 
+    @command(alias=['reboot',])
     def do_restart(self, *args, mode: str='replace', **kwargs):
         if not args:
             err = ('!restart requires a target name to inquire about. Example'

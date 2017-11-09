@@ -86,10 +86,10 @@ class BotIntents:
         return values
 
     def do_get_services(self) -> tuple:
-        values = ('what services are up'
-                  'services up'
-                  'services available'
-                  'what is running'
+        values = ('what services are up',
+                  'services up',
+                  'services available',
+                  'what is running',
                   'running')
 
         return values
@@ -144,7 +144,7 @@ class BotIntents:
         return values
 
     def do_lint(self) -> tuple:
-        values ('lint file',
-                'flake file')
+        values = ('lint file',
+                  'flake file')
 
         return values

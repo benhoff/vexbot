@@ -47,7 +47,7 @@ class AuthorInterface:
                                         if k in self.metadata_words} 
 
     def is_author(self, author: str):
-        return author in self.author_observer.authors
+        return author in self.authors
 
     def get_metadata(self, author: str, kwargs: dict) -> dict:
         source = self.author_observer.authors[author]

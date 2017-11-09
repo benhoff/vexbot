@@ -25,6 +25,7 @@ class Language:
         self.feature_extractor = None
         self.logger = logging.getLogger(__name__)
         self.langague_model = None
+        self._language_model_loaded = False
 
     def get_intent(self, text: str, entities: dict, *args, **kwargs):
         # Text classification
@@ -47,6 +48,11 @@ class Language:
         # FIXME: Finish method
         # self.train_entity_extractor(examples)
 
+    def _load_models(self):
+        language = 'en'
+        self.langague_model = spacy.load(language, parser=False)
+        self._language_model_loaded = True
+
     def train_classifier(self, examples: dict, filename: str=None):
         # nlp_spacy -> spacy language initializer -> Done
         # tokenizer_spacy -> Tokenizes -> Eh.
@@ -57,8 +63,9 @@ class Language:
         # ner_synonyms |entity| -> 
 
         # intent_classifier_sklearn -> end of pipeline
-        language = 'en'
-        self.langague_model = spacy.load(language, parser=False)
+        if not self._language_model_loaded:
+            self._load_models()
+
         if filename is None:
             filename = self._classifier_filepath
 
@@ -69,16 +76,28 @@ class Language:
         # - X -
         values = []
         for k, v in examples.items():
+            self.logger.debug('intent: %s', k)
+            # FIXME: I don't think I want this to be a callback.
+            v = v()
+            if v is None:
+                continue
             for value in v:
+                self.logger.debug('value: %s', value)
                 numbers.append(k)
                 values.append(self.langague_model(value))
+
+        self.logger.debug('values: %s', values)
 
         kernel = 'linear'
         tune_parameters = [{'C': [1, 2, 5, 10, 20, 100], kernel: kernel}]
         number_threads = 1
         # Y
-        numbers = self.label_encoder.inverse_transform(numbers)
+        numbers = self.label_encoder.fit_transform(numbers)
+        import pickle
+        with open('test.pickle', 'wb') as f:
+            pickle.dump(values, f)
         values = np.stack(values)
+        self.logger.debug('values: %s %s, numbers: %s %s', values.shape, numbers.shape)
         # aim for 5 examples in each fold
         cv_splits = max(2, min(MAX_CV_FOLDS, np.min(np.bincount(numbers)) // 5))
 
