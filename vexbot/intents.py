@@ -46,6 +46,9 @@ def intent(function=None,
 
 
 class BotIntents:
+    def __init__(self):
+        self._intents = self.get_intents()
+
     def get_intents(self) -> dict:
         result = {}
         for name, method in _inspect.getmembers(self):
@@ -60,6 +63,21 @@ class BotIntents:
                 result[name] = method
 
         return result
+
+    def get_intent_names(self, *args, **kwargs) -> tuple:
+        if not args:
+            return tuple(self._intents.keys())
+        results = {}
+        for arg in args:
+            # FIXME: I hate this API
+            intent_values = self._intents.get(arg)
+            if intent_values is not None:
+                intent_values = intent_values()
+            if intent_values is None:
+                intent_values = ()
+            results[arg] = intent_values
+        return results
+
 
     def do_get_log(self) -> tuple:
         values = ('get log',
