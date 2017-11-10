@@ -144,7 +144,7 @@ class BotIntents:
     def do_status(self) -> tuple:
         pass
 
-    def do_error(self) -> tuple:
+    def do_get_last_error(self) -> tuple:
         values = ('show me the error',
                   'what\'s wrong with you',
                   'tell me how you\'re broken',

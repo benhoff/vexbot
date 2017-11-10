@@ -4,6 +4,7 @@ import inspect as _inspect
 import typing
 
 from rx import Observer
+from tblib import Traceback
 
 from vexmessage import Request
 from vexbot.messaging import Messaging
@@ -245,6 +246,15 @@ class CommandObserver(Observer):
         self.logger.info(' start service %s in mode %s', name, mode)
         self.subprocess_manager.start(name, mode)
 
+    @command(alias=['get_last_error',])
+    @intent(name='get_last_error')
+    def do_show_last_error(self, *args, **kwargs):
+        exc_info = _sys.exc_info()
+        if exc_info[2] is None:
+            return 'No error boss!'
+        self.logger.debug('exc_info: %s', exc_info)
+        return Traceback(exc_info[2]).to_dict()
+
     @intent(name='get_commands')
     def do_commands(self, *args, **kwargs) -> tuple:
         commands = tuple(self._commands.keys())
@@ -316,8 +326,7 @@ class CommandObserver(Observer):
 
     def on_error(self, error: Exception, command, *args, **kwargs):
         self.logger.warn('on_error called for %s %s %s', command, args, kwargs)
-        self.logger.warn('on_error called %s', error.__class__.__name__)
-        self.logger.warn('on_error called %s', error.args)
+        self.logger.warn('on_error called %s:%s', error.__class__.__name__, error.args)
         self.logger.exception(' on_next error for command {}'.format(command))
 
     def on_completed(self, *args, **kwargs):
