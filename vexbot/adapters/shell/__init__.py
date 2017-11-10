@@ -214,8 +214,8 @@ class Shell(Prompt):
                 first_word, second_word = text.split(' ', 1)
                 self._logger.debug(' first word: %s', first_word)
             except ValueError:
-                # FIXME: Log this error/logic chain
-                return
+                self._logger.debug('No second word in chain!')
+                return self._handle_NLP(text)
             # check if second word/string is a command
             if self.is_command(second_word):
                 self._logger.info(' second word is a command')
