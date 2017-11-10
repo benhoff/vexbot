@@ -249,6 +249,10 @@ class Shell(Prompt):
             except Exception as e:
                 self.command_observer.on_error(e, command, args, kwargs)
                 return
+        else:
+            self._logger.debug('command not found! Sending to bot')
+            self.messaging.send_command(command, *args, **kwargs)
+
 
     def _first_word_not_cmd(self,
                             first_word: str,
