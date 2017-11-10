@@ -105,6 +105,7 @@ class CommandObserver(Observer):
         intent, confidence = self.language.get_intent(*args, **kwargs)
         self.logger.debug('intent from do_NLP: %s', intent)
 
+        # FIXME: `None` returns `do_command`
         try:
             callback = self._intents[intent]
         except NameError:

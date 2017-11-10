@@ -1,4 +1,5 @@
 import code
+import pickle
 import logging
 import multiprocessing
 
@@ -38,16 +39,25 @@ class Language:
     def get_intent(self, text: str, entities: dict, *args, **kwargs):
         # Text classification
         # Entity extraction
-        if not self.classifier:
-            return None, []
+        if self.classifier is None:
+            self.load_classifier()
+        if not self._language_model_loaded:
+            self._load_models()
 
         langague_features = self.langague_model(text).vector
         langague_features = langague_features.reshape(1, -1)
         intents, probabilities = self.predict(langague_features)
         if intents.size > 0 and probabilities.size > 0:
             ranking = list(zip(list(intents), list(probabilities)))[:10]
-            intent_ranking = [{"name": intent_name, "confidence": score} for intent_name, score in ranking]
-        return intent_ranking
+            intent_ranking = [{"name": self.label_encoder.inverse_transform(intent_name), "confidence": score} for intent_name, score in ranking]
+            first_name = intent_ranking[0]['name'][0]
+            first_confidence = intent_ranking[0]['confidence'][0]
+        else:
+            first_name = None
+            first_confidence = 0
+        self.logger.debug('name: %s', first_name)
+        self.logger.debug('confidence: %s', first_confidence)
+        return first_name, first_confidence
 
         # text -> tokens
         # text -> entities
@@ -56,6 +66,7 @@ class Language:
         # total_word_feature_extractor
         pass
 
+    # FIXME: currently unused
     def train(self, examples: dict):
         self.train_classifier(examples)
         # FIXME: Finish method
@@ -66,7 +77,17 @@ class Language:
         self.langague_model = spacy.load(language, parser=False)
         self._language_model_loaded = True
 
-    def train_classifier(self, examples: dict, filename: str=None):
+    def load_classifier(self, filename: str=None):
+        if filename is None:
+            filename = self._classifier_filepath
+
+        # FIXME: this code is super brittle for various reasons
+        with open(filename, 'rb') as f:
+            self.classifier = pickle.load(f)
+        with open(filename + 'label', 'rb') as f:
+            self.label_encoder = pickle.load(f)
+
+    def train_classifier(self, examples: dict, filename: str=None, persist=True):
         # nlp_spacy -> spacy language initializer -> Done
         # tokenizer_spacy -> Tokenizes -> Eh.
         # intent_featurizer_spacy -> adds text features -> Eh.
@@ -124,6 +145,11 @@ class Language:
 
         # self.classifier.fit(X, y)
         self.classifier.fit(values, numbers)
+        if persist:
+            with open(filename, 'wb') as f:
+                pickle.dump(self.classifier, f)
+            with open(filename + 'label', 'wb') as f:
+                pickle.dump(self.label_encoder, f)
 
     def get_entities(self, text: str, *args, **kwargs):
         pass
