@@ -59,4 +59,4 @@ class Robot:
         try:
             self.messaging.start()
         except KeyboardInterrupt:
-            pass
+            _sys.exit(0)

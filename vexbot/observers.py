@@ -122,7 +122,9 @@ class CommandObserver(Observer):
     def do_TRAIN_INTENT(self, *args, **kwargs):
         self.logger.debug('starting training!')
         intents = self.bot.intents.get_intents()
-        self.logger.debug('intents: %s', intents)
+        for k, v in intents.items():
+            intents[k] = v()
+        # self.logger.debug('intents: %s', intents)
         self.language.train_classifier(intents)
         self.logger.debug('training finished')
 
