@@ -211,8 +211,6 @@ class CommandObserver(Observer):
         try:
             callback = self._commands[command]
         except KeyError:
-            # TODO: Notify user of fallthrough?
-            self.messaging.send_command(command, *args, **kwargs)
             return
 
         result = callback(*args, **kwargs)
