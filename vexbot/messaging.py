@@ -165,6 +165,14 @@ class Messaging:
                                             bind=True,
                                             socket_name='request socket')
 
+        self._setup_subscription_socket()
+        self._setup_scheduler()
+
+    def _setup_subscription_socket(self, do_auth=None):
+        if do_auth is not None:
+            old_auth = self._socket_factory.using_auth
+            self._socket_factory.using_auth = do_auth
+
         iter_ = self._socket_factory.iterate_multiple_addresses
         sub_addresses = iter_(self.config['chatter_subscription_port'])
         # TODO: verify that this shouldn't be like a connect as the socket
@@ -179,7 +187,8 @@ class Messaging:
         info = self._messaging_logger.subscribe.info
         [info(' Address: %s', x) for x in sub_addresses]
 
-        self._setup_scheduler()
+        if do_auth is not None:
+            self._socket_factory.using_auth = old_auth
 
     def _setup_scheduler(self):
         self._logger.info(' Registering Sockets')

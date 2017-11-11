@@ -119,6 +119,11 @@ class Shell(Prompt):
         completer = WordCompleter(commands, WORD=_WORD)
         self._services_completer.set_service_completer(service, completer)
 
+        # FIXME: `!commands` does not update these as it
+        if service == 'vexbot':
+            for command in commands:
+                self._word_completer.words.add(command)
+
     def _identity_callback(self):
         self.messaging.send_command('services', suppress=True)
         self.messaging.send_command('commands', suppress=True)
@@ -208,8 +213,7 @@ class Shell(Prompt):
         # Else first word is not a command
         else:
             self._logger.debug(' first word is not a command')
-            # get the first word and then the rest of the text. Text reassign
-            # here
+            # get the first word and then the rest of the text.
             try:
                 first_word, second_word = text.split(' ', 1)
                 self._logger.debug(' first word: %s', first_word)
@@ -252,7 +256,6 @@ class Shell(Prompt):
         else:
             self._logger.debug('command not found! Sending to bot')
             self.messaging.send_command(command, *args, **kwargs)
-
 
     def _first_word_not_cmd(self,
                             first_word: str,

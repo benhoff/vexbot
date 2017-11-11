@@ -147,6 +147,14 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
+    def do_auth_for_subscription_socket(self):
+        self.messaging.subscription_socket.close()
+        self.messaging._setup_subscription_socket(True)
+
+    def do_no_auth_for_subscription_socket(self):
+        self.messaging.subscription_socket.close()
+        self.messaging._setup_subscription_socket(False)
+
     @intent(name='get_log')
     @intent(name='set_log')
     def do_log_level(self,
@@ -251,7 +259,7 @@ class CommandObserver(Observer):
     def do_show_last_error(self, *args, **kwargs):
         exc_info = _sys.exc_info()
         if exc_info[2] is None:
-            return 'No error boss!'
+            return 'No problems here boss!'
         self.logger.debug('exc_info: %s', exc_info)
         return Traceback(exc_info[2]).to_dict()
 
@@ -340,19 +348,3 @@ class CommandObserver(Observer):
         """
         self.logger.warn(' Exiting bot!')
         _sys.exit()
-
-    @intent(name='help')
-    def do_help(self, *arg, **kwargs):
-        """
-        Help helps you figure out what commands do.
-        Example usage: !help code
-        To see all commands: !commands
-        """
-        name = arg[0]
-        try:
-            callback = self._commands[name]
-        except KeyError:
-            self._logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
-
-        return callback.__doc__
