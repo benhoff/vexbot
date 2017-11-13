@@ -73,5 +73,6 @@ setup(
         'microphone': ['microphone'],
         'process_name': ['setproctitle'],
         'database': ['vexstorage'],
+        'summarization': ['gensim', 'newspaper3k'],
     }
 )
