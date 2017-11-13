@@ -29,9 +29,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        self._root_logger.setLevel(logging.DEBUG)
-        logging.basicConfig()
-        #self._root_logger.addHandler(self.messaging.pub_handler)
+        # self._root_logger.setLevel(logging.DEBUG)
+        # logging.basicConfig()
+        self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_intents(self) -> dict:
         result = {}
@@ -147,13 +147,42 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
-    def do_auth_for_subscription_socket(self):
+    def do_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(True)
 
-    def do_no_auth_for_subscription_socket(self):
+    def do_NO_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(False)
+
+    def do_summarize_article(self, url: str, *args, **kwargs):
+        try:
+            import gensim
+            from newspaper import Article
+        except ImportError:
+            raise RuntimeError('install using `pip install -e .[summarization]')
+        self.logger.debug('Summarizing url: %s', url)
+        article = Article(url)
+        article.download()
+        article.parse()
+        summarization = gensim.summarization.summarize(article.text)
+        return summarization
+
+    def do_get_hot_trends(self, *args, **kwargs):
+        try:
+            import newspaper
+        except ImportError:
+            raise RuntimeError('install using `pip install newspaper3k')
+
+        return newspaper.hot()
+
+    def do_get_popular_urls(self, *args, **kwargs):
+        try:
+            import newspaper
+        except ImportError:
+            raise RuntimeError('install using `pip install newspaper3k')
+
+        return newspaper.popular_urls()
 
     @intent(name='get_log')
     @intent(name='set_log')
@@ -201,11 +230,11 @@ class CommandObserver(Observer):
 
         return callback.__doc__
 
-    def do_debug(self, *args, **kwargs) -> None:
+    def do_set_log_debug(self, *args, **kwargs) -> None:
         self._root_logger.setLevel(logging.DEBUG)
         self.messaging.pub_handler.setLevel(logging.DEBUG)
 
-    @command(alias=['source',])
+    @command(alias=['get_source',])
     @intent(name='get_code')
     def do_code(self, command: str, *args, **kwargs) -> str:
         """
@@ -223,14 +252,14 @@ class CommandObserver(Observer):
         # FIXME: formatting sucks
         return "\n" + "".join(source[0])
 
-    def do_warn(self, *args, **kwargs) -> None:
+    def do_set_log_warn(self, *args, **kwargs) -> None:
         """
         Sets the log level to `WARN`
         """
         self._root_logger.setLevel(logging.WARN)
         self.messaging.pub_handler.setLevel(logging.WARN)
 
-    def do_info(self, *args, **kwargs) -> None:
+    def do_set_log_info(self, *args, **kwargs) -> None:
         """
         Sets the log level to `INFO`
         """
@@ -265,8 +294,11 @@ class CommandObserver(Observer):
 
     @intent(name='get_commands')
     def do_commands(self, *args, **kwargs) -> tuple:
+        # TODO: add in a short summary
+        # TODO: also end in some entity parsing? or getting of the args and
+        # kwargs
         commands = tuple(self._commands.keys())
-        return commands
+        return sorted(commands, key=str.lower)
 
     @command(alias=['reboot',])
     @intent(name='restart_program')
