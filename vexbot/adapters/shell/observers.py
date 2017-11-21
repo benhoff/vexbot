@@ -181,9 +181,6 @@ class CommandObserver(Observer):
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
 
-    def do_ping(self, *args, **kwargs):
-        self.messaging.send_ping()
-
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
             print(type(self._prompt.history.strings))
@@ -278,7 +275,7 @@ class CommandObserver(Observer):
 
     def do_commands(self, *args, **kwargs) -> list:
         commands = self._get_commands()
-        return commands
+        return sorted(commands, key=str.lower)
 
     def _get_commands(self) -> list:
         results = []
@@ -305,7 +302,7 @@ class PrintObserver(Observer):
         self._author_color = _LRUCache(100)
         # NOTE: vt100 ONLY
         self._reset_color = '\033[0m'
-        self._time_format = "%H:%M:%S"
+        self._time_format = "%H:%M"
 
     def _get_author_color(self, author: str):
         # NOTE: This replace mocks the current behavior in the print observer
