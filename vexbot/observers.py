@@ -297,7 +297,7 @@ class CommandObserver(Observer):
         # TODO: add in a short summary
         # TODO: also end in some entity parsing? or getting of the args and
         # kwargs
-        commands = tuple(self._commands.keys())
+        commands = self._commands.keys()
         return sorted(commands, key=str.lower)
 
     @command(alias=['reboot',])
