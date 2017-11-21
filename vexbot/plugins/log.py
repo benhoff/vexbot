@@ -49,3 +49,24 @@ def set_log_info(self, *args, **kwargs) -> None:
     self.root_logger = logging.getLogger()
     self.root_logger.setLevel(logging.INFO)
     self.messaging.pub_handler.setLevel(logging.INFO)
+
+
+# FIXME
+@extension(CommandObserver)
+def filter_logs(self, *args, **kwargs):
+    if not args:
+        raise ValueError('Must supply something to filter against!')
+    for name in args:
+        for handler in self._root.handlers:
+            handler.addFilter(logging.Filter(name))
+
+
+# FIXME
+@extension(CommandObserver)
+def anti_filter(self, *args, **kwargs):
+    def filter_(record: logging.LogRecord):
+        if record.name in args:
+            return False
+        return True
+    for handler in self._root.handlers:
+        handler.addFilter(filter_)
