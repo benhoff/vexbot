@@ -20,16 +20,22 @@ def command(function=None,
     return wrapper
 
 
-def extension(function, base, alias: list=None, hidden: bool=False, instancemethod=True):
-    if function is None:
-        return _functools.partial(command,
-                                  alias=alias,
-                                  hidden=hidden)
-
+def extension(base,
+              alias: list=None,
+              name: str=None,
+              hidden: bool=False,
+              instancemethod=True):
     # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
     @_functools.wraps(function)
     def wrapper(*args, **kwargs):
+        if instancemethod:
+            if hasattr(base, '_commands'):
+                pass
+            else:
+                pass
+        else:
+            setattr(base, function.__name__, wrapper)
+
         return function(*args, **kwargs)
 
-    # FIXME
-    # setattr(base, func_name, wrapper)
+    return wrapper
