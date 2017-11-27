@@ -1,3 +1,4 @@
+from vexbot.intents import intent
 from vexbot.command import extension
 from vexbot.observers import CommandObserver
 
@@ -21,8 +22,8 @@ def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
     self.subprocess_manager.start(name, mode)
 
 
-@extension(CommandObserver)
-@command(alias=['reboot',])
+@extension(CommandObserver, alias=['reboot',])
+# @command(alias=['reboot',])
 @intent(name='restart_program')
 def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
     self.logger.info(' restart service %s in mode %s', name, mode)
