@@ -2,6 +2,19 @@ import inspect as _inspect
 import functools as _functools
 
 
+# http://rasa-nlu.readthedocs.io/en/latest/tutorial.html#preparing-the-training-data
+def intent(function=None,
+           name: str=None):
+
+    if function is None:
+        return _functools.partial(intent,
+                                  name=name)
+
+    function._vex_intent = True
+    function._vex_intent_name = name
+    return function
+
+
 class BotIntents:
     def __init__(self):
         self._intents = self.get_intents()
@@ -147,22 +160,3 @@ class Entity:
 class FindEntity:
     def __init__(text, value, name):
         pass
-
-
-# http://rasa-nlu.readthedocs.io/en/latest/tutorial.html#preparing-the-training-data
-def intent(function=None,
-           name: str=None):
-
-    if function is None:
-        return _functools.partial(intent,
-                                  name=name)
-
-    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    @_functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        return function(*args, **kwargs)
-
-    wrapper._vex_intent = True
-    wrapper._vex_intent_name = name
-
-    return wrapper

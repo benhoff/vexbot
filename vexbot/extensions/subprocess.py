@@ -22,7 +22,7 @@ def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
     self.subprocess_manager.start(name, mode)
 
 
-@extension(CommandObserver)
+@extension(CommandObserver, alias=['reboot',])
 # @command(alias=['reboot',])
 # @intent(name='restart_program')
 def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:

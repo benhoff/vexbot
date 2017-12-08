@@ -25,9 +25,9 @@ def extension(base,
               alias: list=None,
               name: str=None,
               hidden: bool=False,
-              instancemethod=True):
+              instancemethod=False):
 
-    def inner(function):
+    def wrapper(function):
         if instancemethod:
             if hasattr(base, '_commands'):
                 pass
