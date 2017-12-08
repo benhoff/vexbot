@@ -38,4 +38,4 @@ def extension(base,
 
         return function
 
-    return inner
+    return wrapper 
