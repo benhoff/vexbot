@@ -4,6 +4,7 @@ import functools as _functools
 def command(function=None,
             alias: list=None,
             hidden: bool=False):
+
     if function is None:
         return _functools.partial(command,
                                   alias=alias,
@@ -25,9 +26,8 @@ def extension(base,
               name: str=None,
               hidden: bool=False,
               instancemethod=True):
-    # https://stackoverflow.com/questions/10176226/how-to-pass-extra-arguments-to-python-decorator
-    @_functools.wraps(function)
-    def wrapper(*args, **kwargs):
+
+    def inner(function):
         if instancemethod:
             if hasattr(base, '_commands'):
                 pass
@@ -36,6 +36,6 @@ def extension(base,
         else:
             setattr(base, function.__name__, wrapper)
 
-        return function(*args, **kwargs)
+        return function
 
-    return wrapper
+    return inner
