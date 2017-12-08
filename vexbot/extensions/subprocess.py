@@ -1,11 +1,41 @@
+import logging
+
 from vexbot.intents import intent
-from vexbot.command import extension
 from vexbot.observers import CommandObserver
+from vexbot.command import extension
+from vexbot.adapters.shell.observers import CommandObserver as ShellObserver
+
+
+@extension(CommandObserver, alias=['reboot',])
+@extension(ShellObserver, alias=['reboot',])
+# @intent(name='restart_program')
+def restart(self, *args, mode: str='replace', **kwargs) -> None:
+    self.logger.info(' restart service %s in mode %s', args, mode)
+    for target in args:
+        self.subprocess_manager.restart(target, mode)
+
+
+@extension(CommandObserver, alias=['reboot',])
+@extension(ShellObserver, alias=['reboot',])
+# @intent(CommandObserver, name='stop_program')
+def stop(self, *args, mode: str='replace', **kwargs) -> None:
+    self.logger.info(' stop service %s in mode %s', args, mode)
+    for target in args:
+        self.subprocess_manager.stop(target, mode)
 
 
 @extension(CommandObserver)
+@extension(ShellObserver)
+# @intent(CommandObserver, name='get_status')
+def status(self, name: str, *args, **kwargs) -> str:
+    self.logger.info(' get status for %s', name)
+    return self.subprocess_manager.status(name)
+
+
+@extension(CommandObserver)
+@extension(ShellObserver)
 # @intent(name='start_program')
-def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
+def do_start(self, *args, mode: str='replace', **kwargs) -> None:
     """
     Start a program.
 
@@ -19,26 +49,5 @@ def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
         GError: if the service is not found
     """
     self.logger.info(' start service %s in mode %s', name, mode)
-    self.subprocess_manager.start(name, mode)
-
-
-@extension(CommandObserver, alias=['reboot',])
-# @command(alias=['reboot',])
-# @intent(name='restart_program')
-def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
-    self.logger.info(' restart service %s in mode %s', name, mode)
-    self.subprocess_manager.restart(name, mode)
-
-
-@extension(CommandObserver)
-# @intent(name='stop_program')
-def do_stop(self, name: str, mode: str='replace', *args, **kwargs) -> None:
-    self.logger.info(' stop service %s in mode %s', name, mode)
-    self.subprocess_manager.stop(name, mode)
-
-
-@extension(CommandObserver)
-# @intent(name='get_status')
-def do_status(self, name: str) -> str:
-    self.logger.info(' get status for %s', name)
-    return self.subprocess_manager.status(name)
+    for target in args:
+        self.subprocess_manager.start(target, mode)

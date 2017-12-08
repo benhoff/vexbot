@@ -1,4 +1,4 @@
-from vexbot.adapters.shell import Shell
+from vexbot.adapters.shell.shell import Shell
 
 
 def main(**kwargs):

@@ -57,12 +57,6 @@ class CommandObserver(Observer):
                 except AttributeError:
                     continue
 
-    def do_log_level(self, *args, **kwargs):
-        if not args:
-            return self._root.getEffectiveLevel()
-        else:
-            self._root.setLevel(args[0])
-
     @intent(name='stop_chatter')
     def do_stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
@@ -83,13 +77,25 @@ class CommandObserver(Observer):
         _, value, _ = _sys.exc_info()
         print('{}: {}'.format(value.__class__.__name__, value))
 
-    @command(hidden=True)
-    def do_debug(self, *args, **kwargs):
-        self._root.setLevel(logging.DEBUG)
+    def do_help(self, *arg, **kwargs):
+        """
+        Help helps you figure out what commands do.
+        Example usage: !help code
+        To see all commands: !commands
+        """
+        try:
+            name = arg[0]
+        except IndexError:
+            return 'welcome to vexbot! !commands will list all availabe commands'
+        if any([name.startswith(x) for x in self._prompt.shebangs]):
+            name = name[1:]
+        try:
+            callback = self._commands[name]
+        except KeyError:
+            self._logger.info(' !help not found for: %s', name)
+            return self.do_help.__doc__
 
-    @command(hidden=True)
-    def do_info(self, *args, **kwargs):
-        self._root.setLevel(logging.INFO)
+        return callback.__doc__
 
     @command(alias=['warn'], hidden=True)
     def do_logging_default(self, *args, **kwargs):
@@ -121,25 +127,6 @@ class CommandObserver(Observer):
         else:
             pprint.pprint(result)
 
-    def do_help(self, *arg, **kwargs):
-        """
-        Help helps you figure out what commands do.
-        Example usage: !help code
-        To see all commands: !commands
-        """
-        try:
-            name = arg[0]
-        except IndexError:
-            return 'welcome to vexbot! !commands will list all availabe commands'
-        if any([name.startswith(x) for x in self._prompt.shebangs]):
-            name = name[1:]
-        try:
-            callback = self._commands[name]
-        except KeyError:
-            self._logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
-
-        return callback.__doc__
 
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback
@@ -185,21 +172,7 @@ class CommandObserver(Observer):
         if self._prompt:
             print(type(self._prompt.history.strings))
             return self._prompt.history.strings[-15:]
-
-    @command(alias=['source',])
-    def do_code(self, *args, **kwargs):
-        """
-        get the python source code from callback
-        """
-        name = args[0]
-        if any([name.startswith(x) for x in self._prompt.shebangs]):
-            name = name[1:]
-        callback = self._commands[name]
-        # TODO: syntax color would be nice
-        source = inspect.getsourcelines(callback)[0]
-        # FIXME: formatting sucks
-        return "\n" + "".join(source)
-
+    
     def do_autosuggestions(self, *args, **kwargs):
         if self._prompt:
             return self._prompt._word_completer.words
@@ -212,22 +185,6 @@ class CommandObserver(Observer):
 
         result = callback(*args, **kwargs)
         return result
-
-    def do_start(self, *args, mode: str='replace', **kwargs):
-        # TODO: Better aliasing for more commands
-        for target in args:
-            if target == 'bot':
-                target = 'vexbot'
-            self.subprocess_manager.start(target, mode)
-
-    def do_status(self, target: str=None, *args, **kwargs):
-        if target is None:
-            err = ('!status requires a target name to inquire about. Example'
-                   ' usage: `!status vexbot.service`')
-            raise RuntimeError(err)
-
-        status = self.subprocess_manager.status(target)
-        return status
 
     def do_services(self, *args, **kwargs) -> list:
         return self._prompt.service_interface.services
@@ -249,24 +206,6 @@ class CommandObserver(Observer):
 
     def do_channels(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.service_interface.channels.keys())
-
-    @command(alias=['reboot',])
-    def do_restart(self, *args, mode: str='replace', **kwargs):
-        if not args:
-            err = ('!restart requires a target name to inquire about. Example'
-                   ' usage: `!restart vexbot.service`')
-            raise RuntimeError(err)
-
-        for target in args:
-            if target == 'bot':
-                target = 'vexbot'
-            self.subprocess_manager.restart(target, mode)
-
-    def do_stop(self, *args, mode: str='replace', **kwargs):
-        for target in args:
-            if target == 'bot':
-                target = 'vexbot'
-            self.subprocess_manager.stop(target, mode)
 
     def do_time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"

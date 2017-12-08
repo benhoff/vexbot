@@ -1,5 +1,6 @@
 from vexbot.command import extension
 from vexbot.observers import CommandObserver
+from vexbot.adapters.shell import CommandObserver as ShellObserver
 
 
 @extension(CommandObserver)
