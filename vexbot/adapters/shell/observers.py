@@ -170,7 +170,6 @@ class CommandObserver(Observer):
 
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
-            print(type(self._prompt.history.strings))
             return self._prompt.history.strings[-15:]
     
     def do_autosuggestions(self, *args, **kwargs):

@@ -3,7 +3,7 @@ import logging
 import gensim
 import newspaper
 
-from vexbot.command import extension
+from vexbot.extension import extension
 from vexbot.observers import CommandObserver
 
 

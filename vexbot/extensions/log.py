@@ -2,7 +2,7 @@ import typing
 import logging
 
 from vexbot.intents import intent
-from vexbot.command import extension
+from vexbot.extension import extension
 from vexbot.observers import CommandObserver
 
 

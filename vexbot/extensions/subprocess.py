@@ -2,7 +2,7 @@ import logging
 
 from vexbot.intents import intent
 from vexbot.observers import CommandObserver
-from vexbot.command import extension
+from vexbot.extension import extension
 from vexbot.adapters.shell.observers import CommandObserver as ShellObserver
 
 
