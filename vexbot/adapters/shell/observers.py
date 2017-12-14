@@ -5,15 +5,17 @@ import inspect
 import logging
 import pprint
 
-from rx import Observer
 from tblib import Traceback
 from prompt_toolkit.styles import Attrs
 
 from vexmessage import Message, Request
 
-from vexbot.command import command
+from vexbot.observer import Observer
+from vexbot.extensions import subprocess, hidden, log
+from vexbot.extension import extendmany
 from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
+
 try:
     from vexbot.subprocess_manager import SubprocessManager
 except ImportError:
@@ -30,10 +32,18 @@ def _get_attributes(output, color: str):
 
 
 class CommandObserver(Observer):
+    extensions = (subprocess.start,
+                  subprocess.stop,
+                  subprocess.restart,
+                  subprocess.status,
+                  log.debug,
+                  log.set_log_info)
+
     def __init__(self,
                  messaging,
                  prompt=None):
 
+        super().__init__()
         if SubprocessManager is not None:
             self.subprocess_manager = SubprocessManager()
         else:
@@ -43,7 +53,7 @@ class CommandObserver(Observer):
         self.messaging = messaging
         # Get the root logger to set it to different levels
         self._root = logging.getLogger()
-        self._logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         self._bot_callback = None
         self._no_bot_callback = None
@@ -51,11 +61,14 @@ class CommandObserver(Observer):
         for name, method in inspect.getmembers(self):
             if name.startswith('do_'):
                 self._commands[name[3:]] = method
-                try:
-                    for alias in method.alias:
-                        self._commands[alias] = method
-                except AttributeError:
-                    continue
+            elif getattr(method, 'command', False):
+                self._commands[name] = method
+            else:
+                continue
+
+            if getattr(method,  'alias', False):
+                for alias in method.alias:
+                    self._commands[alias] = method
 
     @intent(name='stop_chatter')
     def do_stop_print(self, *args, **kwargs):
@@ -92,12 +105,12 @@ class CommandObserver(Observer):
         try:
             callback = self._commands[name]
         except KeyError:
-            self._logger.info(' !help not found for: %s', name)
+            self.logger.info(' !help not found for: %s', name)
             return self.do_help.__doc__
 
         return callback.__doc__
 
-    @command(alias=['warn'], hidden=True)
+    # @command(alias=['warn'], hidden=True)
     def do_logging_default(self, *args, **kwargs):
         self._root.setLevel(logging.WARN)
 
@@ -126,6 +139,9 @@ class CommandObserver(Observer):
             print(result)
         else:
             pprint.pprint(result)
+
+    def do_get_members(self, *args, **kwargs):
+        return [x[0] for x in inspect.getmembers(self)]
 
 
     def set_on_bot_callback(self, callback):
@@ -164,7 +180,7 @@ class CommandObserver(Observer):
         if self._prompt.print_observer:
             del self._prompt.print_observer._author_color[author]
 
-    @command(alias=['quit',])
+    # @command(alias=['quit',])
     def do_exit(self, *args, **kwargs):
         _sys.exit(0)
 

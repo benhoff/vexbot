@@ -18,4 +18,5 @@ def command(function=None,
     if alias is not None:
         wrapper.alias = alias
     wrapper.hidden = hidden
+    wrapper.command = True
     return wrapper

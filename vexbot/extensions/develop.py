@@ -1,9 +1,6 @@
 import inspect as _inspect
-from vexbot.extension import extension
-from vexbot.observers import CommandObserver
 
 
-@extension(CommandObserver)
 def do_code(self, *args, **kwargs):
     """
     get the python source code from callback

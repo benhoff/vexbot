@@ -3,16 +3,24 @@ import logging
 import inspect as _inspect
 import typing
 
-from rx import Observer
 from tblib import Traceback
 
 from vexmessage import Request
+from vexbot.observer import Observer
 from vexbot.messaging import Messaging
 from vexbot.intents import intent
 from vexbot.command import command
+from vexbot.extension import extendmany
+from vexbot.extensions import develop, hidden, intents, log, subprocess
+from vexbot.extensions import help as vexhelp
 
 
 class CommandObserver(Observer):
+    extensions = (develop.do_code,
+                  hidden.do_hidden,
+                  intents.do_get_intent,
+                  intents.do_get_intents)
+
     def __init__(self,
                  bot,
                  messaging: Messaging,
@@ -155,133 +163,9 @@ class CommandObserver(Observer):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(False)
 
-    def do_summarize_article(self, url: str, *args, **kwargs):
-        try:
-            import gensim
-            from newspaper import Article
-        except ImportError:
-            raise RuntimeError('install using `pip install -e .[summarization]')
-        self.logger.debug('Summarizing url: %s', url)
-        article = Article(url)
-        article.download()
-        article.parse()
-        summarization = gensim.summarization.summarize(article.text)
-        return summarization
-
-    def do_get_hot_trends(self, *args, **kwargs):
-        try:
-            import newspaper
-        except ImportError:
-            raise RuntimeError('install using `pip install newspaper3k')
-
-        return newspaper.hot()
-
-    def do_get_popular_urls(self, *args, **kwargs):
-        try:
-            import newspaper
-        except ImportError:
-            raise RuntimeError('install using `pip install newspaper3k')
-
-        return newspaper.popular_urls()
-
-    @intent(name='get_log')
-    @intent(name='set_log')
-    def do_log_level(self,
-                     level: typing.Union[str, int]=None,
-                     *args,
-                     **kwargs) -> typing.Union[None, str]:
-        """
-        Args:
-            level:
-
-        Returns:
-            The log level if a `level` is passed in
-        """
-        if level is None:
-            return self._root_logger.getEffectiveLevel()
-        try:
-            value = int(level)
-        except ValueError:
-            pass
-
-        self._root_logger.setLevel(value)
-
     @intent(name='get_services')
     def do_services(self, *args, **kwargs) -> tuple:
         return tuple(self.messaging._address_map.keys())
-
-    @intent(name='get_help')
-    def do_help(self, *arg, **kwargs) -> str:
-        """
-        Help helps you figure out what commands do.
-        Example usage: !help code
-        To see all commands: !commands
-
-        Raises:
-            IndexError: if no argument is passed in
-        """
-        # TODO: return general help if there is a IndexError here
-        name = arg[0]
-        try:
-            callback = self._commands[name]
-        except KeyError:
-            self._logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
-
-        return callback.__doc__
-
-    def do_set_log_debug(self, *args, **kwargs) -> None:
-        self._root_logger.setLevel(logging.DEBUG)
-        self.messaging.pub_handler.setLevel(logging.DEBUG)
-
-    @command(alias=['get_source',])
-    @intent(name='get_code')
-    def do_code(self, command: str, *args, **kwargs) -> str:
-        """
-        get the python source code from callback
-        Returns:
-            str: the source code of the argument
-
-        Raises:
-            KeyError: if the `command` is not found in `self._commands`
-        """
-        # TODO: Throw a better error here
-        callback = self._commands[command]
-        # TODO: syntax color would be nice
-        source = _inspect.getsourcelines(callback)
-        # FIXME: formatting sucks
-        return "\n" + "".join(source[0])
-
-    def do_set_log_warn(self, *args, **kwargs) -> None:
-        """
-        Sets the log level to `WARN`
-        """
-        self._root_logger.setLevel(logging.WARN)
-        self.messaging.pub_handler.setLevel(logging.WARN)
-
-    def do_set_log_info(self, *args, **kwargs) -> None:
-        """
-        Sets the log level to `INFO`
-        """
-        self._root_logger.setLevel(logging.INFO)
-        self.messaging.pub_handler.setLevel(logging.INFO)
-
-    @intent(name='start_program')
-    def do_start(self, name: str, mode: str='replace', *args, **kwargs) -> None:
-        """
-        Start a program.
-
-        Args:
-            name: The name of the serivce. Will often end with `.service` or
-                `.target`. If no argument is provided, will default to
-                `.service`
-            mode:
-
-        Raises:
-            GError: if the service is not found
-        """
-        self.logger.info(' start service %s in mode %s', name, mode)
-        self.subprocess_manager.start(name, mode)
 
     @command(alias=['get_last_error',])
     @intent(name='get_last_error')
@@ -299,22 +183,6 @@ class CommandObserver(Observer):
         # kwargs
         commands = self._commands.keys()
         return sorted(commands, key=str.lower)
-
-    @command(alias=['reboot',])
-    @intent(name='restart_program')
-    def do_restart(self, name: str, mode: str='replace', *args, **kwargs) -> None:
-        self.logger.info(' restart service %s in mode %s', name, mode)
-        self.subprocess_manager.restart(name, mode)
-
-    @intent(name='stop_program')
-    def do_stop(self, name: str, mode: str='replace', *args, **kwargs) -> None:
-        self.logger.info(' stop service %s in mode %s', name, mode)
-        self.subprocess_manager.stop(name, mode)
-
-    @intent(name='get_status')
-    def do_status(self, name: str) -> str:
-        self.logger.info(' get status for %s', name)
-        return self.subprocess_manager.status(name)
 
     def _handle_result(self, command: str, source: list, result, *args, **kwargs) -> None:
         self.logger.info('send response %s %s %s', source, command, result)
@@ -346,7 +214,6 @@ class CommandObserver(Observer):
         else:
             service = self.messaging._service_name
             self._handle_result(command, source, result, service=service, *args, **kwargs)
-
 
     def on_next(self, item: Request) -> None:
         command = item.command
@@ -380,3 +247,4 @@ class CommandObserver(Observer):
         """
         self.logger.warn(' Exiting bot!')
         _sys.exit()
+

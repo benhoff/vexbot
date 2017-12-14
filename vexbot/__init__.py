@@ -54,6 +54,3 @@ def _get_default_adapter_config() -> dict:
     config = _get_default_port_config()
     config['address'] = '127.0.0.1'
     return config
-
-# NOTE: Must load here since we require some of the above code in the imports
-from vexbot import extensions

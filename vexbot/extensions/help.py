@@ -1,9 +1,3 @@
-from vexbot.extension import extension
-from vexbot.observers import CommandObserver
-from vexbot.adapters.shell import CommandObserver as ShellObserver
-
-
-@extension(CommandObserver)
 def do_help(self, *arg, **kwargs):
     """
     Help helps you figure out what commands do.

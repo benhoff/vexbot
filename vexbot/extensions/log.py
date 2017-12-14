@@ -1,14 +1,7 @@
 import typing
 import logging
 
-from vexbot.intents import intent
-from vexbot.extension import extension
-from vexbot.observers import CommandObserver
 
-
-@extension(CommandObserver)
-@intent(name='get_log')
-@intent(name='set_log')
 def log_level(self,
               level: typing.Union[str, int]=None,
               *args,
@@ -33,7 +26,11 @@ def log_level(self,
     self.root_logger.setLevel(value)
 
 
-@extension(CommandObserver)
+def debug(self, *args, **kwargs):
+    self.root_logger = logging.getLogger()
+    self.root_logger.setLevel(logging.DEBUG)
+
+
 def set_log_debug(self, *args, **kwargs) -> None:
     self.root_logger = logging.getLogger()
     self.root_logger.setLevel(logging.DEBUG)
@@ -41,7 +38,6 @@ def set_log_debug(self, *args, **kwargs) -> None:
     self.messaging.pub_handler.setLevel(logging.DEBUG)
 
 
-@extension(CommandObserver)
 def set_log_info(self, *args, **kwargs) -> None:
     """
     Sets the log level to `INFO`
@@ -52,7 +48,6 @@ def set_log_info(self, *args, **kwargs) -> None:
 
 
 # FIXME
-@extension(CommandObserver)
 def filter_logs(self, *args, **kwargs):
     if not args:
         raise ValueError('Must supply something to filter against!')
@@ -62,7 +57,6 @@ def filter_logs(self, *args, **kwargs):
 
 
 # FIXME
-@extension(CommandObserver)
 def anti_filter(self, *args, **kwargs):
     def filter_(record: logging.LogRecord):
         if record.name in args:
