@@ -27,9 +27,10 @@ class Language:
         self.label_encoder = LabelEncoder()
         self.feature_extractor = None
         self.logger = logging.getLogger(__name__)
-        self.langague_model = None
+        self.language_model = None
         self._language_model_loaded = False
         self.classifier = None
+        self.synonyms = {}
 
     def predict(self, X):
         pred_result = self.classifier.predict_proba(X)
@@ -44,7 +45,7 @@ class Language:
         if not self._language_model_loaded:
             self._load_models()
 
-        langague_features = self.langague_model(text).vector
+        langague_features = self.language_model(text).vector
         langague_features = langague_features.reshape(1, -1)
         intents, probabilities = self.predict(langague_features)
         if intents.size > 0 and probabilities.size > 0:
@@ -64,7 +65,6 @@ class Language:
         # tokens + entites -> intent
 
         # total_word_feature_extractor
-        pass
 
     # FIXME: currently unused
     def train(self, examples: dict):
@@ -74,7 +74,7 @@ class Language:
 
     def _load_models(self):
         language = 'en'
-        self.langague_model = spacy.load(language, parser=False)
+        self.language_model = spacy.load(language, parser=False)
         self._language_model_loaded = True
 
     def load_classifier(self, filename: str=None):
@@ -87,14 +87,26 @@ class Language:
         with open(filename + 'label', 'rb') as f:
             self.label_encoder = pickle.load(f)
 
+    def get_spacy_text_features(self, text: str):
+        # type: np.ndarray
+        doc = self.language_model(text)
+        vector = doc.vector
+        return vector
+
     def train_classifier(self, examples: dict, filename: str=None, persist=True):
-        # nlp_spacy -> spacy language initializer -> Done
         # tokenizer_spacy -> Tokenizes -> Eh.
-        # intent_featurizer_spacy -> adds text features -> Eh.
+        # NOTE: this should keep track of a numpy list that is [#, 0/1] showing 
+        # which known regex pattern and if it was found (1) or not found (0)
+        # AKA a feature matrix
 
         # intent_entity_featurizer_regex |entity| -> regex
-        # ner_crf |entity| -> conditional random field entity extraction
-        # ner_synonyms |entity| -> 
+
+        # NOTE: Start here
+        # nlp_spacy -> spacy language initializer -> Done
+        # intent_featurizer_spacy -> adds text features -> Eh.
+
+        # ner_crf |entity| -> conditional random field entity extraction -> crf_entity_extractor
+        # ner_synonyms |entity| -> dict replacing the entity values bascially
 
         # intent_classifier_sklearn -> end of pipeline
         if not self._language_model_loaded:
@@ -116,7 +128,7 @@ class Language:
                 continue
             for value in v:
                 numbers.append(k)
-                language_values = self.langague_model(value)
+                language_values = self.language_model(value)
                 # get the vector from spacy
                 values.append(language_values.vector)
 

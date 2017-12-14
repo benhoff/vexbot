@@ -1,7 +1,6 @@
 import sys as _sys
 import logging as _logging
 
-from vexbot.language import Language
 from vexbot import _get_default_port_config
 from vexbot.intents import BotIntents
 from vexbot.messaging import Messaging as _Messaging
@@ -13,7 +12,10 @@ try:
 except ImportError as e:
     SubprocessManager = False
     _subprocess_manager_error = e
-
+try:
+    from vexbot.language import Language
+except ImportError:
+    Language = False
 
 class Robot:
     def __init__(self,
@@ -37,7 +39,11 @@ class Robot:
             self._logger.warn(err)
 
         # NOTE: probably need some kind of config here
-        self.language = Language()
+        if Language:
+            self.language = Language()
+        else:
+            self.language = False
+
         self.intents = BotIntents()
         self.subprocess_manager = subprocess_manager
         self.command_observer = _CommandObserver(self,

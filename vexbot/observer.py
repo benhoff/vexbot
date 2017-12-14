@@ -1,22 +1,23 @@
-from abc import ABCMeta, abstractmethod
-from vexbot.extensions import extend
+from abc import ABCMeta as _ABCMeta
+from abc import abstractmethod as _abstractmethod
+from vexbot.extensions import extend as _extend
 
 
-class Observer(metaclass=ABCMeta):
+class Observer(metaclass=_ABCMeta):
     extensions = ()
     def __init__(self, *args, **kwargs):
         for extension in self.extensions:
             # FIXME: Hack
-            extend(self.__class__, extension)
+            _extend(self.__class__, extension)
 
-    @abstractmethod
+    @_abstractmethod
     def on_next(self, value):
         return NotImplemented
 
-    @abstractmethod
+    @_abstractmethod
     def on_error(self, error):
         return NotImplemented
 
-    @abstractmethod
+    @_abstractmethod
     def on_completed(self):
         return NotImplemented

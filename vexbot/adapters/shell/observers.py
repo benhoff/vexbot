@@ -12,7 +12,6 @@ from vexmessage import Message, Request
 
 from vexbot.observer import Observer
 from vexbot.extensions import subprocess, hidden, log, develop
-from vexbot.extension import extendmany
 from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 

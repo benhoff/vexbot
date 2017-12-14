@@ -46,7 +46,7 @@ class CommandObserver(Observer):
     def _get_intents(self) -> dict:
         result = {}
         # FIXME: define a `None` callback
-        result[None] = self.do_commands
+        # result[None] = self.do_commands
         for name, method in _inspect.getmembers(self):
             is_intent = getattr(method, '_vex_intent', False)
             if name.startswith('do_') or is_intent:
@@ -117,6 +117,7 @@ class CommandObserver(Observer):
                                              **kwargs)
 
     def do_NLP(self, *args, **kwargs):
+        # FIXME: Can't remember what this NOTE is trying to tell me.
         # NOTE: entity feature extraction is already considered in this
         # as part of the classifier
         intent, confidence = self.language.get_intent(*args, **kwargs)

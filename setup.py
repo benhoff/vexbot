@@ -57,12 +57,12 @@ setup(
         'rx',
         # traceback serilization
         'tblib',
-        'spacy',
-        'sklearn'
+        'tornado',
         ],
 
     extras_require={
-        'dev': ['flake8', 'twine'],
+        'nlp': ['spacy', 'sklearn', 'sklearn_crfsuite', 'wheel'],
+        'dev': ['flake8', 'twine', 'wheel'],
         'process_manager': ['pydbus'],
         'speechtotext': ['speechtotext'],
         'gui': ['chatimusmaximus'],
