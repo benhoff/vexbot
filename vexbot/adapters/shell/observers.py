@@ -11,7 +11,7 @@ from prompt_toolkit.styles import Attrs
 from vexmessage import Message, Request
 
 from vexbot.observer import Observer
-from vexbot.extensions import subprocess, hidden, log
+from vexbot.extensions import subprocess, hidden, log, develop
 from vexbot.extension import extendmany
 from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
@@ -37,7 +37,9 @@ class CommandObserver(Observer):
                   subprocess.restart,
                   subprocess.status,
                   log.debug,
-                  log.set_log_info)
+                  # log.set_log_info,
+                  develop.get_members,
+                  develop.get_code)
 
     def __init__(self,
                  messaging,
@@ -139,10 +141,6 @@ class CommandObserver(Observer):
             print(result)
         else:
             pprint.pprint(result)
-
-    def do_get_members(self, *args, **kwargs):
-        return [x[0] for x in inspect.getmembers(self)]
-
 
     def set_on_bot_callback(self, callback):
         self._bot_callback = callback

@@ -2,11 +2,14 @@ import sys
 import inspect as _inspect
 import logging
 
-from rx import Observer
 from vexmessage import Request
+from vexbot.observer import Observer
+from vexbot.extensions import develop
+from vexbot.extensions import help as vexhelp
 
 
 class IrcObserver(Observer):
+    extensions = (develop.get_code, vexhelp.help, develop.get_commands)
     def __init__(self, bot, messaging, irc_interface):
         super().__init__()
         self.bot = bot
@@ -66,9 +69,6 @@ class IrcObserver(Observer):
     def do_get_ip(self, *args, **kwargs):
         return str(self.bot.ip)
 
-    def do_commands(self, *args, **kwargs):
-        return list(self._commands.keys())
-
     def on_next(self, item: Request):
         command = item.command
         args = item.args
@@ -101,32 +101,3 @@ class IrcObserver(Observer):
 
     def on_error(self, *args, **kwargs):
         self.logger.exception('command failed')
-
-    def do_help(self, *arg, **kwargs):
-        """
-        Help helps you figure out what commands do.
-        Example usage: !help code
-        To see all commands: !commands
-        """
-        name = arg[0]
-        try:
-            callback = self._commands[name]
-        except KeyError:
-            self._logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
-
-        return callback.__doc__
-
-    def do_code(self, *args, **kwargs):
-        """
-        get the python source code from callback
-        """
-        callback = self._commands[args[0]]
-        # TODO: syntax color would be nice
-        source = _inspect.getsourcelines(callback)[0]
-        """
-        source_len = len(source)
-        source = PygmentsLexer(CythonLexer).lex_document(source)()
-        """
-        # FIXME: formatting sucks
-        return "\n" + "".join(source)

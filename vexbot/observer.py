@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from vexbot.extension import extend
+from vexbot.extensions import extend
 
 
 class Observer(metaclass=ABCMeta):

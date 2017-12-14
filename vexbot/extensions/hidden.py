@@ -1,4 +1,4 @@
-def do_hidden(self, *args, **kwargs):
+def hidden(self, *args, **kwargs):
     results = []
     for k, v in self._commands.items():
         if hasattr(v, 'hidden') and v.hidden:

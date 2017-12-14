@@ -1,4 +1,4 @@
-def do_help(self, *arg, **kwargs):
+def help(self, *arg, **kwargs):
     """
     Help helps you figure out what commands do.
     Example usage: !help code

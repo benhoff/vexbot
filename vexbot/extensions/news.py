@@ -3,12 +3,8 @@ import logging
 import gensim
 import newspaper
 
-from vexbot.extension import extension
-from vexbot.observers import CommandObserver
 
-
-@extension(CommandObserver)
-def do_summarize_article(self, url: str, *args, **kwargs):
+def summarize_article(self, url: str, *args, **kwargs):
     article = newspaper.Article(url)
     article.download()
     article.parse()
@@ -16,11 +12,9 @@ def do_summarize_article(self, url: str, *args, **kwargs):
     return summarization
 
 
-@extension(CommandObserver)
-def do_get_hot_trends(self, *args, **kwargs):
+def get_hot_trends(self, *args, **kwargs):
     return newspaper.hot()
 
 
-@extension(CommandObserver)
-def do_get_popular_urls(self, *args, **kwargs):
+def get_popular_urls(self, *args, **kwargs):
     return newspaper.popular_urls()

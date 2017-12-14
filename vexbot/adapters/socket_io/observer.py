@@ -1,11 +1,15 @@
 import inspect as _inspect
 
-from rx import Observer
 from vexmessage import Request
+from vexbot.observer import Observer
+from vexbot.extensions import develop
+from vexbot.extensions import help as vexhelp
 
 
 class SocketObserver(Observer):
+    extensions = (develop.get_code, develop.get_commands, vexhelp.help)
     def __init__(self, bot, messaging):
+        super().__init__()
         self.bot = bot
         self.messaging = messaging
         self._commands = self._get_commands()
@@ -51,26 +55,8 @@ class SocketObserver(Observer):
         source = item.source
         self.messaging.send_command_response(source, command, result=result, *args, **kwargs)
 
-    def do_commands(self, *args, **kwargs):
-        return list(self._commands.keys())
-
     def on_error(self, *args, **kwargs):
         pass
 
     def on_completed(self, *args, **kwargs):
         pass
-
-    def do_help(self, *arg, **kwargs):
-        """
-        Help helps you figure out what commands do.
-        Example usage: !help code
-        To see all commands: !commands
-        """
-        name = arg[0]
-        try:
-            callback = self._commands[name]
-        except KeyError:
-            self._logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
-
-        return callback.__doc__

@@ -10,16 +10,18 @@ from vexbot.observer import Observer
 from vexbot.messaging import Messaging
 from vexbot.intents import intent
 from vexbot.command import command
-from vexbot.extension import extendmany
 from vexbot.extensions import develop, hidden, intents, log, subprocess
 from vexbot.extensions import help as vexhelp
 
 
 class CommandObserver(Observer):
-    extensions = (develop.do_code,
-                  hidden.do_hidden,
-                  intents.do_get_intent,
-                  intents.do_get_intents)
+    extensions = (develop.get_code,
+                  develop.get_members,
+                  develop.get_commands,
+                  vexhelp.help,
+                  hidden.hidden,
+                  intents.get_intent,
+                  intents.get_intents)
 
     def __init__(self,
                  bot,
@@ -175,14 +177,6 @@ class CommandObserver(Observer):
             return 'No problems here boss!'
         self.logger.debug('exc_info: %s', exc_info)
         return Traceback(exc_info[2]).to_dict()
-
-    @intent(name='get_commands')
-    def do_commands(self, *args, **kwargs) -> tuple:
-        # TODO: add in a short summary
-        # TODO: also end in some entity parsing? or getting of the args and
-        # kwargs
-        commands = self._commands.keys()
-        return sorted(commands, key=str.lower)
 
     def _handle_result(self, command: str, source: list, result, *args, **kwargs) -> None:
         self.logger.info('send response %s %s %s', source, command, result)
