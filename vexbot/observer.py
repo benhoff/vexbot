@@ -31,3 +31,7 @@ class Observer(metaclass=_ABCMeta):
             # TODO: Throw error if we're overwriting a name
             for a in alias:
                 self._commands[a] = method
+
+    def extendmany(self, *methods):
+        for method in methods:
+            self.extend(method)
