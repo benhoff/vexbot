@@ -1,13 +1,16 @@
-def install(*args, **kwargs):
-    pass
+import pip
 
 
-def uninstall(*args, **kwargs):
-    pass
+def install(self, *args, **kwargs):
+    pip.main(['install', *args])
 
 
-def update(*args, **kwargs):
-    pass
+def uninstall(self, *args, **kwargs):
+    pip.main(['uninstall', *args])
+
+
+def update(self, *args, **kwargs):
+    pip.main(['install', '--upgrade', *args])
 
 
 def enable(self, *args, **kwargs):

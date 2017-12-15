@@ -45,7 +45,10 @@ class CommandObserver(Observer):
                   develop.get_code,
                   admin.disable,
                   admin.enable,
-                  admin.get_disabled)
+                  admin.get_disabled,
+                  admin.update,
+                  admin.install,
+                  admin.update)
 
     def __init__(self,
                  messaging,
