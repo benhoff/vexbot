@@ -4,12 +4,12 @@ import logging
 
 from vexmessage import Request
 from vexbot.observer import Observer
-from vexbot.extensions import develop
+from vexbot.extensions import develop, admin
 from vexbot.extensions import help as vexhelp
 
 
 class IrcObserver(Observer):
-    extensions = (develop.get_code, vexhelp.help, develop.get_commands)
+    extensions = (develop.get_code, vexhelp.help, admin.get_commands)
     def __init__(self, bot, messaging, irc_interface):
         super().__init__()
         self.bot = bot
