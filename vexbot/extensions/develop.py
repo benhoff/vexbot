@@ -19,11 +19,3 @@ def get_code(self, *args, **kwargs):
 
 def get_members(self, *args, **kwargs):
     return [x[0] for x in _inspect.getmembers(self)]
-
-
-def get_commands(self, *args, **kwargs):
-    # TODO: add in a short summary
-    # TODO: also end in some entity parsing? or getting of the args and
-    # kwargs
-    commands = self._commands.keys()
-    return sorted(commands, key=str.lower)

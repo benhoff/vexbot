@@ -5,6 +5,7 @@ from vexbot.extensions import intents
 from vexbot.extensions import log
 # from vexbot.extensions import news
 from vexbot.extensions import subprocess
+from vexbot.extensions import admin
 
 
 def extension(base,

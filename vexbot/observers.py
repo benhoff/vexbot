@@ -10,18 +10,27 @@ from vexbot.observer import Observer
 from vexbot.messaging import Messaging
 from vexbot.intents import intent
 from vexbot.command import command
-from vexbot.extensions import develop, hidden, intents, log, subprocess
 from vexbot.extensions import help as vexhelp
+from vexbot.extensions import (develop,
+                               hidden,
+                               intents,
+                               log,
+                               subprocess,
+                               admin)
+
 
 
 class CommandObserver(Observer):
     extensions = (develop.get_code,
                   develop.get_members,
-                  develop.get_commands,
+                  admin.get_commands,
+                  admin.get_disabled,
                   vexhelp.help,
                   hidden.hidden,
                   intents.get_intent,
-                  intents.get_intents)
+                  intents.get_intents,
+                  admin.disable,
+                  admin.enable)
 
     def __init__(self,
                  bot,
@@ -35,6 +44,7 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self.language = language
         self._commands = self._get_commands()
+        self._disabled = {}
         self._intents = self._get_intents()
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 

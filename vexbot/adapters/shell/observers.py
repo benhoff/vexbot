@@ -11,9 +11,13 @@ from prompt_toolkit.styles import Attrs
 from vexmessage import Message, Request
 
 from vexbot.observer import Observer
-from vexbot.extensions import subprocess, hidden, log, develop
 from vexbot.intents import intent
 from vexbot.util.lru_cache import LRUCache as _LRUCache
+from vexbot.extensions import (subprocess,
+                               hidden,
+                               log,
+                               develop,
+                               admin)
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -38,7 +42,10 @@ class CommandObserver(Observer):
                   log.debug,
                   # log.set_log_info,
                   develop.get_members,
-                  develop.get_code)
+                  develop.get_code,
+                  admin.disable,
+                  admin.enable,
+                  admin.get_disabled)
 
     def __init__(self,
                  messaging,
@@ -59,6 +66,7 @@ class CommandObserver(Observer):
         self._bot_callback = None
         self._no_bot_callback = None
         self._commands = {}
+        self._disabled = {}
         for name, method in inspect.getmembers(self):
             if name.startswith('do_'):
                 self._commands[name[3:]] = method
