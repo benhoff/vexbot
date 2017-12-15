@@ -12,18 +12,23 @@ def extension(base,
               alias: list=None,
               name: str=None,
               hidden: bool=False,
-              instancemethod=False):
+              instancemethod: bool=False,
+              role: str=None):
 
     def wrapper(function):
         new_name = name or function.__name__
         function.command = True
+        function.hidden = hidden
+        function.role = role
+        funciton.alias = alias
+
         if instancemethod:
+            # FIXME: implement
             if hasattr(base, '_commands'):
                 pass
             else:
                 pass
         else:
-            # FIXME: note this doesn't work with the commands
             setattr(base, new_name, function)
 
         return function
@@ -31,10 +36,27 @@ def extension(base,
     return wrapper 
 
 
-def extend(base, function, alias=None, name=None, hidden=False, instancemethod=False):
-    extension(base, alias, name, hidden, instancemethod)(function)
+def extend(base,
+           function,
+           alias: list=None,
+           name: str=None,
+           hidden: bool=False,
+           instancemethod: bool=False,
+           role: str=None):
+
+    wrapper = extension(base, alias, name, hidden, instancemethod, role)
+    wrapper(function)
 
 
-def extendmany(base, *functions):
+def extendmany(base,
+               *functions,
+               hidden: bool=None,
+               instancemethod: bool=False,
+               role: str=None):
     for function in functions:
-        extension(base)(function)
+        wrapper = extension(base,
+                            hidden=hidden,
+                            instancemethod=instancemethod,
+                            role=role)
+
+        wrapper(function)
