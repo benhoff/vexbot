@@ -42,7 +42,7 @@ def extend(base,
            name: str=None,
            hidden: bool=False,
            instancemethod: bool=False,
-           role: str=None):
+           roles: list=None):
 
     wrapper = extension(base, alias, name, hidden, instancemethod, role)
     wrapper(function)
@@ -52,7 +52,7 @@ def extendmany(base,
                *functions,
                hidden: bool=None,
                instancemethod: bool=False,
-               role: str=None):
+               roles: list=None):
     for function in functions:
         wrapper = extension(base,
                             hidden=hidden,

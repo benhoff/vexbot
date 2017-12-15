@@ -17,7 +17,7 @@ def stop(self, *args, mode: str='replace', **kwargs) -> None:
 
 # @intent(CommandObserver, name='get_status')
 def status(self, name: str, *args, **kwargs) -> str:
-    self.logger.info(' get status for %s', name)
+    self.logger.debug(' get status for %s', name)
     return self.subprocess_manager.status(name)
 
 

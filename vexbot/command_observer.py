@@ -19,7 +19,6 @@ from vexbot.extensions import (develop,
                                admin)
 
 
-
 class CommandObserver(Observer):
     extensions = (develop.get_code,
                   develop.get_members,
@@ -87,7 +86,7 @@ class CommandObserver(Observer):
     def do_get_intent(self, *args, **kwargs):
         return self.bot.intents.get_intent_names(*args, **kwargs)
 
-    @command(alias=['MSG',])
+    @command(alias=['MSG',], role=['admin',])
     def do_REMOTE(self,
                   target: str,
                   remote_command: str,
@@ -126,6 +125,7 @@ class CommandObserver(Observer):
                                              *args, 
                                              **kwargs)
 
+    @command(role=['admin',])
     def do_NLP(self, *args, **kwargs):
         # FIXME: Can't remember what this NOTE is trying to tell me.
         # NOTE: entity feature extraction is already considered in this
@@ -148,6 +148,7 @@ class CommandObserver(Observer):
         result = callback(*args, **kwargs)
         return result
 
+    @command(role=['admin',])
     def do_TRAIN_INTENT(self, *args, **kwargs):
         self.logger.debug('starting training!')
         intents = self.bot.intents.get_intents()
@@ -157,6 +158,7 @@ class CommandObserver(Observer):
         self.language.train_classifier(intents)
         self.logger.debug('training finished')
 
+    @command(role=['admin',])
     def do_IDENT(self, service_name: str, source: list, *args, **kwargs) -> None:
         """
         Perform identification of a service to a binary representation.
@@ -168,19 +170,22 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
+    @command(role=['admin',])
     def do_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(True)
 
+    @command(role=['admin',])
     def do_NO_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(False)
 
+    @command(role=['admin',])
     @intent(name='get_services')
     def do_services(self, *args, **kwargs) -> tuple:
         return tuple(self.messaging._address_map.keys())
 
-    @command(alias=['get_last_error',])
+    @command(alias=['get_last_error',], role=['admin'])
     @intent(name='get_last_error')
     def do_show_last_error(self, *args, **kwargs):
         exc_info = _sys.exc_info()
@@ -189,7 +194,13 @@ class CommandObserver(Observer):
         self.logger.debug('exc_info: %s', exc_info)
         return Traceback(exc_info[2]).to_dict()
 
-    def _handle_result(self, command: str, source: list, result, *args, **kwargs) -> None:
+    def _handle_result(self,
+                       command: str,
+                       source: list,
+                       result,
+                       *args,
+                       **kwargs) -> None:
+
         self.logger.info('send response %s %s %s', source, command, result)
         self.messaging.send_command_response(source, command, result=result, *args, **kwargs)
 
@@ -234,7 +245,11 @@ class CommandObserver(Observer):
             # TODO: Verify that this makes sense
             # NOTE: Stripping the first address on here as it should be the bot address
             source = source[1:]
-            self._handle_result(command, source, kwargs.pop('result'), *args, **kwargs)
+            self._handle_result(command,
+                                source,
+                                kwargs.pop('result'),
+                                *args,
+                                **kwargs)
 
     def on_error(self, error: Exception, command, *args, **kwargs):
         self.logger.warn('on_error called for %s %s %s', command, args, kwargs)
@@ -244,7 +259,7 @@ class CommandObserver(Observer):
     def on_completed(self, *args, **kwargs):
         self.logger.info(' command observer completed!')
 
-    @command(alias=['quit', 'exit'])
+    @command(alias=['quit', 'exit'], role=['admin',])
     @intent(name='exit')
     def do_kill_bot(self, *args, **kwargs):
         """
@@ -252,4 +267,3 @@ class CommandObserver(Observer):
         """
         self.logger.warn(' Exiting bot!')
         _sys.exit()
-
