@@ -20,7 +20,7 @@ See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requir
 
 These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
 
-`$ apt-get install dbus-user-session`
+`$ apt-get install dbus-user-session python3-gi`
 
 `$ python3 -m venv <DIR>`
 
@@ -32,7 +32,11 @@ If you don't plan to use the process manager functions (start services from the 
 
 if you want to use the process manager functions and have the above requirements met, run this command instead:
 
-`pip install vexbot[process_manager]`
+`$ pip install vexbot[process_manager]`
+
+and then follow [these instructions](https://stackoverflow.com/questions/31324430/installing-pygobject-via-pip-in-virtualenv)
+
+`$ ln -s /usr/lib/python3/dist-packages/gi* venv/lib/python3.5/site-packages/`
 
 if you intend to use `vexshell`:
 

@@ -35,6 +35,6 @@ def start(self, *args, mode: str='replace', **kwargs) -> None:
     Raises:
         GError: if the service is not found
     """
-    self.logger.info(' start service %s in mode %s', name, mode)
     for target in args:
+        self.logger.info(' start service %s in mode %s', target, mode)
         self.subprocess_manager.start(target, mode)

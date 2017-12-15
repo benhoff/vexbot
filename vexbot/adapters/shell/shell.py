@@ -11,10 +11,12 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from zmq.eventloop.ioloop import PeriodicCallback
 
+from vexbot.adapters.shell.parser import parse as _parse
 from vexbot.adapters.messaging import Messaging as _Messaging
-from vexbot.adapters.shell.parser import parse
 from vexbot.util.get_vexdir_filepath import get_vexdir_filepath
-from vexbot.adapters.shell.interfaces import AuthorInterface, ServiceInterface, EntityInterface
+from vexbot.adapters.shell.interfaces import (AuthorInterface,
+                                              ServiceInterface,
+                                              EntityInterface)
 
 from vexbot.adapters.shell.observers import (PrintObserver,
                                              CommandObserver,
@@ -38,7 +40,7 @@ def _get_cmd_args_kwargs(text: str) -> (str, tuple, dict):
         command = args.pop(0)
     except IndexError:
         return '', (), {}
-    args, kwargs = parse(args)
+    args, kwargs = _parse(args)
     return command, args, kwargs
 
 
@@ -247,12 +249,14 @@ class Shell(Prompt):
             self.messaging.send_command(command, *args, **kwargs)
             return
         if self.command_observer.is_command(command):
-            self._logger.debug(' %s is command', command)
-            try:
-                return self.command_observer.handle_command(command, *args, **kwargs)
+            self._logger.debug(' `%s` is a command', command)
+            # try:
+            return self.command_observer.handle_command(command, *args, **kwargs)
+            """
             except Exception as e:
                 self.command_observer.on_error(e, command, args, kwargs)
                 return
+            """
         else:
             self._logger.debug('command not found! Sending to bot')
             self.messaging.send_command(command, *args, **kwargs)
