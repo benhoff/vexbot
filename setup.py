@@ -55,24 +55,23 @@ setup(
         'pyzmq',
         'vexmessage>=0.4.0',
         'rx',
-        # traceback serilization
-        'tblib',
+        'tblib', # traceback serilization
         'tornado',
         ],
 
     extras_require={
         'nlp': ['spacy', 'sklearn', 'sklearn_crfsuite', 'wheel'],
-        'dev': ['flake8', 'twine', 'wheel'],
-        'process_manager': ['pydbus'],
-        'speechtotext': ['speechtotext'],
-        'gui': ['chatimusmaximus'],
-        'irc': ['irc3'],
         'socket_io': ['requests', 'websocket-client'],
-        'xmpp': ['sleekxmpp', 'dnspython'],
-        'youtube': ['google-api-python-client'],
-        'microphone': ['microphone'],
-        'process_name': ['setproctitle'],
-        'database': ['vexstorage'],
         'summarization': ['gensim', 'newspaper3k'],
+        'youtube': ['google-api-python-client'],
+        'dev': ['flake8', 'twine', 'wheel'],
+        'xmpp': ['sleekxmpp', 'dnspython'],
+        'process_name': ['setproctitle'],
+        'speechtotext': ['speechtotext'],
+        'process_manager': ['pydbus'],
+        'gui': ['chatimusmaximus'],
+        'microphone': ['microphone'],
+        'database': ['vexstorage'],
+        'irc': ['irc3'],
     }
 )
