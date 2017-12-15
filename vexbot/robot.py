@@ -5,7 +5,7 @@ from vexbot import _get_default_port_config
 from vexbot.intents import BotIntents
 from vexbot.messaging import Messaging as _Messaging
 from vexbot.adapters.shell.observers import LogObserver
-from vexbot.observers import CommandObserver as _CommandObserver
+from vexbot.command_observer import CommandObserver as _CommandObserver
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
