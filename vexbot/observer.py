@@ -21,3 +21,13 @@ class Observer(metaclass=_ABCMeta):
     @_abstractmethod
     def on_completed(self):
         return NotImplemented
+
+    def extend(self, method, alias: list=None, name: str=None, hidden: bool=False):
+        if name is None:
+            name = method.__name__
+        method.hidden = hidden
+        self._commands[name] = method
+        if alias:
+            # TODO: Throw error if we're overwriting a name
+            for a in alias:
+                self._commands[a] = method
