@@ -1,14 +1,13 @@
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
-from vexbot.extensions import extend as _extend
+from vexbot.extensions import extendmany as _extendmany
 
 
 class Observer(metaclass=_ABCMeta):
     extensions = ()
     def __init__(self, *args, **kwargs):
-        for extension in self.extensions:
-            # FIXME: Hack
-            _extend(self.__class__, extension)
+        # FIXME: Hack
+        _extendmany(self.__class__, *self.extensions)
 
     @_abstractmethod
     def on_next(self, value):

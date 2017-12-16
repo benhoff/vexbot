@@ -13,13 +13,13 @@ def extension(base,
               name: str=None,
               hidden: bool=False,
               instancemethod: bool=False,
-              role: str=None):
+              roles: list=None):
 
     def wrapper(function):
         new_name = name or function.__name__
         function.command = True
         function.hidden = hidden
-        function.role = role
+        function.roles = roles
         funciton.alias = alias
 
         if instancemethod:
@@ -44,7 +44,7 @@ def extend(base,
            instancemethod: bool=False,
            roles: list=None):
 
-    wrapper = extension(base, alias, name, hidden, instancemethod, role)
+    wrapper = extension(base, alias, name, hidden, instancemethod, roles)
     wrapper(function)
 
 
@@ -57,6 +57,6 @@ def extendmany(base,
         wrapper = extension(base,
                             hidden=hidden,
                             instancemethod=instancemethod,
-                            role=role)
+                            roles=roles)
 
         wrapper(function)

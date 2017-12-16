@@ -4,7 +4,7 @@ import functools as _functools
 def command(function=None,
             alias: list=None,
             hidden: bool=False,
-            role: list=None):
+            roles: list=None):
 
     if function is None:
         return _functools.partial(command,
@@ -20,5 +20,5 @@ def command(function=None,
         wrapper.alias = alias
     wrapper.hidden = hidden
     wrapper.command = True
-    wrapper.role = role
+    wrapper.roles = roles
     return wrapper

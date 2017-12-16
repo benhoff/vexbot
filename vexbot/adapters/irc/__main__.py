@@ -99,5 +99,6 @@ def _from_argv(cls, argv=None, **kwargs) -> dict:
 
     return cfg
 
+
 if __name__ == '__main__':
     main()

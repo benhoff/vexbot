@@ -69,9 +69,10 @@ setup(
         'process_name': ['setproctitle'],
         'speechtotext': ['speechtotext'],
         'process_manager': ['pydbus'],
-        'gui': ['chatimusmaximus'],
         'microphone': ['microphone'],
         'database': ['vexstorage'],
+        'gui': ['chatimusmaximus'],
+        'entity': ['duckling'],
         'irc': ['irc3'],
     }
 )

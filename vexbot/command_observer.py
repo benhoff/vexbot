@@ -86,7 +86,7 @@ class CommandObserver(Observer):
     def do_get_intent(self, *args, **kwargs):
         return self.bot.intents.get_intent_names(*args, **kwargs)
 
-    @command(alias=['MSG',], role=['admin',])
+    @command(alias=['MSG',], roles=['admin',])
     def do_REMOTE(self,
                   target: str,
                   remote_command: str,
@@ -125,7 +125,7 @@ class CommandObserver(Observer):
                                              *args, 
                                              **kwargs)
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     def do_NLP(self, *args, **kwargs):
         # FIXME: Can't remember what this NOTE is trying to tell me.
         # NOTE: entity feature extraction is already considered in this
@@ -148,7 +148,7 @@ class CommandObserver(Observer):
         result = callback(*args, **kwargs)
         return result
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     def do_TRAIN_INTENT(self, *args, **kwargs):
         self.logger.debug('starting training!')
         intents = self.bot.intents.get_intents()
@@ -158,7 +158,7 @@ class CommandObserver(Observer):
         self.language.train_classifier(intents)
         self.logger.debug('training finished')
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     def do_IDENT(self, service_name: str, source: list, *args, **kwargs) -> None:
         """
         Perform identification of a service to a binary representation.
@@ -170,22 +170,22 @@ class CommandObserver(Observer):
         self.logger.info(' IDENT %s as %s', service_name, source)
         self.messaging._address_map[service_name] = source
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     def do_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(True)
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     def do_NO_AUTH_FOR_SUBSCRIPTION_SOCKET(self):
         self.messaging.subscription_socket.close()
         self.messaging._setup_subscription_socket(False)
 
-    @command(role=['admin',])
+    @command(roles=['admin',])
     @intent(name='get_services')
     def do_services(self, *args, **kwargs) -> tuple:
         return tuple(self.messaging._address_map.keys())
 
-    @command(alias=['get_last_error',], role=['admin'])
+    @command(alias=['get_last_error',], roles=['admin'])
     @intent(name='get_last_error')
     def do_show_last_error(self, *args, **kwargs):
         exc_info = _sys.exc_info()
@@ -259,7 +259,7 @@ class CommandObserver(Observer):
     def on_completed(self, *args, **kwargs):
         self.logger.info(' command observer completed!')
 
-    @command(alias=['quit', 'exit'], role=['admin',])
+    @command(alias=['quit', 'exit'], roles=['admin',])
     @intent(name='exit')
     def do_kill_bot(self, *args, **kwargs):
         """
