@@ -71,3 +71,87 @@ Your bot is ready to run!
  Port numbers range from 0-65536, and can be mostly aribratry chosen. For linux ports 0-1024 are reserved, so best to stay away from those. Port 5555 is usually used as an example port for coding examples, so probably best to stay away from that as well.
  
  The value of the `publish_address` and `subscribe_address` at the top of the settings file are likely what you want to copy for the `publish_address` and `subscribe_address` under shell, irc, xmpp, youtube, and socket_io if you're running everything locally on one computer. But you don't have to. You could run all the services on one computer and the main robot on a different computer. You would just need to configure the address and ports correctly, as well as work through any networking/port issues going across the local area network (LAN).
+
+## Packages
+
+ | required packages | License |
+ |-------------------|---------|
+ | vexmessage        | GPL3    |
+ | pyzmq             | BSD     |
+ | rx                | Apache  |
+ | tblib             | BSD     |
+ | tornado           | Apache  |
+
+### Optional Packages
+
+ | NLP              | License |
+ |------------------|---------|
+ | spacy            | 
+ | sklearn          |
+ | sklearn_crfsuite |
+ | wheel            |
+
+
+ | socket_io        | License |
+ |------------------|---------|
+ | requests         | 
+ | websocket-client |  
+
+
+ | summarization | License |
+ |---------------|---------|
+ | gensim        |         |
+ | newspaper3k   |
+
+
+ | youtube                  | License |
+ |--------------------------|---------|
+ | google-api-python-client |
+
+
+ | dev    | License |
+ |--------|---------|
+ | flake8 |
+ | twine  |
+ | wheel  |
+
+
+ | xmpp      | License |
+ |-----------|---------|
+ | sleekxmpp |
+ | dnspython |
+
+
+ | process_name | License |
+ |--------------|---------|
+ | setproctitle |
+
+
+ | speechtotext | License |
+ |--------------|---------|
+ | speechtotext |
+
+
+ | process_manager | License |
+ |-----------------|---------|
+ | pydus           |
+
+
+ | Gui             | License |
+ |-----------------|---------|
+ | chatimusmaximus | 
+
+
+ | Irc  | License |
+ |------|---------|
+ | irc3 |
+
+
+ | Microphone | License |
+ |------------|---------|
+ | microphone |
+
+
+ | speechtotext | License |
+ |--------------|---------|
+ | speechtotext |
