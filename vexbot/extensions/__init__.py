@@ -20,7 +20,7 @@ def extension(base,
         function.command = True
         function.hidden = hidden
         function.roles = roles
-        funciton.alias = alias
+        function.alias = alias
 
         if instancemethod:
             # FIXME: implement
