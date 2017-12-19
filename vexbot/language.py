@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import GridSearchCV
 
-
+from vexbot.entity_extraction import EntityExtraction
 from vexbot.util.get_classifier_filepath import (get_classifier_filepath,
                                                  get_entity_filepath)
 
@@ -31,13 +31,14 @@ class Language:
         self._language_model_loaded = False
         self.classifier = None
         self.synonyms = {}
+        self.entity_extractor = EntityExtraction()
 
     def predict(self, X):
         pred_result = self.classifier.predict_proba(X)
         sorted_indicies = np.fliplr(np.argsort(pred_result, axis=1))
         return sorted_indicies, pred_result[:, sorted_indicies]
 
-    def get_intent(self, text: str, entities: dict, *args, **kwargs):
+    def get_intent(self, text: str, entities: list=None, *args, **kwargs):
         # Text classification
         # Entity extraction
         if self.classifier is None:
@@ -58,7 +59,10 @@ class Language:
             first_confidence = 0
         self.logger.debug('name: %s', first_name)
         self.logger.debug('confidence: %s', first_confidence)
-        return first_name, first_confidence
+        extracted = self.entity_extractor.get_entites(text, entities)
+        # TODO: clean or merge entities here?
+
+        return first_name, first_confidence, entities
 
         # text -> tokens
         # text -> entities
@@ -75,6 +79,7 @@ class Language:
     def _load_models(self):
         language = 'en'
         self.language_model = spacy.load(language, parser=False)
+        self.entity_extractor._language_model = self.language_model
         self._language_model_loaded = True
 
     def load_classifier(self, filename: str=None):

@@ -3,15 +3,7 @@ import spacy
 
 
 class EntityExtraction:
-    # Pretrained (spaCy)
-    # Places, dates, people, organizations -> averaged preceptron
-
-    # Pretrained (duckling)
-    # Dates, Amounts of Money, Druations, Distances, Ordinals -> context-free grammer
-
-    # Custom, Domain-specific entities -> conditional random field
-    # MITIE, provides structured SVM
-    def __init__(self):
+    def __init__(self, language_model=None):
         values = {'algorithm': 'lbfgs',
                   # coefficient for L1 penalty
                   'c1': 1,
@@ -22,7 +14,7 @@ class EntityExtraction:
                   'all_possible_transitions': True}
 
         self.ent_tagger = sklearn_crfsuite.CRF(**values)
-        self.duckling = DucklingWrapper()
+        self._language_model = language_model
 
     def train(self, data):
         # _sentence_to_features
@@ -32,9 +24,40 @@ class EntityExtraction:
 
         self.ent_tagger.fit(x_train, y_train)
 
-    def get_spacy(self, data):
+    def get_entites(self, text: str, entities: list=None, *args, **kwargs):
+        spacy_entities = self.get_spacy(text)
+        # TODO: Implement
+        duckling_entities = self.get_duckling_entities(text)
+        custom_entities = self.get_custom_entities(text)
+
+        # FIXME
+        return spacy_entities
+
+    def get_custom_entities(self, text: str) -> list:
+        """
+        Custom, Domain-specific entities
+        Uses conditional random field
+        Needs to be trained
+        """
+        # NOTE: MITIE uses structured SVM
+        pass
+
+    def get_duckling_entities(self, text: str) -> list:
+        """
+        Pretrained (duckling)
+        Uses context-free grammer
+        Dates, Amounts of Money, Druations, Distances, Ordinals
+        """
+        pass
+
+    def get_spacy_entites(self, text: str) -> list:
+        """
+        Pretrained (spaCy)
+        Uses averaged preceptron
+        Places, dates, people, organizations
+        """
         # NOTE: spaCy doc
-        doc = data.get('doc')
+        doc = self._language.language_model(text)
 
 	entities = [{"entity": ent.label_,
                      "value": ent.text,
@@ -43,6 +66,7 @@ class EntityExtraction:
 
         return entities
 
+    # NOTE: used for conditional random field training
     def _sentence_to_features(self, sentence: list):
         # type: (List[Tuple[Text, Text, Text, Text]]) -> List[Dict[Text, Any]]
         """Convert a word into discrete features in self.crf_features,
@@ -72,6 +96,7 @@ class EntityExtraction:
             sentence_features.append(word_features)
         return sentence_features
 
+    # NOTE: used for conditional random field training
     def _sentence_to_labels(self, sentence):
         # type: (List[Tuple[Text, Text, Text, Text]]) -> List[Text]
 

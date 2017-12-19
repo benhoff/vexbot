@@ -127,10 +127,8 @@ class CommandObserver(Observer):
 
     @command(roles=['admin',])
     def do_NLP(self, *args, **kwargs):
-        # FIXME: Can't remember what this NOTE is trying to tell me.
-        # NOTE: entity feature extraction is already considered in this
-        # as part of the classifier
-        intent, confidence = self.language.get_intent(*args, **kwargs)
+        # FIXME: Do entity extraction here
+        intent, confidence, entities = self.language.get_intent(*args, **kwargs)
         self.logger.debug('intent from do_NLP: %s', intent)
 
         # FIXME: `None` returns `do_command`
@@ -141,11 +139,8 @@ class CommandObserver(Observer):
             # TODO: send intent back to source
             return
 
-        # FIXME
-        # entities = self.language.get_entities(*args, **kwargs)
-
         # FIXME:Pass entites in as kwargs?
-        result = callback(*args, **kwargs)
+        result = callback(*args, entities=entities, **kwargs)
         return result
 
     @command(roles=['admin',])
