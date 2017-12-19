@@ -59,7 +59,7 @@ class EntityExtraction:
         # NOTE: spaCy doc
         doc = self._language.language_model(text)
 
-	entities = [{"entity": ent.label_,
+        entities = [{"entity": ent.label_,
                      "value": ent.text,
                      "start": ent.start_char,
                      "end": ent.end_char} for ent in doc.ents]
