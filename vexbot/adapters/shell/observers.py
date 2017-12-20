@@ -12,6 +12,7 @@ from vexmessage import Message, Request
 
 from vexbot.observer import Observer
 from vexbot.intents import intent
+from vexbot.command import command
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.extensions import (subprocess,
                                hidden,
@@ -21,6 +22,7 @@ from vexbot.extensions import (subprocess,
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
+# FIXME: Need to log here
 except ImportError:
     SubprocessManager = None
 
@@ -235,6 +237,7 @@ class CommandObserver(Observer):
         time = strftime(time_format, localtime())
         return time
 
+    @command(alias=['get_commands'])
     def do_commands(self, *args, **kwargs) -> list:
         commands = self._get_commands()
         return sorted(commands, key=str.lower)
@@ -405,14 +408,14 @@ class ServicesObserver(Observer):
 
     def on_next(self, request: Request):
         command = request.command
-        if command not in ('services', 'commands'):
+        if command not in ('services', 'get_commands'):
             return
         result = request.kwargs['result']
         if result is None:
             return
         if command == 'services':
             self.services_callback(result)
-        elif command == 'commands':
+        elif command == 'get_commands':
             service = request.kwargs.get('service')
             if service is None:
                 # FIXME: LOG ERROR
