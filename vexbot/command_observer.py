@@ -1,7 +1,10 @@
 import sys as _sys
+import shelve
 import logging
 import inspect as _inspect
 import typing
+import importlib
+from os import path
 
 from tblib import Traceback
 
@@ -16,7 +19,11 @@ from vexbot.extensions import (develop,
                                intents,
                                log,
                                subprocess,
-                               admin)
+                               admin,
+                               dynamic_loading)
+
+from vexbot.util.get_cache_filepath import get_cache 
+from vexbot.util.create_cache_filepath import create_cache_directory
 
 
 class CommandObserver(Observer):
@@ -29,7 +36,8 @@ class CommandObserver(Observer):
                   intents.get_intent,
                   intents.get_intents,
                   admin.disable,
-                  admin.enable)
+                  admin.enable,
+                  dynamic_loading.add_extension)
 
     def __init__(self,
                  bot,
@@ -42,6 +50,18 @@ class CommandObserver(Observer):
         self.messaging = messaging
         self.subprocess_manager = subprocess_manager
         self.language = language
+        filepath = get_cache(__name__ + '.pickle')
+        # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
+        self._config = shelve.open(filepath, writeback=True)
+
+        if self._config.get('extensions') is None:
+            self._config['extensions'] = {}
+        if self._config.get('disabled') is None:
+            self._config['disabled'] = {}
+
+        for _, v in self._config['extensions']:
+            self.extend(**v)
+
         self._commands = self._get_commands()
         self._disabled = {}
         self._intents = self._get_intents()
@@ -72,12 +92,14 @@ class CommandObserver(Observer):
         for name, method in _inspect.getmembers(self):
             if name.startswith('do_'):
                 result[name[3:]] = method
-                try:
-                    for alias in method.alias:
-                        result[alias] = method
-                except AttributeError:
-                    continue
+            elif getattr(method, 'command', False):
+                result[name] = method
+            else:
+                continue
 
+            if getattr(method,  'alias', False):
+                for alias in method.alias:
+                    result[alias] = method
         return result
 
     def do_get_intents(self, *args, **kwargs):
