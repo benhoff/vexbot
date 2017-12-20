@@ -16,3 +16,12 @@ def add_extension(self, function_name: str, alias: list=None, call_name: str=Non
 
     self._config['extensions'][function_name] = values
     self._config.sync()
+
+
+def get_extensions(self, *args, **kwargs):
+    return tuple(self._config['extensions'].keys())
+
+
+def remove_extensions(self, function_name: str, *args, **kwargs) -> str:
+    popped = self._config['extensions'].pop(function_name)
+    return 'Removed: {}'.format(popped)

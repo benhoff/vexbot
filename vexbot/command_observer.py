@@ -37,7 +37,9 @@ class CommandObserver(Observer):
                   intents.get_intents,
                   admin.disable,
                   admin.enable,
-                  dynamic_loading.add_extension)
+                  dynamic_loading.add_extension,
+                  dynamic_loading.get_extensions,
+                  dynamic_loading.remove_extensions)
 
     def __init__(self,
                  bot,
