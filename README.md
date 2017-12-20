@@ -20,11 +20,15 @@ See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requir
 
 These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
 
-`$ apt-get install dbus-user-session python3-gi`
+`$ apt-get install dbus-user-session python3-gi python3-dev python3-pip build-essential`
 
 `$ python3 -m venv <DIR>`
 
 `$ source <DIR>/bin/activate`
+
+You'll need to install the development branch of vexmessage.
+
+`pip install git+https://github.com/benhoff/vexmessage@dev`
 
 If you don't plan to use the process manager functions (start services from the bot):
 

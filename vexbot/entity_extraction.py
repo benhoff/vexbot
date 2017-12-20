@@ -25,7 +25,7 @@ class EntityExtraction:
         self.ent_tagger.fit(x_train, y_train)
 
     def get_entites(self, text: str, entities: list=None, *args, **kwargs):
-        spacy_entities = self.get_spacy(text)
+        spacy_entities = self.get_spacy_entites(text)
         # TODO: Implement
         duckling_entities = self.get_duckling_entities(text)
         custom_entities = self.get_custom_entities(text)
@@ -57,7 +57,7 @@ class EntityExtraction:
         Places, dates, people, organizations
         """
         # NOTE: spaCy doc
-        doc = self._language.language_model(text)
+        doc = self._language_model(text)
 
         entities = [{"entity": ent.label_,
                      "value": ent.text,
