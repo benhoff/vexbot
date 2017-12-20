@@ -27,14 +27,9 @@ from vexbot.util.create_cache_filepath import create_cache_directory
 
 
 class CommandObserver(Observer):
-    extensions = (develop.get_code,
-                  develop.get_members,
-                  admin.get_commands,
+    extensions = (admin.get_commands,
                   admin.get_disabled,
                   vexhelp.help,
-                  hidden.hidden,
-                  intents.get_intent,
-                  intents.get_intents,
                   admin.disable,
                   admin.enable,
                   dynamic_loading.add_extension,
@@ -53,6 +48,7 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self.language = language
         filepath = get_cache(__name__ + '.pickle')
+
         # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
         self._config = shelve.open(filepath, writeback=True)
 
@@ -60,7 +56,6 @@ class CommandObserver(Observer):
             self._config['extensions'] = {}
         if self._config.get('disabled') is None:
             self._config['disabled'] = {}
-
 
         self._commands = self._get_commands()
         self._disabled = {}
@@ -103,12 +98,6 @@ class CommandObserver(Observer):
                 for alias in method.alias:
                     result[alias] = method
         return result
-
-    def do_get_intents(self, *args, **kwargs):
-        return self.bot.intents.get_intent_names()
-
-    def do_get_intent(self, *args, **kwargs):
-        return self.bot.intents.get_intent_names(*args, **kwargs)
 
     @command(alias=['MSG',], roles=['admin',])
     def do_REMOTE(self,
