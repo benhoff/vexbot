@@ -252,7 +252,7 @@ class Messaging:
         """
         For request bot to perform some action
         """
-        self._messaging_logger.command.info('send command %s: %s | %s',
+        self._messaging_logger.command.info('send command `%s` to bot. Args: %s | Kwargs: %s',
                                             command, args, kwargs)
 
         command = command.encode('utf8')
