@@ -34,3 +34,8 @@ def power_on(*args, **kwargs):
         raise RuntimeError('Must pass in an `id_` or set the `DITIAL_OCEAN_DROPLET_ID` in your envirnoment')
     droplet = _MANAGER.get_droplet(id_)
     droplet.power_on()
+
+
+def get_all_droplets(*args, **kwargs):
+    droplets = _MANAGER.get_all_droplets()
+    return ['{}: {}'.format(x.name, x.id) for x in droplets]

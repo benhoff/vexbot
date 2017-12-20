@@ -48,6 +48,7 @@ setup(
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[
         'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
+	'git+https://github.com/benhoff/vexmessage@dev'
         ],
 
     install_requires=[

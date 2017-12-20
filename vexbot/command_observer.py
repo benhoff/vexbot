@@ -59,18 +59,18 @@ class CommandObserver(Observer):
         if self._config.get('disabled') is None:
             self._config['disabled'] = {}
 
-        for _, v in self._config['extensions']:
-            self.extend(**v)
 
         self._commands = self._get_commands()
         self._disabled = {}
         self._intents = self._get_intents()
+        for value in list(self._config['extensions'].values()):
+            self.add_extension(**value)
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        # self._root_logger.setLevel(logging.DEBUG)
-        # logging.basicConfig()
-        self._root_logger.addHandler(self.messaging.pub_handler)
+        self._root_logger.setLevel(logging.DEBUG)
+        logging.basicConfig()
+        # self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_intents(self) -> dict:
         result = {}
