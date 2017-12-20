@@ -128,7 +128,7 @@ class Shell(Prompt):
 
     def _identity_callback(self):
         self.messaging.send_command('services', suppress=True)
-        self.messaging.send_command('commands', suppress=True)
+        self.messaging.send_command('get_commands', suppress=True)
 
     def _monitor_bot_state(self):
         time_now = time.time()
