@@ -14,13 +14,10 @@ from vexbot.messaging import Messaging
 from vexbot.intents import intent
 from vexbot.command import command
 from vexbot.extensions import help as vexhelp
-from vexbot.extensions import (develop,
-                               hidden,
-                               intents,
-                               log,
-                               subprocess,
+from vexbot.extensions import (log,
                                admin,
-                               dynamic_loading)
+                               dynamic_loading,
+                               extensions)
 
 from vexbot.util.get_cache_filepath import get_cache 
 from vexbot.util.create_cache_filepath import create_cache_directory
@@ -30,11 +27,12 @@ class CommandObserver(Observer):
     extensions = (admin.get_commands,
                   admin.get_disabled,
                   vexhelp.help,
-                  admin.disable,
-                  admin.enable,
+                  extensions.disable,
+                  extensions.enable,
                   dynamic_loading.add_extension,
                   dynamic_loading.get_extensions,
-                  dynamic_loading.remove_extensions)
+                  dynamic_loading.remove_extensions,
+                  extensions.get_all_extensions)
 
     def __init__(self,
                  bot,
@@ -65,9 +63,9 @@ class CommandObserver(Observer):
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()
-        self._root_logger.setLevel(logging.DEBUG)
-        logging.basicConfig()
-        # self._root_logger.addHandler(self.messaging.pub_handler)
+        # self._root_logger.setLevel(logging.DEBUG)
+        # logging.basicConfig()
+        self._root_logger.addHandler(self.messaging.pub_handler)
 
     def _get_intents(self) -> dict:
         result = {}

@@ -18,7 +18,8 @@ from vexbot.extensions import (subprocess,
                                hidden,
                                log,
                                develop,
-                               admin)
+                               admin,
+                               extensions)
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
@@ -45,8 +46,8 @@ class CommandObserver(Observer):
                   # log.set_log_info,
                   develop.get_members,
                   develop.get_code,
-                  admin.disable,
-                  admin.enable,
+                  extensions.disable,
+                  extensions.enable,
                   admin.get_disabled,
                   admin.update,
                   admin.install,
