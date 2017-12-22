@@ -55,4 +55,12 @@ extensions = {'pip_install': {'path': 'vexbot.extensions.admin:install',
               'start_process': {'path': 'vexbot.extensions.subprocess:start', 'short': ''},
               'stop_process': {'path': 'vexbot.extensions.subprocess:stop', 'short': ''},
               'restart_process': {'path': 'vexbot.extensions.subprocess:restart', 'short': ''},
-              'status_process': {'path': 'vexbot.extensions.subprocess:status', 'short': ''}}
+              'status_process': {'path': 'vexbot.extensions.subprocess:status', 'short': ''},
+              'cpu_count': {'path': 'vexbot.extensions.system:cpu_count',
+                            'extras': ['system']},
+              'virtual_memory_percent': {'path': 'vexbot.extensions.system:virtual_memory_percent',
+                            'extras': ['system']},
+              'virtual_memory_total': {'path': 'vexbot.extensions.system:virtual_memory_total',
+                            'extras': ['system']},
+              'swap': {'path': 'vexbot.extensions.system:swap',
+                            'extras': ['system']}}

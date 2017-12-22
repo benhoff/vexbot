@@ -90,5 +90,6 @@ setup(
         'gui': ['chatimusmaximus'],
         'entity': ['duckling'],
         'irc': ['irc3'],
+        'system': ['psutil'],
     }
 )

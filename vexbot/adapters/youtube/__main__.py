@@ -20,5 +20,4 @@ def main(client_secret_filepath: str):
 
 if __name__ == '__main__':
     kwargs = _get_kwargs()
-    # FIXME: does not work if the google api is not installed
     main(**kwargs)
