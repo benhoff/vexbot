@@ -7,7 +7,7 @@ def get_installed_extensions(self, *args, **kwargs):
     verify_requirements = True
     name = 'vexbot_extensions'
     extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'NO DOC')) for x in pkg_resources.iter_entry_points(name)]
-    return extensions
+    return sorted(extensions, key=str.lower)
 
 
 def _install(package) -> pkg_resources.Distribution:
@@ -18,6 +18,9 @@ def _install(package) -> pkg_resources.Distribution:
 
 def add_extensions(self, *args, alias: list=None, call_name=None, hidden: bool=False, **kwargs):
     for arg in args:
+        if arg in self._commands:
+            # TODO: Log
+            continue
         # NOTE: The dist should be used to figure out which name we want, not by grabbing blindly
         entry_point = [x for x in pkg_resources.iter_entry_points('vexbot_extensions', arg)][0]
         entry_point.require(installer=_install)
