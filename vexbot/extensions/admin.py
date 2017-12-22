@@ -36,9 +36,6 @@ def get_command_modules(self, *args, **kwargs):
     for cb in self._commands.values():
         module = inspect.getmodule(cb)
         result.add(module.__name__)
-    # TODO: Test to see if this works like I think it will
-    if args:
-        result = set(args).intersection(result)
     return result
 
 

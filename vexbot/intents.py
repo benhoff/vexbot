@@ -48,19 +48,6 @@ class BotIntents:
             results[arg] = intent_values
         return results
 
-    def do_get_log(self) -> tuple:
-        values = ('get log',
-                  'get logging',
-                  'get logging value',
-                  'get logs',
-                  'what is the logging',
-                  'what is the logging?',
-                  'show me the log',
-                  'show me the logging',
-                  'what is the logging value?')
-
-        return values
-
     def do_set_log(self) -> tuple:
         levels = ('debug', 'info', 'warning', 'warn', 'error', 'critical',
                   'DEBUG', 'INFO', 'WARNING', 'WARN', 'ERROR', 'CRITICAL')
@@ -70,23 +57,6 @@ class BotIntents:
 
         # FIXME: finish
         values = ()
-        return values
-
-    def do_get_services(self) -> tuple:
-        values = ('what services are up',
-                  'services up',
-                  'services available',
-                  'what is running',
-                  'running')
-
-        return values
-
-    def do_get_help(self) -> tuple:
-        values = ('help me please',
-                  'what does this do',
-                  'what can I do',
-                  'what can you do')
-
         return values
 
     def do_get_code(self) -> tuple:
@@ -113,14 +83,6 @@ class BotIntents:
     def do_status(self) -> tuple:
         pass
 
-    def do_get_last_error(self) -> tuple:
-        values = ('show me the error',
-                  'what\'s wrong with you',
-                  'tell me how you\'re broken',
-                  'what\'s wrong',
-                  'what happened')
-
-        return values
 
     def do_trace(self) -> tuple:
         values = ('run that back for me',

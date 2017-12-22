@@ -38,3 +38,7 @@ def start(self, *args, mode: str='replace', **kwargs) -> None:
     for target in args:
         self.logger.info(' start service %s in mode %s', target, mode)
         self.subprocess_manager.start(target, mode)
+
+
+def uptime(self, *args, name: str='vexbot.service', **kwargs):
+    return self.subprocess_manager.uptime(name)

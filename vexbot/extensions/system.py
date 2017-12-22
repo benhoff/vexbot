@@ -1,5 +1,6 @@
 import psutil
 
+_mb_conversion = 1024 * 1024
 
 def cpu_times(*args, **kwargs):
     return psutil.cpu_times()
@@ -20,16 +21,19 @@ def virtual_memory_percent(*arg, **kwargs):
 
 
 def virtual_memory_total(*args, **kwargs):
-    mb_conversion = 1024 * 1024
-    total = int(psutil.virtual_memory().total / mb_conversion)
+    total = int(psutil.virtual_memory().total / _mb_conversion)
     return '{} Mb'.format(total)
+
+
+def virtual_memory_used(*args, **kwargs):
+    used = int(psutil.virtual_memory().used / _mb_conversion)
+    return '{} Mb'.format(used)
 
 
 def swap(*args, **kwargs):
     swap = psutil.swap_memory()
     used = swap.used
     total = swap.total
-    mb_conversion = 1024 * 1024
-    used = int(used/mb_conversion)
-    total = int(total/mb_conversion)
+    used = int(used/_mb_conversion)
+    total = int(total/_mb_conversion)
     return 'Used: {} | Total: {}'.format(used, total)

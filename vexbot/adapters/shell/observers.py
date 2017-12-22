@@ -45,6 +45,7 @@ class CommandObserver(Observer):
                   subprocess.stop,
                   subprocess.restart,
                   subprocess.status,
+                  subprocess.uptime,
                   log.debug,
                   # log.set_log_info,
                   develop.get_code,

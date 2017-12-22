@@ -75,16 +75,23 @@ class SubprocessManager:
         name = _name_helper(name)
         self.systemd.StopUnit(name, mode)
 
+    def _uptime(self, unit):
+        time_start = unit.ConditionTimestamp/1000000
+        delta = time.time() - time_start
+        delta = _pretty_time_delta(delta)
+        return delta
+
+    def uptime(self, name: str) -> str:
+        unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
+        return self._uptime(unit) 
+
     def status(self, name: str) -> str:
         name = _name_helper(name)
         unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
         # NOTE: what systemctl status shows
         # freenode.service - IRC Client
         # active (running) since Tue 2017-10-17 10:36:03 UTC; 19s ago
-        time_start = unit.ConditionTimestamp/1000000
-        delta = time.time() - time_start
-        delta = _pretty_time_delta(delta)
-
+        delta = _uptime(unit)
         fo = '%a %b %d %H:%M:%S %Y'
         time_stamp = time.strftime(fo, time.gmtime(time_start))
         return '{}: {} ({}) since {}; {} ago'.format(unit.Id,
