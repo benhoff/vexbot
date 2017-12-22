@@ -52,7 +52,7 @@ class CommandObserver(Observer):
             self._config['disabled'] = {}
             self._config['modules'] = {}
 
-        self._commands = None
+        self._commands = {}
         self.init_commands()
         self._intents = self._get_intents()
         for key, values in self._config['extensions'].items():
