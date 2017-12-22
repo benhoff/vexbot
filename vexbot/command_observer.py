@@ -16,7 +16,6 @@ from vexbot.command import command
 from vexbot.extensions import help as vexhelp
 from vexbot.extensions import (log,
                                admin,
-                               dynamic_loading,
                                extensions)
 
 from vexbot.util.get_cache_filepath import get_cache 
@@ -26,13 +25,12 @@ from vexbot.util.create_cache_filepath import create_cache_directory
 class CommandObserver(Observer):
     extensions = (admin.get_commands,
                   admin.get_disabled,
+                  admin.disable,
                   vexhelp.help,
-                  extensions.disable,
-                  extensions.enable,
-                  dynamic_loading.add_extension,
-                  dynamic_loading.get_extensions,
-                  dynamic_loading.remove_extensions,
-                  extensions.get_all_extensions)
+                  extensions.add_extensions,
+                  extensions.get_extensions,
+                  extensions.remove_extension,
+                  extensions.get_installed_extensions)
 
     def __init__(self,
                  bot,
@@ -46,20 +44,18 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self.language = language
         filepath = get_cache(__name__ + '.pickle')
-
+        init = not path.isfile(filepath)
         # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
         self._config = shelve.open(filepath, writeback=True)
-
-        if self._config.get('extensions') is None:
+        if init:
             self._config['extensions'] = {}
-        if self._config.get('disabled') is None:
             self._config['disabled'] = {}
+            self._config['modules'] = {}
 
         self._commands = self._get_commands()
-        self._disabled = {}
         self._intents = self._get_intents()
-        for value in list(self._config['extensions'].values()):
-            self.add_extension(**value)
+        for key, values in self._config['extensions'].items():
+            self.add_extensions(key, **values)
         self.logger = logging.getLogger(self.messaging._service_name + '.observers.command')
 
         self._root_logger = logging.getLogger()

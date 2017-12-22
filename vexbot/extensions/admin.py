@@ -22,5 +22,9 @@ def get_commands(self, *args, **kwargs):
 
 
 def get_disabled(self, *args, **kwargs):
-    commands = self._disabled.keys()
+    commands = self._config['disabled'].keys()
     return sorted(commands, key=str.lower)
+
+
+def disable(self, name: str, *args, **kwargs):
+    self._commands.pop(name)

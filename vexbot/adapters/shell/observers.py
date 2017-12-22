@@ -4,6 +4,8 @@ from random import randrange
 import inspect
 import logging
 import pprint
+import shelve
+from os import path
 
 from tblib import Traceback
 from prompt_toolkit.styles import Attrs
@@ -14,6 +16,7 @@ from vexbot.observer import Observer
 from vexbot.intents import intent
 from vexbot.command import command
 from vexbot.util.lru_cache import LRUCache as _LRUCache
+from vexbot.util.get_cache_filepath import get_cache 
 from vexbot.extensions import (subprocess,
                                hidden,
                                log,
@@ -46,8 +49,11 @@ class CommandObserver(Observer):
                   # log.set_log_info,
                   develop.get_members,
                   develop.get_code,
-                  extensions.disable,
-                  extensions.enable,
+                  admin.disable,
+                  extensions.add_extensions,
+                  extensions.get_extensions,
+                  extensions.get_installed_extensions,
+                  extensions.remove_extension,
                   admin.get_disabled,
                   admin.update,
                   admin.install,
@@ -63,6 +69,15 @@ class CommandObserver(Observer):
         else:
             self.subprocess_manager = None
 
+        filepath = get_cache(__name__ + '.pickle')
+        init = not path.isfile(filepath)
+        # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
+        self._config = shelve.open(filepath, writeback=True)
+        if init:
+            self._config['extensions'] = {}
+            self._config['disabled'] = {}
+            self._config['modules'] = {}
+
         self._prompt = prompt
         self.messaging = messaging
         # Get the root logger to set it to different levels
@@ -72,7 +87,6 @@ class CommandObserver(Observer):
         self._bot_callback = None
         self._no_bot_callback = None
         self._commands = {}
-        self._disabled = {}
         for name, method in inspect.getmembers(self):
             if name.startswith('do_'):
                 self._commands[name[3:]] = method
@@ -84,6 +98,9 @@ class CommandObserver(Observer):
             if getattr(method,  'alias', False):
                 for alias in method.alias:
                     self._commands[alias] = method
+
+        for key, value in self._config['extensions'].items():
+            self.add_extensions(key, **value)
 
     @intent(name='stop_chatter')
     def do_stop_print(self, *args, **kwargs):
@@ -198,7 +215,8 @@ class CommandObserver(Observer):
     def do_history(self, *args, **kwargs) -> list:
         if self._prompt:
             return self._prompt.history.strings[-15:]
-    
+   
+    @command(alias=['suggestions',])
     def do_autosuggestions(self, *args, **kwargs):
         if self._prompt:
             return self._prompt._word_completer.words
