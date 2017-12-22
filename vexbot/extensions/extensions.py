@@ -1,11 +1,12 @@
 import pip
 import pkg_resources
+from vexbot.extension_metadata import extensions as _meta_data
 
 
 def get_installed_extensions(self, *args, **kwargs):
     verify_requirements = True
     name = 'vexbot_extensions'
-    extensions = [x.name for x in pkg_resources.iter_entry_points(name)]
+    extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'NO DOC')) for x in pkg_resources.iter_entry_points(name)]
     return extensions
 
 
