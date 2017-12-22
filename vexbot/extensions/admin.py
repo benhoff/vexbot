@@ -44,3 +44,7 @@ def get_command_modules(self, *args, **kwargs):
 
 def get_cache(self, *args, **kwargs):
     return dict(self._config)
+
+
+def delete_cache(self, *args, **kwargs):
+    pass

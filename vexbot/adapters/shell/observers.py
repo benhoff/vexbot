@@ -234,13 +234,11 @@ class CommandObserver(Observer):
         except KeyError:
             return
 
-        # try:
-        result = callback(*args, **kwargs)
-        """
+        try:
+            result = callback(*args, **kwargs)
         except Exception as e:
             self.on_error(e, command, *args, **kwargs)
             return
-        """
         return result
 
     def do_services(self, *args, **kwargs) -> list:
