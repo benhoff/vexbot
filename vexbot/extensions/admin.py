@@ -1,4 +1,5 @@
 import pip
+import inspect
 
 
 def install(self, *args, **kwargs):
@@ -28,3 +29,18 @@ def get_disabled(self, *args, **kwargs):
 
 def disable(self, name: str, *args, **kwargs):
     self._commands.pop(name)
+
+
+def get_command_modules(self, *args, **kwargs):
+    result = set()
+    for cb in self._commands.values():
+        module = inspect.getmodule(cb)
+        result.add(module.__name__)
+    # TODO: Test to see if this works like I think it will
+    if args:
+        result = set(args).intersection(result)
+    return result
+
+
+def get_cache(self, *args, **kwargs):
+    return dict(self._config)

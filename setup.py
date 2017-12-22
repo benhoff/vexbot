@@ -83,7 +83,7 @@ setup(
         'xmpp': ['sleekxmpp', 'dnspython'],
         'process_name': ['setproctitle'],
         'speechtotext': ['speechtotext'],
-        'digitalocean': ['digitalocean'],
+        'digitalocean': ['python-digitalocean'],
         'process_manager': ['pydbus'],
         'microphone': ['microphone'],
         'database': ['vexstorage'],

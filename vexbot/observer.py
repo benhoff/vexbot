@@ -1,13 +1,18 @@
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
 from vexbot.extensions import extendmany as _extendmany
+from vexbot.extensions import extend as _extend
 
 
 class Observer(metaclass=_ABCMeta):
     extensions = ()
     def __init__(self, *args, **kwargs):
-        # FIXME: Hack
-        _extendmany(self.__class__, *self.extensions)
+        extensions = list(self.extensions)
+        dicts = [x for x in extensions if isinstance(x, dict)]
+        for d in dicts:
+            extensions.remove(d)
+            self.extend(**d, update=False)
+        _extendmany(self.__class__, *extensions)
 
     @_abstractmethod
     def on_next(self, value):
@@ -21,16 +26,22 @@ class Observer(metaclass=_ABCMeta):
     def on_completed(self):
         return NotImplemented
 
-    def extend(self, method, alias: list=None, name: str=None, hidden: bool=False):
-        if name is None:
-            name = method.__name__
-        method.hidden = hidden
-        self._commands[name] = method
-        if alias:
-            # TODO: Throw error if we're overwriting a name
-            for a in alias:
-                self._commands[a] = method
+    def extend(self,
+               method,
+               alias: list=None,
+               name: str=None,
+               hidden: bool=False,
+               instancemethod: bool=False,
+               roles: list=None,
+               update: bool=True):
+
+        _extend(self.__class__, method, alias, name, hidden, instancemethod, roles)
+        update_method = getattr(self, 'update_commands')
+        if update and update_method:
+            update_method()
 
     def extendmany(self, *methods):
-        for method in methods:
-            self.extend(method)
+        _extendmany(self.__class__, *methods)
+        update = getattr(self, 'update_commands')
+        if update:
+            update()

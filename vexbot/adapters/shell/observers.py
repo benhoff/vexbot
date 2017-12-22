@@ -47,13 +47,15 @@ class CommandObserver(Observer):
                   subprocess.status,
                   log.debug,
                   # log.set_log_info,
-                  develop.get_members,
                   develop.get_code,
+                  develop.get_members,
                   admin.disable,
                   extensions.add_extensions,
                   extensions.get_extensions,
                   extensions.get_installed_extensions,
                   extensions.remove_extension,
+                  {'method': extensions.add_extensions_from_dict,
+                   'hidden': True},
                   admin.get_disabled,
                   admin.update,
                   admin.install,
@@ -87,6 +89,14 @@ class CommandObserver(Observer):
         self._bot_callback = None
         self._no_bot_callback = None
         self._commands = {}
+        self.init_commands()
+
+    def init_commands(self):
+        extensions = self._config['extensions']
+        self.add_extensions_from_dict(extensions)
+        self.update_commands()
+
+    def update_commands(self):
         for name, method in inspect.getmembers(self):
             if name.startswith('do_'):
                 self._commands[name[3:]] = method
@@ -98,9 +108,6 @@ class CommandObserver(Observer):
             if getattr(method,  'alias', False):
                 for alias in method.alias:
                     self._commands[alias] = method
-
-        for key, value in self._config['extensions'].items():
-            self.add_extensions(key, **value)
 
     @intent(name='stop_chatter')
     def do_stop_print(self, *args, **kwargs):
@@ -227,7 +234,13 @@ class CommandObserver(Observer):
         except KeyError:
             return
 
+        # try:
         result = callback(*args, **kwargs)
+        """
+        except Exception as e:
+            self.on_error(e, command, *args, **kwargs)
+            return
+        """
         return result
 
     def do_services(self, *args, **kwargs) -> list:

@@ -52,7 +52,8 @@ class CommandObserver(Observer):
             self._config['disabled'] = {}
             self._config['modules'] = {}
 
-        self._commands = self._get_commands()
+        self._commands = None
+        self.init_commands()
         self._intents = self._get_intents()
         for key, values in self._config['extensions'].items():
             self.add_extensions(key, **values)
@@ -77,6 +78,25 @@ class CommandObserver(Observer):
                 result[name] = method
 
         return result
+
+    def init_commands(self):
+        for key, value in self._config['extensions'].items():
+            self.add_extensions(key, **value, update=False)
+        self.update_commands()
+        # FIXME: not handeling the conflict
+
+    def update_commands(self):
+        for name, method in _inspect.getmembers(self):
+            if name.startswith('do_'):
+                self._commands[name[3:]] = method
+            elif getattr(method, 'command', False):
+                self._commands[name] = method
+            else:
+                continue
+
+            if getattr(method,  'alias', False):
+                for alias in method.alias:
+                    self._commands[alias] = method
 
     def _get_commands(self) -> dict:
         result = {}
