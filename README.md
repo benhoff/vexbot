@@ -10,15 +10,7 @@ Under development. Very useable but currently not feature complete.
 Requires python 3.5 for asyncio.
 
 ## Installation
-See [pydbus](https://github.com/LEW21/pydbus) for requirements. Currently requires:
-
-[PyGI](https://wiki.gnome.org/Projects/PyGObject) which needs to be installed from your distribution's repoistory,
-
-[GLib](https://developer.gnome.org/glib/) 2.46+
-
-[girepository](https://wiki.gnome.org/Projects/GObjectIntrospection) 1.46+
-
-These requirements allow the use of systemd for subprocess management. You will also need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
+Installing is a bit involved. You will need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
 
 `$ apt-get install dbus-user-session python3-gi python3-dev python3-pip build-essential`
 
@@ -26,31 +18,19 @@ These requirements allow the use of systemd for subprocess management. You will 
 
 `$ source <DIR>/bin/activate`
 
-You'll need to install the development branch of vexmessage.
+`$ pip install git+https://github.com/benhoff/vexmessage@dev`
 
-`pip install git+https://github.com/benhoff/vexmessage@dev`
-
-If you don't plan to use the process manager functions (start services from the bot):
-
-`$ pip install vexbot`
-
-if you want to use the process manager functions and have the above requirements met, run this command instead:
+`$ ln -s /usr/lib/python3/dist-packages/gi* <DIR>/lib/python3.5/site-packages/`
 
 `$ pip install vexbot[process_manager]`
 
-and then follow [these instructions](https://stackoverflow.com/questions/31324430/installing-pygobject-via-pip-in-virtualenv)
-
-`$ ln -s /usr/lib/python3/dist-packages/gi* venv/lib/python3.5/site-packages/`
-
-if you intend to use `vexshell`:
+To use `vexshell`:
 
 `$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
 
 ## Configuring
 
 Make sure your virtual environment is activated. Then run:
-
-FIXME: currently get FileNotFoundError No such file or directory since `~.config` `~.config/vexbot` does not exsit
 
 `$ vexbot_generate_certificates`
 
@@ -88,74 +68,74 @@ Your bot is ready to run!
 
 ### Optional Packages
 
- | NLP              | License |
+ | nlp              | License |
  |------------------|---------|
- | spacy            | 
- | sklearn          |
- | sklearn_crfsuite |
- | wheel            |
+ | spacy            |         |
+ | sklearn          |         |
+ | sklearn_crfsuite |         |
+ | wheel            |         |
 
 
  | socket_io        | License |
  |------------------|---------|
- | requests         | 
- | websocket-client |  
+ | requests         |         |
+ | websocket-client |         |
 
 
  | summarization | License |
  |---------------|---------|
  | gensim        |         |
- | newspaper3k   |
+ | newspaper3k   |         |
 
 
  | youtube                  | License |
  |--------------------------|---------|
- | google-api-python-client |
+ | google-api-python-client |         |
 
 
  | dev    | License |
  |--------|---------|
- | flake8 |
- | twine  |
- | wheel  |
+ | flake8 |         |
+ | twine  |         |
+ | wheel  |         |
 
 
  | xmpp      | License |
  |-----------|---------|
- | sleekxmpp |
- | dnspython |
+ | sleekxmpp |         |
+ | dnspython |         |
 
 
  | process_name | License |
  |--------------|---------|
- | setproctitle |
+ | setproctitle |         |
 
 
  | speechtotext | License |
  |--------------|---------|
- | speechtotext |
+ | speechtotext |         |
 
 
  | process_manager | License |
  |-----------------|---------|
- | pydus           |
+ | pydus           |         |
 
 
- | Gui             | License |
+ | gui             | License |
  |-----------------|---------|
- | chatimusmaximus | 
+ | chatimusmaximus |         |
 
 
- | Irc  | License |
+ | irc  | License |
  |------|---------|
- | irc3 |
+ | irc3 |         |
 
 
- | Microphone | License |
+ | microphone | License |
  |------------|---------|
- | microphone |
+ | microphone |         |
 
 
  | speechtotext | License |
  |--------------|---------|
- | speechtotext |
+ | speechtotext |         |
