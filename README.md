@@ -1,13 +1,13 @@
 # vexbot
 
-[![Build Status](https://travis-ci.org/benhoff/vexbot.svg?branch=master)](https://travis-ci.org/benhoff/vexbot)[![Code Climate](https://codeclimate.com/github/benhoff/vexbot/badges/gpa.svg)](https://codeclimate.com/github/benhoff/vexbot)[![Coverage Status](https://coveralls.io/repos/github/benhoff/vexbot/badge.svg?branch=master)](https://coveralls.io/github/benhoff/vexbot?branch=master)
+[![Code Climate](https://codeclimate.com/github/benhoff/vexbot/badges/gpa.svg)](https://codeclimate.com/github/benhoff/vexbot)[![Coverage Status](https://coveralls.io/repos/github/benhoff/vexbot/badge.svg?branch=master)](https://coveralls.io/github/benhoff/vexbot?branch=master)
 
 Pluggable bot
 
 Under development. Very useable but currently not feature complete.
 
 ## Requirements
-Requires python 3.5 for asyncio.
+Requires python 3.5 for asyncio and only runs on linux. If you're a python developer, you can probably get this to run on not linux.
 
 ## Installation
 Installing is a bit involved. You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
