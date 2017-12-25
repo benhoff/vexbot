@@ -7,7 +7,9 @@ Pluggable bot
 Under development. Very useable but currently not feature complete.
 
 ## Requirements
-Requires python 3.5 for asyncio and only runs on linux. If you're a python developer, you can probably get this to run on not linux.
+Requires python 3.5 for asyncio and only runs on linux.
+
+ If you're a python developer, you can probably get this to run on not linux.
 
 ## Installation
 Installing is a bit involved. You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:

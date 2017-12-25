@@ -7,8 +7,17 @@ from vexbot.extension_metadata import extensions as _meta_data
 def get_installed_extensions(self, *args, **kwargs):
     verify_requirements = True
     name = 'vexbot_extensions'
-    extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'NO DOC')) for x in pkg_resources.iter_entry_points(name)]
+    if not args:
+        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in pkg_resources.iter_entry_points(name)]
+    else:
+        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in pkg_resources.iter_entry_points(name) if x.module_name in args]
     return sorted(extensions, key=str.lower)
+
+
+def get_installed_modules(self, *args, **kwargs):
+    result = set()
+    [result.add(x.module_name) for x in pkg_resources.iter_entry_points('vexbot_extensions')]
+    return result
 
 
 def _install(package) -> pkg_resources.Distribution:
@@ -25,6 +34,7 @@ def add_extensions(self,
                    update: bool=True,
                    **kwargs):
 
+    # FIXME: implement
     not_found = set()
     # NOTE: The dist should be used to figure out which name we want, not by grabbing blindly
     entry_points = [x for x in pkg_resources.iter_entry_points('vexbot_extensions') if x.name in args]
@@ -61,6 +71,6 @@ def get_extensions(self, *args, values: bool=False, **kwargs):
     return tuple(self._config['extensions'].keys())
 
 
-def remove_extension(self, function_name: str, *args, **kwargs) -> str:
-    popped = self._config['extensions'].pop(function_name)
-    return 'Removed: {}'.format(popped)
+def remove_extension(self, *args, **kwargs) -> str:
+    for arg in args:
+        popped = self._config['extensions'].pop(arg, None)

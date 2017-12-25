@@ -92,5 +92,6 @@ setup(
         'entity': ['duckling'],
         'irc': ['irc3'],
         'system': ['psutil'],
+        'command_line': ['python-prompt-toolkit', 'pygments'],
     }
 )

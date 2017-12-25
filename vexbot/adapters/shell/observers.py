@@ -56,6 +56,7 @@ class CommandObserver(Observer):
                   extensions.add_extensions,
                   extensions.get_extensions,
                   extensions.get_installed_extensions,
+                  extensions.get_installed_modules,
                   extensions.remove_extension,
                   {'method': extensions.add_extensions_from_dict,
                    'hidden': True},
