@@ -10,7 +10,7 @@ Under development. Very useable but currently not feature complete.
 Requires python 3.5 for asyncio.
 
 ## Installation
-Installing is a bit involved. You will need an active DBus session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
+Installing is a bit involved. You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
 
 `$ apt-get install dbus-user-session python3-gi python3-dev python3-pip build-essential`
 
@@ -44,11 +44,11 @@ Your bot is ready to run!
 
 `$ systemctl --user start vexbot`
  
-- Or -
+Or
 
 `$ vexbot_robot`
 
-Please note that vexbot has a client/server architecture. The above commands will launch the server. To launch the command line client.
+Please note that vexbot has a client/server architecture. The above commands will launch the server. To launch the command line client:
 
 `$ vexbot`
 

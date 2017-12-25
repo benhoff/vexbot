@@ -10,6 +10,7 @@ except ImportError:
     irc3 = False
 
 if not irc3:
+    logging.exception('irc3 not installed!')
     raise ImportError('irc3 is not installed. Install irc3 using `pip install '
                       'irc3` on the command line')
 

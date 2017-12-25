@@ -91,8 +91,9 @@ class SubprocessManager:
         # NOTE: what systemctl status shows
         # freenode.service - IRC Client
         # active (running) since Tue 2017-10-17 10:36:03 UTC; 19s ago
-        delta = _uptime(unit)
+        delta = self._uptime(unit)
         fo = '%a %b %d %H:%M:%S %Y'
+        time_start = time_start = unit.ConditionTimestamp/1000000 
         time_stamp = time.strftime(fo, time.gmtime(time_start))
         return '{}: {} ({}) since {}; {} ago'.format(unit.Id,
                                                      unit.ActiveState,
