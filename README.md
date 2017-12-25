@@ -43,8 +43,18 @@ Your bot is ready to run!
 ## Running
 
 `$ systemctl --user start vexbot`
+ 
+- Or -
+
+`$ vexbot_robot`
+
+Please note that vexbot has a client/server architecture. The above commands will launch the server. To launch the command line client.
 
 `$ vexbot`
+
+I realize that calling the client and the server by the same name might seem confusing, but in practice I haven't found it to be an issue.
+
+Exit the command line client by typing `!exit` or using `ctl+D`.
 
 ### Configuring Addresses
  The address expected is in the format of `tcp://[ADDRESS]:[PORT_NUMBER]`. 

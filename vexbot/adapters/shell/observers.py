@@ -1,3 +1,4 @@
+import os
 import sys as _sys
 from time import localtime, strftime
 from random import randrange
@@ -17,6 +18,7 @@ from vexbot.intents import intent
 from vexbot.command import command
 from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot.util.get_cache_filepath import get_cache 
+from vexbot.util.get_cache_filepath import get_cache_filepath as get_cache_dir
 from vexbot.extensions import (subprocess,
                                hidden,
                                log,
@@ -72,10 +74,16 @@ class CommandObserver(Observer):
         else:
             self.subprocess_manager = None
 
+        cache_dir = get_cache_dir()
+        mkdir = not path.isdir(cache_dir)
+        if mkdir:
+            os.makedirs(cache_dir, exist_ok=True)
+
         filepath = get_cache(__name__ + '.pickle')
         init = not path.isfile(filepath)
-        # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
+
         self._config = shelve.open(filepath, writeback=True)
+
         if init:
             self._config['extensions'] = {}
             self._config['disabled'] = {}

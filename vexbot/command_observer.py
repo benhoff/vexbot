@@ -19,6 +19,7 @@ from vexbot.extensions import (log,
                                extensions)
 
 from vexbot.util.get_cache_filepath import get_cache 
+from vexbot.util.get_cache_filepath import get_cache_filepath as get_cache_dir
 from vexbot.util.create_cache_filepath import create_cache_directory
 
 
@@ -43,10 +44,17 @@ class CommandObserver(Observer):
         self.messaging = messaging
         self.subprocess_manager = subprocess_manager
         self.language = language
+
+        cache_dir = get_cache_dir()
+        mkdir = not path.isdir(cache_dir)
+        if mkdir:
+            os.makedirs(cache_dir, exist_ok=True)
+
         filepath = get_cache(__name__ + '.pickle')
         init = not path.isfile(filepath)
-        # FIXME: This will fail if there isn't a dir `~/.cachce/vexbot`
+
         self._config = shelve.open(filepath, writeback=True)
+
         if init:
             self._config['extensions'] = {}
             self._config['disabled'] = {}

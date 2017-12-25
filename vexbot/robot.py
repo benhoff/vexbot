@@ -17,7 +17,6 @@ try:
     from vexbot.language import Language
 except ImportError:
     Language = False
-    # FIXME: Handle Error
     _logging.exception('Import Error for language!')
 
 class Robot:
