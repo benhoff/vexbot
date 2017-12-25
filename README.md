@@ -56,7 +56,14 @@ I realize that calling the client and the server by the same name might seem con
 
 Exit the command line client by typing `!exit` or using `ctl+D`.
 
+## Configuring Adapters
+
+Vexbot currently has working Irc, XMPP, Socket IO, and Youtube Live adapters. Unfortunately, you'll have to manually configure them yourself. See the [config directory](https://github.com/benhoff/vexbot/tree/dev/config) for examples. The corresponding `.ini` file can go anywhere (recommend `~/.config/vexbot/`) and the `.service` file should go somewhere where systemd can find it (recommend `~/.config/systemd/user/`). Recommend you name the .service file after the name of the service you are using. For example, rename `irc.service` to `freenode.service` to capture the fact that it provides the an interface to freenode irc.
+
+
 ### Configuring Addresses
+Addresses can be configured for the adapters and the bot itself in the .ini files. This is a bit more advanced and probably not recommended.
+
  The address expected is in the format of `tcp://[ADDRESS]:[PORT_NUMBER]`. 
  For example `tcp://127.0.0.1:5617` is a valid address. 127.0.0.1 is the ADDRESS and 5617 is the PORT_NUMBER. 
 
