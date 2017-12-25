@@ -22,7 +22,7 @@ with open(os.path.join(directory, 'README.rst')) as f:
 """
 
 _str_form = '{}={}{}'
-_result = []
+_extensions = []
 for name, extension in extensions.items():
     extras = extension.get('extras')
     if extras is None:
@@ -31,7 +31,7 @@ for name, extension in extensions.items():
         extras = ', '.join(extras)
         extras = ' [' + extras + ']'
     line = _str_form.format(name, extension['path'], extras)
-    _result.append(line)
+    _extensions.append(line)
 
 setup(
     name="vexbot",
@@ -58,7 +58,7 @@ setup(
                                       'vexbot_youtube=vexbot.adapters.youtube:main',
                                       'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main',
                                       'vexbot_generate_certificates=vexbot.util.generate_certificates:main'],
-                    'vexbot_extensions': _result},
+                    'vexbot_extensions': _extensions},
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[
         'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
@@ -75,7 +75,7 @@ setup(
         ],
 
     extras_require={
-        'nlp': ['spacy', 'sklearn', 'sklearn_crfsuite', 'wheel'],
+        'nlp': ['wheel', 'spacy', 'sklearn', 'sklearn_crfsuite'],
         'socket_io': ['requests', 'websocket-client'],
         'summarization': ['gensim', 'newspaper3k'],
         'youtube': ['google-api-python-client'],
