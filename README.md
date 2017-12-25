@@ -18,8 +18,6 @@ Installing is a bit involved. You will need an active DBus user session bus. Dep
 
 `$ source <DIR>/bin/activate`
 
-`$ pip install git+https://github.com/benhoff/vexmessage@dev`
-
 `$ ln -s /usr/lib/python3/dist-packages/gi* <DIR>/lib/python3.5/site-packages/`
 
 `$ pip install vexbot[process_manager]`
