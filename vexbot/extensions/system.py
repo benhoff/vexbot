@@ -15,6 +15,15 @@ def cpu_count(logical=True, *args, **kwargs):
     return '{} CPU {}'.format(cores, word)
 
 
+def cpu_frequency(*args, **kwargs):
+    freq = psutil.cpu_freq()
+    if freq is None:
+        return ('CPU frequency file moved or not present. See: '
+                'https://stackoverflow.com/questions/42979943/python3-psutils')
+
+    return [x.max for x in freq]
+
+
 def virtual_memory_percent(*arg, **kwargs):
     percent = psutil.virtual_memory().percent
     return '{}%'.format(percent)

@@ -44,4 +44,9 @@ def get_cache(self, *args, **kwargs):
 
 
 def delete_cache(self, *args, **kwargs):
-    pass
+    for key in list(self._config.keys()):
+        self._config.pop(key)
+        self._config.sync()
+
+    return ('Cache cleared. Please restart service to remove traces of old '
+            'cache.')
