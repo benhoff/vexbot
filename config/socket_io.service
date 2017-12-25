@@ -1,0 +1,11 @@
+[Unit]
+Description=Socket IO Adpater for Vexbot
+
+[Service]
+Type=simple
+ExecStart=/path/to/socket_io/binary /path/to/config
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

@@ -1,156 +1,116 @@
-import sys
-import atexit
-import signal
-from subprocess import Popen, DEVNULL
+import time
+# import atexit
+# import signal
 
 
+from pydbus import SessionBus as _SessionBus
+from pydbus import SystemBus as _SystemBus
+
+
+def _name_helper(name: str):
+    """
+    default to returning a name with `.service`
+    """
+    name = name.rstrip()
+    if name.endswith(('.service', '.socket', '.target')):
+        return name
+    return name + '.service'
+
+
+def _pretty_time_delta(seconds):
+    seconds = abs(int(seconds))
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    if days > 0:
+        return '%dday %dh' % (days, hours)
+    elif hours > 0:
+        return '%dh %dmin' % (hours, minutes)
+    elif minutes > 0:
+        return '%dmin %dsec' % (minutes, seconds)
+    else:
+        return '{}s'.format(seconds)
+
+
+# TODO: think of a better name
 class SubprocessManager:
     def __init__(self):
-        # this is going to be a list of filepaths
-        self._registered = {}
-        self._settings = {}
-        # these will be subprocesses
-        self._subprocess = {}
-        atexit.register(self._close_subprocesses)
-        signal.signal(signal.SIGINT, self._handle_close_signal)
-        signal.signal(signal.SIGTERM, self._handle_close_signal)
-        self.blacklist = ['shell', ]
-
-    def _handle_close_signal(self, signum=None, frame=None):
-        self._close_subprocesses()
-        sys.exit()
-
-    def _close_subprocesses(self):
-        """
-        signum and frame are part of the signal lib
-        """
-        for process in self._subprocess.values():
-            process.terminate()
-
-    def registered_subprocesses(self):
-        """
-        returns all possible subprocesses that can be launched
-        """
-        return tuple(self._registered.keys())
-
-    def register(self, key: str, value, settings: dict=None):
-        self._settings[key] = settings
-        if key in self.blacklist:
-            return
-        self._registered[key] = value
-
-    def update_setting_value(self,
-                             name: str,
-                             setting_name: str,
-                             setting_value):
-
+        self.session_bus_available = True
         try:
-            self._settings[name][setting_name] = setting_value
-        except KeyError:
-            pass
+            self.bus = _SessionBus()
+        # NOTE: GError from package `gi`
+        except Exception:
+            # No session bus if we're here. Depending on linux distro, that's
+            # not surprising
+            self.session_bus_available = False
 
-    def update_settings(self, name: str, settings: dict):
-        """
-        Need to pass in the subprocess name, a setting to be changed,
-        and the value to change the setting to
-        """
-        old_settings = self._settings.get(name)
-        if old_settings:
-            old_settings.update(settings)
+        # TODO: It's possible that the user is on a system that is not using
+        # systemd, which means that this next call will fail. Should probably
+        # have a try/catch and then just default to not having a subprocess
+        # manager if that happens.
+        self.system_bus = _SystemBus()
+
+        # TODO: Verify that we can start services as the system bus w/o root
+        # permissions
+        if self.session_bus_available:
+            self.systemd = self.bus.get('.systemd1')
         else:
-            self._settings[name] = settings
+            self.systemd = self.system_bus.get('.systemd1')
 
-    def get_settings(self, key: str):
-        """
-        trys to get the settings information for a given subprocess. Passes
-        silently when there is no information
-        """
-        settings = self._settings.get(key)
-        return settings
+        # atexit.register(self._close_subprocesses)
+        # signal.signal(signal.SIGINT, self._handle_close_signal)
+        # signal.signal(signal.SIGTERM, self._handle_close_signal)
 
-    def start(self, keys: list):
-        """
-        starts subprocesses. Can pass in multiple subprocess to start
-        """
-        for key in keys:
-            executable = self._registered.get(key)
-            if executable is None:
-                continue
+    def start(self, name: str, mode: str='replace') -> None:
+        # TODO: add in some parsing if fail
+        # https://github.com/LEW21/pydbus/issues/35
+        name = _name_helper(name)
+        self.systemd.StartUnit(name, mode)
 
-            dict_list = [executable, ]
-            settings = self._settings.get(key, {})
-            filepath = settings.get('filepath')
-            if filepath:
-                dict_list.append(filepath)
+    def restart(self, name: str, mode: str='replace') -> None:
+        name = _name_helper(name)
+        self.systemd.ReloadOrRestartUnit(name, mode)
 
-            args = settings.get('args', [])
-            if args:
-                dict_list.extend(args)
+    def stop(self, name: str, mode: str='replace') -> None:
+        name = _name_helper(name)
+        self.systemd.StopUnit(name, mode)
 
-            for k, v in settings.items():
-                if k == 'filepath':
-                    continue
-                dict_list.append(k)
-                dict_list.append(v)
+    def _uptime(self, unit):
+        time_start = unit.ConditionTimestamp/1000000
+        delta = time.time() - time_start
+        delta = _pretty_time_delta(delta)
+        return delta
 
-            process = Popen(dict_list, stdout=DEVNULL)
-            return_code = process.poll()
-            if return_code is None:
-                self._subprocess[key] = process
+    def uptime(self, name: str) -> str:
+        unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
+        return self._uptime(unit) 
 
-    def restart(self, values: list):
-        """
-        restarts subprocesses managed by the subprocess manager
-        """
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
+    def status(self, name: str) -> str:
+        name = _name_helper(name)
+        unit = self.bus.get('.systemd1', self.systemd.GetUnit(name))
+        # NOTE: what systemctl status shows
+        # freenode.service - IRC Client
+        # active (running) since Tue 2017-10-17 10:36:03 UTC; 19s ago
+        delta = self._uptime(unit)
+        fo = '%a %b %d %H:%M:%S %Y'
+        time_start = time_start = unit.ConditionTimestamp/1000000 
+        time_stamp = time.strftime(fo, time.gmtime(time_start))
+        return '{}: {} ({}) since {}; {} ago'.format(unit.Id,
+                                                     unit.ActiveState,
+                                                     unit.SubState,
+                                                     time_stamp,
+                                                     delta)
 
-            process.terminate()
-            self.start((value, ))
+    def get_units(self):
+        return self.systemd.ListUnits()
 
-    def kill(self, values: list):
-        """
-        kills subprocess that is managed by the subprocess manager.
-        If value does not match, quietly passes for now
-        """
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
-            process.kill()
+    """
+    def mask(self, name: str):
+        pass
 
-    def terminate(self, values: list):
-        for value in values:
-            try:
-                process = self._subprocess[value]
-            except KeyError:
-                continue
-            process.terminate()
+    def unmask(self, name: str):
+        pass
 
     def killall(self):
-        """
-        Kills every registered subprocess
-        """
-        for subprocess in self._subprocess.values():
-            subprocess.kill()
-
-    def running_subprocesses(self):
-        """
-        returns all running subprocess names
-        """
-        results = []
-        killed = []
-        for name, subprocess in self._subprocess.items():
-            poll = subprocess.poll()
-            if poll is None:
-                results.append(name)
-            else:
-                killed.append(name)
-        if killed:
-            for killed_subprocess in killed:
-                self._subprocess.pop(killed_subprocess)
-        return results
+        pass
+    """

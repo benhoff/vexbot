@@ -1,0 +1,11 @@
+[Unit]
+Description=Helper robot
+
+[Service]
+Type=simple
+ExecStart=/path/to/vexbot/script 
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

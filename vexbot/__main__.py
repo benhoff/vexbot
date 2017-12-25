@@ -1,33 +1,54 @@
-import atexit
+#!/usr/bin/env python3
 
-from vexbot.commands.start_vexbot import start_vexbot
-from vexbot.adapters.shell import main as shell_main
+# import atexit
+
+try:
+    import setproctitle as _setproctitle
+except ImportError:
+    _setproctitle = False
+
+from vexbot import _port_configuration_helper
+
+from vexbot.robot import Robot
+from vexbot.util.get_config_filepath import get_config_filepath
+from vexbot.util.get_kwargs import get_kwargs as _get_kwargs
+from vexbot.util.get_config import get_config as _get_config
 
 
-def _kill_vexbot(process):
-    def inner():
-        process.terminate()
+def _configuration_sane_defaults(configuration: dict) -> (dict, str):
+    default_vexbot_settings = {'bot_name': 'vexbot'}
+    # Get the settings out of the configuration, falling back on the defaults
+    vexbot_settings = configuration.get('vexbot', default_vexbot_settings)
+    # Get the robot name out of the configuration, falling back on the default
+    robot_name = vexbot_settings.get('bot_name', 'vexbot')
 
-    return inner
+    return robot_name
 
 
-def main():
-    settings, process = start_vexbot()
-    if process and settings.get('kill_on_exit'):
-        atexit.register(_kill_vexbot(process))
+def main(*args, **kwargs):
+    """
+    `kwargs`:
 
-    shell_settings = settings['shell']
-    if process is None:
-        already_running = True
-    else:
-        already_running = False
-    shell_settings['--already_running'] = already_running
-    for key in set(shell_settings.keys()):
-        value = shell_settings.pop(key)
-        shell_settings[key[2:]] = value
+        `configuration_filepath`: filepath for the `ini` configuration
+    """
+    kwargs = {**kwargs, **_get_kwargs()}
+    # FIXME: This filepath handeling is messed up and not transparent as it should be
+    default_filepath = get_config_filepath()
+    configuration_filepath = kwargs.get('configuration_filepath')
+    if configuration_filepath is None:
+        configuration_filepath = default_filepath
+    # configuration is from an `ini` file
+    configuration = _get_config(configuration_filepath)
+    # setup some sane defaults
+    robot_name = _configuration_sane_defaults(configuration)
+    # Get the port configuration out of the configuration
+    port_config = _port_configuration_helper(configuration)
+    # create the settings manager using the port config
+    if _setproctitle:
+        _setproctitle.setproctitle('vexbot')
 
-    # Launch the shell interface
-    shell_main(**shell_settings)
+    robot = Robot(robot_name, port_config)
+    robot.run()
 
 
 if __name__ == "__main__":

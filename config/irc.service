@@ -1,0 +1,12 @@
+[Unit]
+Description=IRC Client for Vexbot
+
+[Service]
+Type=simple
+ExecStart=/path/to/virtual/env/binary /path/to/config
+
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

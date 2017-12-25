@@ -4,24 +4,66 @@
 
 Pluggable bot
 
-Under heavy development. 
-Not ready for general use outside of driving [chatimusmaximus](https://github.com/benhoof/chatimusmaximus)
+Under development. Very useable but currently not feature complete.
 
-Requires python 3.5
+## Requirements
+Requires python 3.5 for asyncio.
 
 ## Installation
-recommend running out of a virutalenv
+Installing is a bit involved. You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example). For Ubuntu:
 
-So activate your virual environment and run:
+`$ apt-get install dbus-user-session python3-gi python3-dev python3-pip build-essential`
 
-`pip3 install vexbot`
+`$ python3 -m venv <DIR>`
+
+`$ source <DIR>/bin/activate`
+
+`$ pip install git+https://github.com/benhoff/vexmessage@dev`
+
+`$ ln -s /usr/lib/python3/dist-packages/gi* <DIR>/lib/python3.5/site-packages/`
+
+`$ pip install vexbot[process_manager]`
+
+To use the command line interface:
+
+`$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
 
 ## Configuring
-Base your configuration on the [default settings](https://github.com/benhoff/vexbot/blob/master/vexbot/default_settings.yml). The configuration handeling hasn't been user proofed so if you're getting errors, that's a good place to start.
+
+Make sure your virtual environment is activated. Then run:
+
+`$ vexbot_generate_certificates`
+
+`$ vexbot_generate_unit_file`
+
+`$ systemctl --user daemon-reload`
+
+Your bot is ready to run!
+
+## Running
+
+`$ systemctl --user start vexbot`
+ 
+Or
+
+`$ vexbot_robot`
+
+Please note that vexbot has a client/server architecture. The above commands will launch the server. To launch the command line client:
+
+`$ vexbot`
+
+I realize that calling the client and the server by the same name might seem confusing, but in practice I haven't found it to be an issue.
+
+Exit the command line client by typing `!exit` or using `ctl+D`.
+
+## Configuring Adapters
+
+Vexbot currently has working Irc, XMPP, Socket IO, and Youtube Live adapters. Unfortunately, you'll have to manually configure them yourself. See the [config directory](https://github.com/benhoff/vexbot/tree/dev/config) for examples. The corresponding `.ini` file can go anywhere (recommend `~/.config/vexbot/`) and the `.service` file should go somewhere where systemd can find it (recommend `~/.config/systemd/user/`). Recommend you name the .service file after the name of the service you are using. For example, rename `irc.service` to `freenode.service` to capture the fact that it provides the an interface to freenode irc.
+
 
 ### Configuring Addresses
- Vexbot uses messaging and subprocesses for different services. This has some advantages/disadvantages of this approach, but the reason it's staying is it allows the developer some decreased congnitive load while developing this project.
- 
+Addresses can be configured for the adapters and the bot itself in the .ini files. This is a bit more advanced and probably not recommended.
+
  The address expected is in the format of `tcp://[ADDRESS]:[PORT_NUMBER]`. 
  For example `tcp://127.0.0.1:5617` is a valid address. 127.0.0.1 is the ADDRESS and 5617 is the PORT_NUMBER. 
 
@@ -31,13 +73,86 @@ Base your configuration on the [default settings](https://github.com/benhoff/vex
  
  The value of the `publish_address` and `subscribe_address` at the top of the settings file are likely what you want to copy for the `publish_address` and `subscribe_address` under shell, irc, xmpp, youtube, and socket_io if you're running everything locally on one computer. But you don't have to. You could run all the services on one computer and the main robot on a different computer. You would just need to configure the address and ports correctly, as well as work through any networking/port issues going across the local area network (LAN).
 
-## Running
-if everything is in your path correctly, open a console and run
+## Packages
 
-`vexbot --settings_path /path/to/your/settings/here`
+ | required packages | License |
+ |-------------------|---------|
+ | vexmessage        | GPL3    |
+ | pyzmq             | BSD     |
+ | rx                | Apache  |
+ | tblib             | BSD     |
+ | tornado           | Apache  |
 
-as a short hand
+### Optional Packages
 
-`vexbot --s /path/to/your/settings/here`
+ | nlp              | License |
+ |------------------|---------|
+ | spacy            |         |
+ | sklearn          |         |
+ | sklearn_crfsuite |         |
+ | wheel            |         |
 
-or you can set the environmental variable `VEXBOT_SETTINGS` to be the absolute path to your settings file
+
+ | socket_io        | License |
+ |------------------|---------|
+ | requests         |         |
+ | websocket-client |         |
+
+
+ | summarization | License |
+ |---------------|---------|
+ | gensim        |         |
+ | newspaper3k   |         |
+
+
+ | youtube                  | License |
+ |--------------------------|---------|
+ | google-api-python-client |         |
+
+
+ | dev    | License |
+ |--------|---------|
+ | flake8 |         |
+ | twine  |         |
+ | wheel  |         |
+
+
+ | xmpp      | License |
+ |-----------|---------|
+ | sleekxmpp |         |
+ | dnspython |         |
+
+
+ | process_name | License |
+ |--------------|---------|
+ | setproctitle |         |
+
+
+ | speechtotext | License |
+ |--------------|---------|
+ | speechtotext |         |
+
+
+ | process_manager | License |
+ |-----------------|---------|
+ | pydus           |         |
+
+
+ | gui             | License |
+ |-----------------|---------|
+ | chatimusmaximus |         |
+
+
+ | irc  | License |
+ |------|---------|
+ | irc3 |         |
+
+
+ | microphone | License |
+ |------------|---------|
+ | microphone |         |
+
+
+ | speechtotext | License |
+ |--------------|---------|
+ | speechtotext |         |

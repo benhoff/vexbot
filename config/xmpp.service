@@ -1,0 +1,11 @@
+[Unit]
+Description=XMPP Adapter for vexbot
+
+[Service]
+Type=simple
+ExecStart=/path/to/xmpp/script /path/to/config/file
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
