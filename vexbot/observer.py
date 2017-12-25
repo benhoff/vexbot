@@ -33,9 +33,10 @@ class Observer(metaclass=_ABCMeta):
                hidden: bool=False,
                instancemethod: bool=False,
                roles: list=None,
-               update: bool=True):
+               update: bool=True,
+               short: str=None):
 
-        _extend(self.__class__, method, alias, name, hidden, instancemethod, roles)
+        _extend(self.__class__, method, alias, name, hidden, instancemethod, roles, short)
         update_method = getattr(self, 'update_commands')
         if update and update_method:
             update_method()

@@ -42,3 +42,10 @@ def start(self, *args, mode: str='replace', **kwargs) -> None:
 
 def uptime(self, *args, name: str='vexbot.service', **kwargs):
     return self.subprocess_manager.uptime(name)
+
+
+uptime._meta = 'process_uptime'
+restart._meta = 'restart_process'
+start._meta = 'start_process'
+status._meta = 'status_process'
+stop._meta = 'stop_process'

@@ -27,6 +27,7 @@ for name, extension in extensions.items():
     extras = extension.get('extras')
     if extras is None:
         extras = ''
+    # FIXME: This will error out weirdly if there's not a list
     else:
         extras = ', '.join(extras)
         extras = ' [' + extras + ']'

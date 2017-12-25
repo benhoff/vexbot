@@ -28,8 +28,8 @@ from vexbot.extensions import (subprocess,
 
 try:
     from vexbot.subprocess_manager import SubprocessManager
-# FIXME: Need to log here
 except ImportError:
+    logging.exception('Could not import SubprocessManager!')
     SubprocessManager = None
 
 
@@ -47,23 +47,30 @@ class CommandObserver(Observer):
                   subprocess.stop,
                   subprocess.restart,
                   subprocess.status,
-                  subprocess.uptime,
-                  log.debug,
-                  # log.set_log_info,
-                  develop.get_code,
-                  develop.get_members,
                   admin.disable,
                   extensions.add_extensions,
                   extensions.get_extensions,
                   extensions.get_installed_extensions,
                   extensions.get_installed_modules,
                   extensions.remove_extension,
+                  admin.get_disabled,
+                  # extensions.add_extensions_from_dict
                   {'method': extensions.add_extensions_from_dict,
                    'hidden': True},
-                  admin.get_disabled,
-                  admin.update,
-                  admin.install,
-                  admin.update)
+
+                  # log.set_debug
+                  {'method': log.set_debug,
+                   'alias': ['debug']},
+
+                  # log.set_info
+                  {'method': log.set_info,
+                   'hidden': True,
+                   'alias': ['info']},
+
+                  # log.set_default
+                  {'method': log.set_default,
+                   'hidden': True,
+                   'alias': ['warn']})
 
     def __init__(self,
                  messaging,
@@ -83,7 +90,9 @@ class CommandObserver(Observer):
         filepath = get_cache(__name__ + '.pickle')
         init = not path.isfile(filepath)
 
-        self._config = shelve.open(filepath, writeback=True)
+        # NOTE: The `u` means: Do not lock the database.
+        # This can easily corrupt the database
+        self._config = shelve.open(filepath, flag='cu', writeback=True)
 
         if init:
             self._config['extensions'] = {}
@@ -93,7 +102,7 @@ class CommandObserver(Observer):
         self._prompt = prompt
         self.messaging = messaging
         # Get the root logger to set it to different levels
-        self._root = logging.getLogger()
+        self.root_logger = logging.getLogger()
         self.logger = logging.getLogger(__name__)
 
         self._bot_callback = None
@@ -108,7 +117,10 @@ class CommandObserver(Observer):
 
     def update_commands(self):
         for name, method in inspect.getmembers(self):
-            if name.startswith('do_'):
+            # NOTE: Weird corner case where `self.messaging` gets picked up
+            if method == self.messaging:
+                continue
+            elif name.startswith('do_'):
                 self._commands[name[3:]] = method
             elif getattr(method, 'command', False):
                 self._commands[name] = method
@@ -119,15 +131,17 @@ class CommandObserver(Observer):
                 for alias in method.alias:
                     self._commands[alias] = method
 
-    @intent(name='stop_chatter')
-    def do_stop_print(self, *args, **kwargs):
+    # @intent(name='stop_chatter')
+    @command(short='Stops the messages from being printed out on display')
+    def stop_print(self, *args, **kwargs):
         self._prompt._print_subscription.dispose()
 
     def is_command(self, command: str) -> bool:
         return command in self._commands
 
-    @intent(name='start_chatter')
-    def do_start_print(self, *args, **kwargs):
+    # @intent(name='start_chatter')
+    @command(short='Starts printing the messages out on display')
+    def start_print(self, *args, **kwargs):
         if not self._prompt._print_subscription.is_disposed:
             return
 
@@ -139,7 +153,8 @@ class CommandObserver(Observer):
         _, value, _ = _sys.exc_info()
         print('{}: {}'.format(value.__class__.__name__, value))
 
-    def do_help(self, *arg, **kwargs):
+    @command(short='Displays what commands do and provides general help')
+    def help(self, *arg, **kwargs):
         """
         Help helps you figure out what commands do.
         Example usage: !help code
@@ -155,22 +170,25 @@ class CommandObserver(Observer):
             callback = self._commands[name]
         except KeyError:
             self.logger.info(' !help not found for: %s', name)
-            return self.do_help.__doc__
+            return self.help.__doc__
 
         return callback.__doc__
 
-    # @command(alias=['warn'], hidden=True)
-    def do_logging_default(self, *args, **kwargs):
-        self._root.setLevel(logging.WARN)
-
-    def do_hidden(self, *args, **kwargs):
+    @command(short='Shows what commands are hidden from `!commands`')
+    def hidden(self, *args, **kwargs):
         results = []
         for k, v in self._commands.items():
             if hasattr(v, 'hidden') and v.hidden:
-                results.append('!' + k)
+                doc = getattr(v, 'short', 'No Documentation')
+                results.append('!{}: {}'.format(k, doc))
             else:
                 continue
         return results
+
+    @command(short='Hides a command')
+    def hide(self, *args, **kwargs):
+        # FIXME: Implement
+        pass
 
     def on_completed(self, *args, **kwargs):
         pass
@@ -195,7 +213,8 @@ class CommandObserver(Observer):
     def set_no_bot_callback(self, callback):
         self._no_bot_callback = callback
 
-    def do_subscribe(self, *args, **kwargs):
+    @command(short='Subscribe to a publish port')
+    def subscribe(self, *args, **kwargs):
         """
         Subscribe to a publish port. Example:
         `vexbot: !subscribe tcp://127.0.0.1:3000`
@@ -208,10 +227,12 @@ class CommandObserver(Observer):
                                    ' example: tcp://10.2.3.4:80'
                                    'address tried {}'.format(address))
 
-    def do_authors(self, *args, **kwargs) -> tuple:
+    @command(short='Returns all the authors', hidden=True)
+    def authors(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.author_interface.authors.keys())
 
-    def do_color(self, *args, **kwargs):
+    @command(short='Changes the color a author\'s name is displayed as')
+    def color(self, *args, **kwargs):
         author = None
         try:
             author = args[0]
@@ -225,16 +246,17 @@ class CommandObserver(Observer):
         if self._prompt.print_observer:
             del self._prompt.print_observer._author_color[author]
 
-    # @command(alias=['quit',])
-    def do_exit(self, *args, **kwargs):
+    @command(alias=['quit',], short='Exits the command line program')
+    def exit(self, *args, **kwargs):
         _sys.exit(0)
 
-    def do_history(self, *args, **kwargs) -> list:
+    @command(short='shows the last 15 commands executed', hidden=True)
+    def history(self, *args, **kwargs) -> list:
         if self._prompt:
             return self._prompt.history.strings[-15:]
    
-    @command(alias=['suggestions',])
-    def do_autosuggestions(self, *args, **kwargs):
+    @command(short='Shows all of the Autocompletion commands', hidden=True)
+    def suggestions(self, *args, **kwargs):
         if self._prompt:
             return self._prompt._word_completer.words
 
@@ -251,44 +273,38 @@ class CommandObserver(Observer):
             return
         return result
 
-    def do_services(self, *args, **kwargs) -> list:
+    @command(short='shows all of the services that have been seen',
+             hidden=True)
+    def services(self, *args, **kwargs) -> list:
         return self._prompt.service_interface.services
 
-    def do_filter(self, *args, **kwargs):
-        if not args:
-            raise ValueError('Must supply something to filter against!')
-        for name in args:
-            for handler in self._root.handlers:
-                handler.addFilter(logging.Filter(name))
-
-    def do_anti_filter(self, *args, **kwargs):
-        def filter_(record: logging.LogRecord):
-            if record.name in args:
-                return False
-            return True
-        for handler in self._root.handlers:
-            handler.addFilter(filter_)
-
-    def do_channels(self, *args, **kwargs) -> tuple:
+    @command(short='See all of the channels available',
+             hidden=True)
+    def channels(self, *args, **kwargs) -> tuple:
         return tuple(self._prompt.service_interface.channels.keys())
 
-    def do_time(sef, *args, **kwargs) -> str:
+    @command(short='See the current time', hidden=True)
+    def time(sef, *args, **kwargs) -> str:
         time_format = "%H:%M:%S"
         time = strftime(time_format, localtime())
         return time
 
-    @command(alias=['get_commands'])
-    def do_commands(self, *args, **kwargs) -> list:
-        commands = self._get_commands()
+    @command(alias=['get_commands'], short='Get all commands')
+    def commands(self, with_doc=True, *args, **kwargs) -> list:
+        commands = self._get_commands(with_doc)
         return sorted(commands, key=str.lower)
 
-    def _get_commands(self) -> list:
+    def _get_commands(self, with_doc=False) -> list:
         results = []
         for k, v in self._commands.items():
             if hasattr(v, 'hidden') and v.hidden:
                 continue
             else:
-                results.append('!' + k)
+                doc = getattr(v, 'short', 'No Documentation')
+                if with_doc:
+                    results.append('!{}: {}'.format(k, doc))
+                else:
+                    results.append('!{}'.format(k))
         return results
 
 

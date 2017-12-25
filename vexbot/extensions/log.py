@@ -13,7 +13,6 @@ def log_level(self,
     Returns:
         The log level if a `level` is passed in
     """
-    self.root_logger = logging.getLogger()
     if level is None:
         return self.root_logger.getEffectiveLevel()
     # NOTE: `setLevel` takes both string and integers. Try to cast to an integer first
@@ -26,41 +25,40 @@ def log_level(self,
     self.root_logger.setLevel(value)
 
 
-def debug(self, *args, **kwargs):
-    self.root_logger = logging.getLogger()
+def set_debug(self, *args, **kwargs) -> None:
     self.root_logger.setLevel(logging.DEBUG)
+    try:
+        self.messaging.pub_handler.setLevel(logging.DEBUG)
+    except Exception:
+        pass
 
 
-def set_log_debug(self, *args, **kwargs) -> None:
-    self.root_logger = logging.getLogger()
-    self.root_logger.setLevel(logging.DEBUG)
-    # FIXME
-    self.messaging.pub_handler.setLevel(logging.DEBUG)
-
-
-def set_log_info(self, *args, **kwargs) -> None:
+def set_info(self, *args, **kwargs) -> None:
     """
     Sets the log level to `INFO`
     """
-    self.root_logger = logging.getLogger()
     self.root_logger.setLevel(logging.INFO)
-    self.messaging.pub_handler.setLevel(logging.INFO)
+    try:
+        self.messaging.pub_handler.setLevel(logging.INFO)
+    except Exception:
+        pass
+
+def set_default(self, *args, **kwargs):
+    self.root_logger.setLevel(logging.WARN)
 
 
-# FIXME
 def filter_logs(self, *args, **kwargs):
     if not args:
         raise ValueError('Must supply something to filter against!')
     for name in args:
-        for handler in self._root.handlers:
+        for handler in self.root_logger.handlers:
             handler.addFilter(logging.Filter(name))
 
 
-# FIXME
 def anti_filter(self, *args, **kwargs):
     def filter_(record: logging.LogRecord):
         if record.name in args:
             return False
         return True
-    for handler in self._root.handlers:
+    for handler in self.root_logger.handlers:
         handler.addFilter(filter_)

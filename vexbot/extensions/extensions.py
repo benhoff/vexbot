@@ -61,6 +61,13 @@ def add_extensions_from_dict(self, extensions: dict):
         values = dict(extensions[entry.name])
         kwargs = values.pop('kwargs', {})
         values.update(kwargs)
+        if values.get('short') is None:
+            meta = _meta_data.get(entry.name)
+            if meta is None:
+                values['short'] = _meta_data.get(getattr(function, '_meta', 'No Documentation'))
+            else:
+                values['short'] = meta.get('short', 'No Documentation')
+
         name = values.pop('call_name', function.__name__)
         _extend(self.__class__, function, **values)
 

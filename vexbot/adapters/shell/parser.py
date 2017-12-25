@@ -58,4 +58,24 @@ def parse(strings: list):
             except IndexError:
                 break
 
+    for k, v in dict(kwargs).items():
+        if v in ('true', 'True'):
+            kwargs[k] = True
+            continue
+        if v in ('False', 'false'):
+            kwargs[k] = False
+            continue
+        try:
+            v = int(v)
+            kwargs[k] = v
+            continue
+        except ValueError:
+            pass
+        try:
+            v = float(v)
+            kwargs[k] = v
+        # NOTE: End of the line
+        except ValueError:
+            continue
+
     return args, kwargs
