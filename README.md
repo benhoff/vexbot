@@ -24,7 +24,7 @@ Installing is a bit involved. You will need an active DBus user session bus. Dep
 
 `$ pip install vexbot[process_manager]`
 
-To use `vexshell`:
+To use the command line interface:
 
 `$ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0`
 
