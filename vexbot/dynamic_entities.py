@@ -1,3 +1,5 @@
+# NOTE: Unimplemented
+
 
 def pass():
     levels = ('debug', 'info', 'warning', 'warn', 'error', 'critical',

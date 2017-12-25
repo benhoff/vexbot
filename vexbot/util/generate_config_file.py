@@ -11,7 +11,7 @@ from vexbot.util.get_vexdir_filepath import get_config_dir
 def _systemd_user_filepath() -> str:
     config = get_config_dir()
     config = path.join(config, 'systemd', 'user')
-    os.mkdirs(config, exist_ok=True)
+    os.makedirs(config, exist_ok=True)
     return path.join(config, 'vexbot.ini')
 
 
@@ -20,7 +20,10 @@ def _get_vexbot_robot():
         if entry_point.name == 'vexbot_robot':
             # TODO: call the `require` function first and provide an installer
             # so that we can get the matching `Distribution` instance?
-            return insepct.getsourcefile(entry_point.resolve())
+            return inspect.getsourcefile(entry_point.resolve())
+
+    raise RuntimeError('Entry point for `vexbot_robot` not found! Are you '
+                       'sure it\'s installed?')
 
 
 def config(filepath=None, remove_config=False):
@@ -49,7 +52,7 @@ def config(filepath=None, remove_config=False):
 def main():
     remove_config = input('Remove config if present? Y/n: ')
     remove_config = remove_config.lower()
-    if remove_config == 'y':
+    if remove_config in ('y', 'yes', 'ye'):
         remove_config = True
     else:
         remove_config = False

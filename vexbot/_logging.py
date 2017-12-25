@@ -30,7 +30,9 @@ class LoopPubHandler(logging.Handler):
         exc_info = info['exc_info']
 
         if exc_info is not None:
-            # FIXME 
+            # FIXME: It's hard to transmit an exception because the Error type 
+            # might be defined in a library that is not installed on the
+            # receiving side. Not sure what the best way to do this is.
             info['exc_info'] = Traceback(exc_info[2]).to_dict()
             """
             new_exc_info = []

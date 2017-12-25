@@ -3,7 +3,7 @@ from zmq.eventloop.zmqstream import ZMQStream
 
 class Scheduler:
     def __init__(self):
-        # NOTE: This will probably go into the SocketFactory
+        # FIXME: Move into the SocketFactory
         self._streams = []
 
     def register_socket(self, socket, loop, on_recv):

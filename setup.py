@@ -57,7 +57,8 @@ setup(
                                       'vexbot_socket_io=vexbot.adapters.socket_io.__main__:main',
                                       'vexbot_youtube=vexbot.adapters.youtube:main',
                                       'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main',
-                                      'vexbot_generate_certificates=vexbot.util.generate_certificates:main'],
+                                      'vexbot_generate_certificates=vexbot.util.generate_certificates:main',
+                                      'vexbot_generate_unit_file=vexbot.util.generate_config_file:main'],
                     'vexbot_extensions': _extensions},
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[

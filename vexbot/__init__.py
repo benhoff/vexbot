@@ -2,6 +2,7 @@ import logging
 from vexbot._version import __version__ # flake8: noqa
 
 # FIXME: probably don't want to add NullHandler here
+# This is here to prevent the default handler being added upon init of the program
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
