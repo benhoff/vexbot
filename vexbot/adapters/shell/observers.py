@@ -1,6 +1,7 @@
 import os
 import sys as _sys
 from time import localtime, strftime
+import inspect as _inspect
 from random import randrange
 import inspect
 import logging
@@ -31,6 +32,13 @@ try:
 except ImportError:
     logging.exception('Could not import SubprocessManager!')
     SubprocessManager = None
+
+try:
+    import pygments
+    from pygments.lexers import Python3Lexer
+    from pygments.formatters import Terminal256Formatter
+except ImportError:
+    pygments = False
 
 
 def _get_attributes(output, color: str):
@@ -173,6 +181,23 @@ class CommandObserver(Observer):
             return self.help.__doc__
 
         return callback.__doc__
+
+    @command(alias=['get_source'], short='Get the python source code for a command')
+    def get_code(self, *args, **kwargs):
+        name = args[0]
+        if any([name.startswith(x) for x in self._prompt.shebangs]):
+            name = name[1:]
+
+        callback = self._commands[name]
+        source = _inspect.getsourcelines(callback)[0]
+        source = ''.join(source)
+
+        if not pygments:
+            return source
+        else:
+            return pygments.highlight(source,
+                                      Python3Lexer(),
+                                      Terminal256Formatter(style='vim'))
 
     @command(short='Shows what commands are hidden from `!commands`')
     def hidden(self, *args, **kwargs):
