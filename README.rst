@@ -262,85 +262,119 @@ Addresses can be configured for the adapters and the bot itself in the .ini file
 Packages
 --------
 
- | required packages | License |
- |-------------------|---------|
- | vexmessage        | GPL3    |
- | pyzmq             | BSD     |
- | rx                | Apache  |
- | tblib             | BSD     |
- | tornado           | Apache  |
++===================+=========+
+| required packages | License |
++===================+=========+
+| vexmessage        | GPL3    |
++-------------------+---------+
+| pyzmq             | BSD     |
++-------------------+---------+
+| rx                | Apache  |
++-------------------+---------+
+| tblib             | BSD     |
++-------------------+---------+
+| tornado           | Apache  |
++-------------------+---------+
 
 Optional Packages
 -----------------
 
- | nlp              | License |
- |------------------|---------|
- | spacy            |         |
- | sklearn          |         |
- | sklearn_crfsuite |         |
- | wheel            |         |
++==================+=========+
+| nlp              | License |
++==================+=========+
+| spacy            |         |
++------------------+---------+
+| sklearn          |         |
++------------------+---------+
+| sklearn_crfsuite |         |
++------------------+---------+
+| wheel            |         |
+
++==================+=========+
+| socket_io        | License |
++==================+=========+
+| requests         |         |
++------------------+---------+
+| websocket-client |         |
++------------------+---------+
+
++===============+=========+
+| summarization | License |
++===============+=========+
+| gensim        |         |
++---------------+---------+
+| newspaper3k   |         |
++---------------+---------+
+
++==========================+=========+
+| youtube                  | License |
++==========================+=========+
+| google-api-python-client |         |
++--------------------------+---------+
+
++========+=========+
+| dev    | License |
++========+=========+
+| flake8 |         |
++--------+---------+
+| twine  |         |
++--------+---------+
+| wheel  |         |
++--------+---------+
+
++===========+=========+
+| xmpp      | License |
++===========+=========+
+| sleekxmpp |         |
++-----------+---------+
+| dnspython |         |
++-----------+---------+
 
 
- | socket_io        | License |
- |------------------|---------|
- | requests         |         |
- | websocket-client |         |
++==============+=========+
+| process_name | License |
++==============+=========+
+| setproctitle |         |
++--------------+---------+
 
 
- | summarization | License |
- |---------------|---------|
- | gensim        |         |
- | newspaper3k   |         |
++==============+=========+
+| speechtotext | License |
++==============+=========+
+| speechtotext |         |
++--------------+---------+
 
 
- | youtube                  | License |
- |--------------------------|---------|
- | google-api-python-client |         |
++=================+=========+
+| process_manager | License |
++=================+=========+
+| pydus           |         |
++-----------------+---------+
 
 
- | dev    | License |
- |--------|---------|
- | flake8 |         |
- | twine  |         |
- | wheel  |         |
++=================+=========+
+| gui             | License |
++=================+=========+
+| chatimusmaximus |         |
++-----------------+---------+
 
 
- | xmpp      | License |
- |-----------|---------|
- | sleekxmpp |         |
- | dnspython |         |
++======+=========+
+| irc  | License |
++======+=========+
+| irc3 |         |
++------+---------+
 
 
- | process_name | License |
- |--------------|---------|
- | setproctitle |         |
++============+=========+
+| microphone | License |
++============+=========+
+| microphone |         |
++------------+---------+
 
 
- | speechtotext | License |
- |--------------|---------|
- | speechtotext |         |
-
-
- | process_manager | License |
- |-----------------|---------|
- | pydus           |         |
-
-
- | gui             | License |
- |-----------------|---------|
- | chatimusmaximus |         |
-
-
- | irc  | License |
- |------|---------|
- | irc3 |         |
-
-
- | microphone | License |
- |------------|---------|
- | microphone |         |
-
-
- | speechtotext | License |
- |--------------|---------|
- | speechtotext |         |
++==============+=========+
+| speechtotext | License |
++==============+=========+
+| speechtotext |         |
++--------------+---------+
