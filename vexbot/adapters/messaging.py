@@ -1,51 +1,93 @@
-import uuid
-import time
-import logging
-import json 
+"""
+Attributes:
+    Messaging: Used for creating Adapter messaging
+"""
 
-import zmq
-from zmq.eventloop import IOLoop
-from zmq.eventloop.ioloop import PeriodicCallback
+import uuid as _uuid
+import time as _time
+import logging as _logging
+import json as _json
+import threading as _threading
+from typing import Callable as _Callable
+
+import zmq as _zmq
+from zmq.eventloop import IOLoop as _IOLoop
+from zmq.eventloop.ioloop import PeriodicCallback as _PeriodicCallback
 
 from rx.subjects import Subject as _Subject
 
 from vexbot import _get_default_adapter_config
-from vexbot._logging import MessagingLogger
+from vexbot._logging import MessagingLogger as _MessagingLogger
 from vexbot.util.socket_factory import SocketFactory as _SocketFactory
 
-from vexmessage import create_vex_message, decode_vex_message, Request
+from vexmessage import create_vex_message as _create_vex_msg
+from vexmessage import decode_vex_message as _decode_vex_msg
+from vexmessage import Request as _Request
+# NOTE: used only for Typing purposes
+from vexmessage import Message as _Message
 
 from vexbot.util.messaging import get_addresses as _get_addresses
-from vexbot.scheduler import Scheduler
+from vexbot.scheduler import Scheduler as _Scheduler
 
 
+# TODO: Change this class to be a `UUIDChecker` or something similar
 class _HeartbeatReciever:
-    def __init__(self, messaging, loop, identity_callback=None):
-        self.messaging = messaging
-        self._heart_beat_check = PeriodicCallback(self._get_state, 1000, loop)
-        self.last_message = None
-        self._last_bot_uuid = None
-        self._last_message_time = time.time()
+    """
+    Checks for Robot UUID's in Messages to determine when to send an IDENT
+    request.
 
+    Counts a message, or anything coming across the chatter socket as proof of
+    life. Call the `start` method to activate, and use the `message_recieved`
+    method with each incoming message
+
+    Stores UUID's to represent the latest bot.
+    NOTE: Does not support multiple bots, will trigger the `identity_callback`
+    repeatedly if there are multiple bots sending messages with different UUIDs
+    """
+    def __init__(self,
+                 # Messaging type defined below
+                 messaging,
+                 loop: _IOLoop,
+                 identity_callback: _Callable=None):
+
+        self.messaging = messaging
+        self._heart_beat_check = _PeriodicCallback(self._get_state, 1000, loop)
+        self._last_bot_uuid = None
+        self.last_message = None
+        self._last_message_time = _time.time()
+
+        # logging
         name = self.messaging._service_name
         name = name + '.messaging.heartbeat'
+        self.logger = _logging.getLogger(name)
 
-        self.logger = logging.getLogger(name)
         self.identity_callback = identity_callback
 
     def start(self):
-        self.logger.info(' Start Heart Beat')
+        """
+        Used to start the UUID checking. Non-blocking
+        """
         self._heart_beat_check.start()
+        self.logger.info(' Started UUID Checking')
 
-    def message_recieved(self, message):
-        self._last_message_time = time.time()
+    def message_recieved(self, message: _Message):
+        """
+        """
+        self._last_message_time = _time.time()
         self.last_message = message
 
-    def _get_state(self):
+    def _get_state(self) -> None:
+        """
+        Internal method that accomplishes checking to make sure that the UUID
+        has not changed
+        """
+        # Don't need to go any further if we don't have a message
         if self.last_message is None:
             return
 
+        # get the latest message UUID
         uuid = self.last_message.uuid
+        # Check it against the stored UUID
         if uuid != self._last_bot_uuid:
             self.logger.info(' UUID message mismatch')
             self.logger.debug(' Old UUID: %s | New UUID: %s',
@@ -53,20 +95,31 @@ class _HeartbeatReciever:
                               uuid)
 
             self.send_identity()
+            # Store the latest message UUID now that we've sent an IDENT
             self._last_bot_uuid = uuid
 
     def send_identity(self):
-        identify_frame = (b'', 
+        """
+        Send the identity of the service.
+        """
+        service_name = {'service_name': self.messaging._service_name}
+        service_name = _json.dumps(service_name).encode('utf8')
+
+        identify_frame = (b'',
                           b'IDENT',
-                          json.dumps([]).encode('utf8'),
-                          json.dumps({'service_name': self.messaging._service_name}).encode('utf8'))
+                          _json.dumps([]).encode('utf8'),
+                          service_name)
 
-        self.logger.info(' Service Identity sent: %s', self.messaging._service_name)
-
+        # NOTE: Have to do this manually since we built the frame
         if self.messaging._run_control_loop:
-            self.messaging.add_callback(self.messaging.command_socket.send_multipart, identify_frame)
+            # pep8 alias
+            send = self.messaging.command_socket.send_multipart
+            self.messaging.add_callback(send, identify_frame)
         else:
             self.messaging.command_socket.send_multipart(identify_frame)
+
+        self.logger.info(' Service Identity sent: %s',
+                         self.messaging._service_name)
 
         if self.identity_callback:
             self.identity_callback()
@@ -80,40 +133,91 @@ class Messaging:
                  socket_configuration: dict=None,
                  **kwargs):
         """
-        `socket_configuration`:
-            protocol:   'tcp'
-            address: '*'
-            chatter_publish_port: 4000
-            chatter_subscription_port: [4001,]
-            command_port: 4002
-            request_port: 4003
-            control_port: 4005
+        Adapter Messaging Helper. In the future this class will likely be
+        broken into two concerete implementations. In the meantime, do _NOT_
+        use the sockets methods individually. If the class is running a
+        control loop this will throw an error. Use the `add_callback` method
+        if you must to access the socket methods.
+
+        If you do not use the internal control loop, you will have to recv
+        each method individually, and call the `on_next` method for the
+        appropriate subject
+
+        Args:
+            service_name (str): The name of the service that this messaging
+                will provide. If multiple instances are to be launched, need
+                generate a unique service name everytime or it will cause
+                errors
+            socket_filter (str): An optional filter to put on the chatter
+                socket. Recommend leaving as is unless you are publishing
+                chatter messages with targets.
+            run_control_loop (bool): If `True`, this class will run all of
+                it's code asyncrously using an `IOLoop`. If `False`, all called
+                commands will be blocking in a sense. Recommend setting this
+                to `True` unless you are integrating another control loop in
+                place of `IOLoop`.
+            socket_configuration (:obj:`dict`, optional): The zmq socket
+                configuration. Defaults to a locally run assistant, show below
+                {
+                    'protocol':   'tcp'
+                    'address': '127.0.0.1'
+                    'chatter_publish_port': 4000
+                    'chatter_subscription_port': [4001,]
+                    'command_port': 4002
+                    'request_port': 4003
+                    'control_port': 4005
+                }
+            **kwargs: Currently unused
+
+        Attributes:
+            chatter (rx.Subject): Use the `subscribe` method on this to get
+                access to all imcoming messages, including heartbeats.
+            command (rx.Subject): Use the `subscribe` method on this to get
+                access to all incoming commands coming from the robot.
+            request (rx.Subject): Currently unused
+            send_chatter (Callable): Send chatter to the robot. Useful for
+                chat systems such as IRC/XMPP/Slack, etc.
+            send_command (Callable): Send a command to the robot. Be careful
+                to authenticate your users as the robot has no authentication.
+            send_command_response (Callable): Send a response back to the
+                robot in response to a command
+            add_callback (Callable): add a callback to the control loop if it
+                is being run
+            run (Callable): run the internal event loop
         """
         self._run_control_loop = run_control_loop
-        self.scheduler = Scheduler()
         # Get the default port configurations
         self.config = _get_default_adapter_config()
         # update the default port configurations with the kwargs
         if socket_configuration is not None:
             self.config.update(socket_configuration)
 
+        # sockets intiialized using `self._setup()`
         self.publish_socket = None
         self.subscription_socket = None
         self.command_socket = None
         self.control_socket = None
         self.request_socket = None
 
+        self.chatter = _Subject()
+        self.command = _Subject()
+        self.request = _Subject()
+
         # store the service name and the configuration
         self._service_name = service_name
-        self._uuid = str(uuid.uuid1())
+        # Create a uuid for the service
+        self._uuid = str(_uuid.uuid1())
 
         self._socket_filter = socket_filter
-        self._logger = logging.getLogger(self._service_name + '.messaging')
-        self.loop = IOLoop()
-
+        self._logger = _logging.getLogger(self._service_name + '.messaging')
         socket = {'address': self.config['address'],
                   'protocol': self.config['protocol'],
                   'logger': self._logger}
+
+        # NOTE: Internal control loop. This is instantiated regardless of if
+        # it's used. This will likely be split into it's own concrete class
+        # at some point.
+        self.loop = _IOLoop()
 
         if run_control_loop:
             socket['loop'] = self.loop
@@ -122,16 +226,17 @@ class Messaging:
         # converts the config from ports to zmq ip addresses
         self._config_convert_to_address_helper()
 
+        # Overhead/Implementation attributes
+        self._run_thread = None
         self._heartbeat_reciever = _HeartbeatReciever(self, self.loop)
-        self.chatter = _Subject()
-        self.command = _Subject()
-        self.request = _Subject()
+        self._messaging_logger = _MessagingLogger(service_name)
+        # FIXME: push this code/logic into `_SocketFactory`
+        self.scheduler = _Scheduler()
 
-        self._messaging_logger = MessagingLogger(service_name)
-
-    def _config_convert_to_address_helper(self):
+    def _config_convert_to_address_helper(self) -> None:
         """
         converts the config from ports to zmq ip addresses
+        Operates on `self.config` using `self._socket_factory.to_address`
         """
         to_address = self._socket_factory.to_address
         for k, v in self.config.items():
@@ -140,10 +245,17 @@ class Messaging:
             if k.endswith('port'):
                 self.config[k] = to_address(v)
 
-    def add_callback(self, callback, *args, **kwargs):
+    def add_callback(self, callback: _Callable, *args, **kwargs) -> None:
+        """
+        Add a callback to the event loop
+        """
         self.loop.add_callback(callback, *args, **kwargs)
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Start the internal control loop. Potentially blocking, depending on
+        the value of `_run_control_loop` set by the initializer.
+        """
         self._setup()
 
         if self._run_control_loop:
@@ -152,6 +264,34 @@ class Messaging:
             return self.loop.start()
         else:
             self._logger.debug(' run_control_loop == False')
+
+    def run(self, blocking: bool=True):
+        """
+        Run the internal control loop.
+        Args:
+            blocking (bool): Defaults to `True`. If set to `False`, will
+                intialize a thread to run the control loop.
+        Raises:
+            RuntimeError: If called and not using the internal control loop
+                via `self._run_control_loop`, set in the intializer of the
+                class
+        """
+        if not self._run_control_loop:
+            err = ("`run` called, but not using the internal control loop. Use"
+                   " `start` instead")
+
+            raise RuntimeError(err)
+
+        self._setup()
+        self._heartbeat_reciever.start()
+
+        if blocking:
+            return self.loop.start()
+        else:
+            self._run_thread = _threading.Thread(target=self.loop.start,
+                                                 daemon=True)
+
+            self._thread.run()
 
     def _setup(self):
         self._logger.info(' Setup Sockets')
@@ -162,22 +302,22 @@ class Messaging:
         publish_address = self.config['chatter_publish_port']
 
         # Instantiate all the sockets
-        self.command_socket = create_n_conn(zmq.DEALER,
+        self.command_socket = create_n_conn(_zmq.DEALER,
                                             command_address,
                                             socket_name='command socket')
         self._messaging_logger.command.info(' Address: %s', command_address)
 
-        self.control_socket = create_n_conn(zmq.DEALER,
+        self.control_socket = create_n_conn(_zmq.DEALER,
                                             control_address,
                                             socket_name='control socket')
         self._messaging_logger.control.info(' Address: %s', control_address)
 
-        self.request_socket = create_n_conn(zmq.ROUTER,
+        self.request_socket = create_n_conn(_zmq.ROUTER,
                                             request_address,
                                             socket_name='request socket')
         self._messaging_logger.request.info(' Address: %s', request_address)
 
-        self.publish_socket = create_n_conn(zmq.PUB,
+        self.publish_socket = create_n_conn(_zmq.PUB,
                                             publish_address,
                                             socket_name='publish socket')
         self._messaging_logger.publish.info(' Address: %s', publish_address)
@@ -185,9 +325,12 @@ class Messaging:
         iter_ = self._socket_factory.iterate_multiple_addresses
         subscription_address = iter_(self.config['chatter_subscription_port'])
         multiple_conn = self._socket_factory.multiple_create_n_connect
-        self.subscription_socket = multiple_conn(zmq.SUB,
+
+        # pep8 alias
+        s_socket = 'subscription socket'
+        self.subscription_socket = multiple_conn(_zmq.SUB,
                                                  subscription_address,
-                                                 socket_name='subscription socket')
+                                                 socket_name=s_socket)
 
         info = self._messaging_logger.subscribe.info
         [info(' Address: %s', x) for x in subscription_address]
@@ -195,9 +338,6 @@ class Messaging:
         self.set_socket_filter(self._socket_filter)
         if self._run_control_loop:
             self._setup_scheduler()
-
-    def add_callback(self, callback, *args, **kwargs):
-        self.loop.add_callback(callback, *args, **kwargs)
 
     def _setup_scheduler(self):
         self._logger.info(' Registering sockets to the IO Loop.')
@@ -222,7 +362,7 @@ class Messaging:
         self._socket_filter = filter_
 
         if self.subscription_socket:
-            self.subscription_socket.setsockopt_string(zmq.SUBSCRIBE, filter_)
+            self.subscription_socket.setsockopt_string(_zmq.SUBSCRIBE, filter_)
             self._messaging_logger.subscribe.info(' Socket Filter: %s',
                                                   filter_)
 
@@ -231,9 +371,13 @@ class Messaging:
                                             target,
                                             msg)
 
-        frame = create_vex_message(target, self._service_name, self._uuid, **msg)
-        self._messaging_logger.publish.debug(' Send chatter run_control loop: %s',
-                                             self._run_control_loop)
+        frame = _create_vex_msg(target,
+                                self._service_name,
+                                self._uuid,
+                                **msg)
+
+        debug = ' Send chatter run_control loop: %s'
+        self._messaging_logger.publish.debug(debug, self._run_control_loop)
 
         if self._run_control_loop:
             self.add_callback(self.publish_socket.send_multipart, frame)
@@ -241,10 +385,14 @@ class Messaging:
             self.publish_socket.send_multipart(frame)
 
     def send_log(self, *args, **kwargs):
-        frame = create_vex_message('', self._service_name, self._uuid, **kwargs)
+        frame = _create_vex_msg('',
+                                self._service_name,
+                                self._uuid,
+                                **kwargs)
+
         if self._run_control_loop:
             self.add_callback(self.publish_socket.send_multipart,
-                              frame) 
+                              frame)
         else:
             self.publish_socket.send_multipart(frame)
 
@@ -252,16 +400,16 @@ class Messaging:
         """
         For request bot to perform some action
         """
-        self._messaging_logger.command.info('send command `%s` to bot. Args: %s | Kwargs: %s',
-                                            command, args, kwargs)
+        info = 'send command `%s` to bot. Args: %s | Kwargs: %s'
+        self._messaging_logger.command.info(info, command, args, kwargs)
 
         command = command.encode('utf8')
         # target = target.encode('ascii')
-        args = json.dumps(args).encode('utf8')
-        kwargs = json.dumps(kwargs).encode('utf8')
+        args = _json.dumps(args).encode('utf8')
+        kwargs = _json.dumps(kwargs).encode('utf8')
         frame = (b'', command, args, kwargs)
-        self._messaging_logger.command.debug(' send command run_control_loop: %s',
-                                             self._run_control_loop)
+        debug = ' send command run_control_loop: %s'
+        self._messaging_logger.command.debug(debug, self._run_control_loop)
 
         if self._run_control_loop:
             self.add_callback(self.command_socket.send_multipart, frame)
@@ -275,9 +423,13 @@ class Messaging:
         # FIXME
         # frame = create_vex_message()
         raise NotImplemented()
-        self.command_socket.send_multipart(frame)
+        # self.command_socket.send_multipart(frame)
 
     def send_response(self, status, target='', **kwargs):
+        """
+        NOT IMPLEMENTED
+        """
+
         """
         frame = create_vex_message(target,
                                    self._service_name,
@@ -297,12 +449,16 @@ class Messaging:
         else:
             self.command_socket.send_multipart(frame)
 
-    def send_command_response(self, source: list, command: str, *args, **kwargs):
+    def send_command_response(self,
+                              source: list,
+                              command: str,
+                              *args,
+                              **kwargs):
         """
         Used in bot observer `on_next` method
         """
-        args = json.dumps(args).encode('utf8')
-        kwargs = json.dumps(kwargs).encode('utf8')
+        args = _json.dumps(args).encode('utf8')
+        kwargs = _json.dumps(kwargs).encode('utf8')
         if isinstance(source, list):
             frame = (*source, b'', command.encode('utf8'), args, kwargs)
         else:
@@ -334,7 +490,7 @@ class Messaging:
             return
         try:
             socket.disconnect(address)
-        except zmq.error.ZMQError:
+        except _zmq.error.ZMQError:
             pass
 
         self._address[socket_name] = None
@@ -344,7 +500,7 @@ class Messaging:
             self._messaging_logger.command.info('Pong response')
             return True
 
-    def handle_raw_command(self, message) -> Request:
+    def handle_raw_command(self, message) -> _Request:
         # blank string
         first_char = message.pop(0)
         is_address = False
@@ -365,7 +521,8 @@ class Messaging:
         else:
             addresses = None
 
-        self._messaging_logger.command.debug(' first index in message: %s', first_char)
+        debug = ' first index in message: %s'
+        self._messaging_logger.command.debug(debug, first_char)
         # command.
         command = message.pop(0).decode('utf8')
         self._messaging_logger.command.debug(' command: %s', command)
@@ -374,7 +531,7 @@ class Messaging:
         args = message.pop(0)
         self._messaging_logger.command.debug('args: %s', args)
         try:
-            args = json.loads(args.decode('utf8'))
+            args = _json.loads(args.decode('utf8'))
         except EOFError:
             args = ()
         # need to see if we have kwargs, so we'll try and pop them off
@@ -386,13 +543,14 @@ class Messaging:
             pass
         else:
             try:
-                kwargs = json.loads(kwargs.decode('utf8'))
+                kwargs = _json.loads(kwargs.decode('utf8'))
             except EOFError:
                 kwargs = {}
-        self._messaging_logger.command.debug(' kwargs: %s', kwargs) 
+        self._messaging_logger.command.debug(' kwargs: %s', kwargs)
         # TODO: use better names, request? command?
-        # NOTE: this might be different since it's on the other side of the command
-        request = Request(command, addresses)
+        # NOTE: this might be different since it's on the other side of the
+        # command
+        request = _Request(command, addresses)
         request.args = args
         request.kwargs = kwargs
         return request
@@ -418,10 +576,11 @@ class Messaging:
     def _subscribe_helper(self, msg):
         # TODO: error log? sometimes it's just a subscription notice
         if len(msg) == 1:
-            self._messaging_logger.subscribe.debug(' Len message == 1: %s', msg)
+            debug = ' Len message == 1: %s'
+            self._messaging_logger.subscribe.debug(debug, msg)
             return
 
-        msg = decode_vex_message(msg)
+        msg = _decode_vex_msg(msg)
         """
         self._messaging_logger.subscribe.info(' msg recieved: %s %s %s %s',
                                               msg.source,
@@ -434,4 +593,7 @@ class Messaging:
         self.chatter.on_next(msg)
 
     def _request_helper(self, msg):
+        """
+        NOT IMPLEMENTED
+        """
         print(msg)
