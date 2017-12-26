@@ -48,7 +48,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Operating System :: OS Independent'],
+        'Operating System :: POSIX :: Linux'],
+
     author='Ben Hoff',
     author_email='beohoff@gmail.com',
     entry_points={'console_scripts': ['vexbot=vexbot.adapters.shell.__main__:main',
