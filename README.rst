@@ -28,6 +28,7 @@ For Ubuntu:
 For everyone:
 
 .. code-block:: bash
+
   $ python3 -m venv <DIR>
 
 .. code-block:: bash
@@ -246,7 +247,7 @@ Actually you probably want the ability to dynamically load commands, persist you
 That should be enough to get you started.
 
 Configuring ZMQ Addresses
----------------------
+-------------------------
 
 Addresses can be configured for the adapters and the bot itself in the .ini files. This is a bit more advanced and probably not recommended.
 
