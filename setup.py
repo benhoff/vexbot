@@ -82,7 +82,7 @@ setup(
         'socket_io': ['requests', 'websocket-client'],
         'summarization': ['gensim', 'newspaper3k'],
         'youtube': ['google-api-python-client'],
-        'dev': ['flake8', 'twine', 'wheel', 'pygments'],
+        'dev': ['flake8', 'twine', 'wheel', 'pygments', 'sphinx'],
         'xmpp': ['sleekxmpp', 'dnspython'],
         'process_name': ['setproctitle'],
         'speechtotext': ['speechtotext'],
