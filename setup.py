@@ -21,8 +21,8 @@ with open(os.path.join(directory, 'README.rst')) as f:
     long_description = f.read()
 """
 
-_str_form = '{}={}{}'
-_extensions = []
+str_form = '{}={}{}'
+extensions_ = []
 for name, extension in extensions.items():
     extras = extension.get('extras')
     if extras is None:
@@ -31,8 +31,8 @@ for name, extension in extensions.items():
     else:
         extras = ', '.join(extras)
         extras = ' [' + extras + ']'
-    line = _str_form.format(name, extension['path'], extras)
-    _extensions.append(line)
+    line = str_form.format(name, extension['path'], extras)
+    extensions_.append(line)
 
 setup(
     name="vexbot",
@@ -61,7 +61,7 @@ setup(
                                       'vexbot_stackoverflow=vexbot.adapters.stackoverflow:main',
                                       'vexbot_generate_certificates=vexbot.util.generate_certificates:main',
                                       'vexbot_generate_unit_file=vexbot.util.generate_config_file:main'],
-                    'vexbot_extensions': _extensions},
+                    'vexbot_extensions': extensions_},
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[
         'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0#egg=prompt-toolkit-2.0.0'],

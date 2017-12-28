@@ -12,12 +12,12 @@ Requirements
 
 Requires python 3.5 for asyncio and only runs on linux.
 
- If you're a python developer, you can probably get this to run on not linux.
+If you're a python developer, you can probably get this to run on not linux.
 
 Installation
 ------------
 
-Installing is a bit involved. You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example).
+You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example).
 
 For Ubuntu:
 
@@ -42,12 +42,6 @@ For everyone:
 .. code-block:: bash
 
   $ pip install vexbot[process_manager]
-
-To use the command line interface:
-
-.. code-block:: bash
-	
-  $ pip install git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0
 
 Configuring
 -----------
@@ -94,7 +88,13 @@ Exit the command line client by typing `!exit` or using `ctl+D`.
 Configuring Adapters
 --------------------
 
-Vexbot currently has working Irc, XMPP, Socket IO, and Youtube Live adapters. Unfortunately, you'll have to manually configure them yourself. See the [config directory](https://github.com/benhoff/vexbot/tree/dev/config) for examples. The corresponding `.ini` file can go anywhere (recommend `~/.config/vexbot/`) and the `.service` file should go somewhere where systemd can find it (recommend `~/.config/systemd/user/`). Recommend you name the .service file after the name of the service you are using. For example, rename `irc.service` to `freenode.service` to capture the fact that it provides the an interface to freenode irc.
+Vexbot currently has working Irc, XMPP, Socket IO, and Youtube Live adapters. Unfortunately, you'll have to manually configure them yourself. See the `config directory`_  for examples.
+
+The corresponding `.ini` file can go anywhere (recommend `~/.config/vexbot/`) and the `.service` file should go somewhere where systemd can find it (recommend `~/.config/systemd/user/`). 
+
+Recommend you name the .service file after the name of the service you are using. For example, rename `irc.service` to `freenode.service` to capture the fact that it provides the an interface to freenode irc.
+
+.. _`config directory`: https://github.com/benhoff/vexbot/blob/dev/config
 
 Create A New Adapter
 --------------------
