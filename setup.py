@@ -64,9 +64,7 @@ setup(
                     'vexbot_extensions': _extensions},
     packages=find_packages(), # exclude=['docs', 'tests']
     dependency_links=[
-        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0',
-	'git+https://github.com/benhoff/vexmessage@dev'
-        ],
+        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0#egg=prompt-toolkit-2.0.0'],
 
     install_requires=[
         # 'pluginmanager>=0.4.1',
@@ -74,7 +72,8 @@ setup(
         'vexmessage>=0.4.0',
         'rx',
         'tblib', # traceback serilization
-        'tornado',
+        'tornado', # zmq asnyc framework
+        'prompt-toolkit>=2.0.0', # shell
         ],
 
     extras_require={
@@ -88,12 +87,12 @@ setup(
         'speechtotext': ['speechtotext'],
         'digitalocean': ['python-digitalocean'],
         'process_manager': ['pydbus'],
+        'command_line': ['pygments'],
         'microphone': ['microphone'],
         'database': ['vexstorage'],
         'gui': ['chatimusmaximus'],
         'entity': ['duckling'],
         'irc': ['irc3'],
         'system': ['psutil'],
-        'command_line': ['python-prompt-toolkit', 'pygments'],
     }
 )

@@ -229,6 +229,8 @@ class Messaging:
         # Overhead/Implementation attributes
         self._run_thread = None
         self._heartbeat_reciever = _HeartbeatReciever(self, self.loop)
+        self.chatter.subscribe(self._heartbeat_reciever.message_recieved)
+
         self._messaging_logger = _MessagingLogger(service_name)
         # FIXME: push this code/logic into `_SocketFactory`
         self.scheduler = _Scheduler()
@@ -421,8 +423,8 @@ class Messaging:
         Time critical commands
         """
         # FIXME
-        # frame = create_vex_message()
         raise NotImplemented()
+        # frame = create_vex_message()
         # self.command_socket.send_multipart(frame)
 
     def send_response(self, status, target='', **kwargs):
@@ -500,7 +502,7 @@ class Messaging:
             self._messaging_logger.command.info('Pong response')
             return True
 
-    def handle_raw_command(self, message) -> _Request:
+    def _handle_raw_command(self, message) -> _Request:
         # blank string
         first_char = message.pop(0)
         is_address = False
@@ -556,8 +558,11 @@ class Messaging:
         return request
 
     def _control_helper(self, msg):
+        # FIXME: Create accessors to get the messages
+        # _control_helper -> handle_control_message?
+        # What for creating a public API for our non-control loop users.
         self._messaging_logger.control.info(' recieved message')
-        request = self.handle_raw_command(msg)
+        request = self._handle_raw_command(msg)
 
         if request is None:
             return
@@ -565,8 +570,11 @@ class Messaging:
         self.control.on_next(request)
 
     def _command_helper(self, msg):
+        # FIXME: Create accessors to get the messages
+        # _control_helper -> handle_control_message?
+        # What for creating a public API for our non-control loop users.
         self._messaging_logger.command.info(' recieved message')
-        request = self.handle_raw_command(msg)
+        request = self._handle_raw_command(msg)
 
         if request is None:
             return
@@ -588,8 +596,6 @@ class Messaging:
                                               msg.uuid,
                                               msg.contents)
         """
-
-        self._heartbeat_reciever.message_recieved(msg)
         self.chatter.on_next(msg)
 
     def _request_helper(self, msg):
