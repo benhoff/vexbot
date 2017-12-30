@@ -1,3 +1,8 @@
+====================
+Extension Management
+====================
+
+
 For the most part it's assumed that you are running in the command line program for this documentation.
 
 .. code-block:: bash

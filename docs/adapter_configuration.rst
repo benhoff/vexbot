@@ -1,3 +1,7 @@
+=====================
+Adapter Configuration
+=====================
+
 There are two things that need to be configured for most adapters. The `.service` file which systemd uses to launch the service, and an option configuration file, which can be used to pass in configurations that need to be persisted.
 
 See `this link`_ for example configurations for the packaged adapters. And the below for a primer on ZMQ addresses, if you desire to change the configuration of anything from running locally on the loopback address.

@@ -1,3 +1,7 @@
+===================
+Extension Discovery
+===================
+
 See Installed Extensions
 ------------------------
 
