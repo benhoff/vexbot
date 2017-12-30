@@ -2,6 +2,9 @@
 vexbot
 ======
 
+.. image:: https://readthedocs.org/projects/vexbot/badge/?version=latest
+  :target: http://vexbot.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation Status
 
 Pluggable bot
 
