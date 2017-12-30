@@ -2,9 +2,16 @@
 vexbot
 ======
 
-.. image:: https://readthedocs.org/projects/vexbot/badge/?version=latest
+|readthedocs| |codeclimate|
+
+.. |readthedocs| image:: https://readthedocs.org/projects/vexbot/badge/?version=latest
   :target: http://vexbot.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation Status
+
+.. |codeclimate| image:: https://api.codeclimate.com/v1/badges/c17129f65b11dfef34c0/maintainability.svg
+  :target: https://codeclimate.com/github/benhoff/vexbot/badges/gpa.svg
+  :alt: Climate Status
+
 
 Pluggable bot
 
