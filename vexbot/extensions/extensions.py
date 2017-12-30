@@ -72,10 +72,16 @@ def add_extensions_from_dict(self, extensions: dict):
         _extend(self.__class__, function, **values)
 
 
-def get_extensions(self, *args, values: bool=False, **kwargs):
+def get_extensions(self, *args, values: bool=False, no_doc=False, **kwargs):
     if values:
         return self._config['extensions']
-    return tuple(self._config['extensions'].keys())
+
+    extensions = self._config['extensions'].keys()
+    if no_doc:
+        return tuple(extensions)
+
+    extensions = ['{}: {}'.format(x, _meta_data[x].get('short', 'No Documentation')) for x in extensions]
+    return extensions
 
 
 def remove_extension(self, *args, **kwargs) -> str:
