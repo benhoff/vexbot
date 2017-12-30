@@ -1,12 +1,3 @@
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   index
-   extension_management
-   extension_discovery
-   adapter_development
-   adapter_configuration
-
 Foreword
 --------
 
@@ -189,10 +180,3 @@ Last, but not least, you can specify command name alias's, specify if the comman
       print('Hello World!')
 
 .. _`*args and **kwargs`: https://stackoverflow.com/questions/3394835/args-and-kwargs
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

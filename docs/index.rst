@@ -4,11 +4,13 @@ Welcome to vexbot's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
    extension_development
    extension_management
    extension_discovery
    adapter_development
    adapter_configuration
+   packages
 
 
 .. TODO role_management
