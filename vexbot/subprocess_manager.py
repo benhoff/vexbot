@@ -1,7 +1,6 @@
-import time
+import time as _time
 # import atexit
 # import signal
-
 
 from pydbus import SessionBus as _SessionBus
 from pydbus import SystemBus as _SystemBus
@@ -77,7 +76,7 @@ class SubprocessManager:
 
     def _uptime(self, unit):
         time_start = unit.ConditionTimestamp/1000000
-        delta = time.time() - time_start
+        delta = _time.time() - time_start
         delta = _pretty_time_delta(delta)
         return delta
 
@@ -94,7 +93,7 @@ class SubprocessManager:
         delta = self._uptime(unit)
         fo = '%a %b %d %H:%M:%S %Y'
         time_start = time_start = unit.ConditionTimestamp/1000000 
-        time_stamp = time.strftime(fo, time.gmtime(time_start))
+        time_stamp = _time.strftime(fo, _time.gmtime(time_start))
         return '{}: {} ({}) since {}; {} ago'.format(unit.Id,
                                                      unit.ActiveState,
                                                      unit.SubState,
