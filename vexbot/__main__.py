@@ -15,7 +15,18 @@ from vexbot.util.get_kwargs import get_kwargs as _get_kwargs
 from vexbot.util.get_config import get_config as _get_config
 
 
-def _configuration_sane_defaults(configuration: dict) -> (dict, str):
+def _get_bot_name_gracefully(configuration: dict) -> str:
+    """
+    Parses the bot name out of the expected configuration format, failing
+    gracefully to the default of `vexbot` at every turn.
+
+    Args:
+        configuration (dict): Dict representing the expected file format of
+        {'vexbot': {'bot_name': 'CUSTOM_NAME_HERE'}}
+
+    Returns:
+        str: the custom name, or `vexbot` if parsing fails.
+    """
     default_vexbot_settings = {'bot_name': 'vexbot'}
     # Get the settings out of the configuration, falling back on the defaults
     vexbot_settings = configuration.get('vexbot', default_vexbot_settings)
@@ -25,29 +36,34 @@ def _configuration_sane_defaults(configuration: dict) -> (dict, str):
     return robot_name
 
 
-def main(*args, **kwargs):
+def main(*args, configuration_filepath: str=None, **kwargs) -> None:
     """
-    `kwargs`:
+    Run the robot, using both the command line arguments and the configuration
+    file.
 
-        `configuration_filepath`: filepath for the `ini` configuration
+    Args:
+        configuration_filepath (str): Optional overide for the vexbot
+        configuration filepath
     """
     kwargs = {**kwargs, **_get_kwargs()}
-    # FIXME: This filepath handeling is messed up and not transparent as it should be
-    default_filepath = get_config_filepath()
-    configuration_filepath = kwargs.get('configuration_filepath')
     if configuration_filepath is None:
-        configuration_filepath = default_filepath
-    # configuration is from an `ini` file
+        configuration_filepath = get_config_filepath()
+
+    # configuration is from an `ini` file and parsed using `ConfigParser`
     configuration = _get_config(configuration_filepath)
-    # setup some sane defaults
-    robot_name = _configuration_sane_defaults(configuration)
+
+    # Get the bot name out, smoothly
+    robot_name = _get_bot_name_gracefully(configuration)
+
     # Get the port configuration out of the configuration
     port_config = _port_configuration_helper(configuration)
+
     # create the settings manager using the port config
     if _setproctitle:
         _setproctitle.setproctitle('vexbot')
 
     robot = Robot(robot_name, port_config)
+    # NOTE: Blocking call
     robot.run()
 
 
