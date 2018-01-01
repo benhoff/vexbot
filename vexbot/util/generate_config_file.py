@@ -38,7 +38,7 @@ def config(filepath=None, remove_config=False):
 
     parser = configparser.ConfigParser()
     parser['Unit'] = {'Description': 'Helper Bot'}
-    parser['Service'] = {'Type': 'simple',
+    parser['Service'] = {'Type': 'dbus',
                          'ExecStart': _get_vexbot_robot(),
                          'StandardOutput': 'syslog',
                          'StandardError': 'syslog'}
