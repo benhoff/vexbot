@@ -1,9 +1,9 @@
-import logging
-from os import path
 import os
+import logging
 import inspect
 import configparser
 import pkg_resources
+from os import path
 
 from vexbot.util.get_vexdir_filepath import get_config_dir
 
@@ -12,12 +12,12 @@ def _systemd_user_filepath() -> str:
     config = get_config_dir()
     config = path.join(config, 'systemd', 'user')
     os.makedirs(config, exist_ok=True)
-    return path.join(config, 'vexbot.ini')
+    return path.join(config, 'vexbot.service')
 
 
-def _get_vexbot_robot():
+def _get_vexbot_robot() -> str:
     for entry_point in pkg_resources.iter_entry_points('console_scripts'):
-        if entry_point.name == 'vexbot_robot':
+        if entry_point.name == 'vexbot_robot' and entry_point.dist.project_name == 'vexbot':
             # TODO: call the `require` function first and provide an installer
             # so that we can get the matching `Distribution` instance?
             return inspect.getsourcefile(entry_point.resolve())
