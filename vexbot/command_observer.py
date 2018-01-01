@@ -37,7 +37,8 @@ class CommandObserver(Observer):
                  bot,
                  messaging: Messaging,
                  subprocess_manager: 'vexbot.subprocess_manager.SubprocessManager',
-                 language):
+                 language,
+                 cache_filepath: str=None):
 
         super().__init__()
         self.bot = bot
@@ -45,15 +46,16 @@ class CommandObserver(Observer):
         self.subprocess_manager = subprocess_manager
         self.language = language
 
-        cache_dir = get_cache_dir()
-        mkdir = not path.isdir(cache_dir)
-        if mkdir:
-            os.makedirs(cache_dir, exist_ok=True)
+        if cache_filepath is None:
+            cache_dir = get_cache_dir()
+            mkdir = not path.isdir(cache_dir)
+            if mkdir:
+                os.makedirs(cache_dir, exist_ok=True)
 
-        filepath = get_cache(__name__ + '.pickle')
-        init = not path.isfile(filepath)
+            cache_filepath = get_cache(__name__ + '.pickle')
+            init = not path.isfile(cache_filepath)
 
-        self._config = shelve.open(filepath, writeback=True)
+        self._config = shelve.open(cache_filepath, writeback=True)
 
         if init:
             self._config['extensions'] = {}
