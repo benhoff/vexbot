@@ -2,7 +2,7 @@
 Description=Youtube Adapter for Vexbot
 
 [Service]
-Type=simple
+Type=dbus
 ExecStart=/path/to/youtube/script /path/to/config/file
 StandardOutput=syslog
 StandardError=syslog

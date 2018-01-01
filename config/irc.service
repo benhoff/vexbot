@@ -2,7 +2,7 @@
 Description=IRC Client for Vexbot
 
 [Service]
-Type=simple
+Type=dbus
 ExecStart=/path/to/virtual/env/binary /path/to/config
 
 StandardOutput=syslog

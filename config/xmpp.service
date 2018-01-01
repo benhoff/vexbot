@@ -2,7 +2,7 @@
 Description=XMPP Adapter for vexbot
 
 [Service]
-Type=simple
+Type=dbus
 ExecStart=/path/to/xmpp/script /path/to/config/file
 StandardOutput=syslog
 StandardError=syslog
