@@ -1,29 +1,35 @@
-import pip
-import pkg_resources
+import pip as _pip
+import inspect as _inspect
+import pkg_resources as _pkg_resources
 from vexbot.extensions import extend as _extend
 from vexbot.extension_metadata import extensions as _meta_data
 
+from typing import List as _List
 
-def get_installed_extensions(self, *args, **kwargs):
+_String_list = _List[str]
+
+
+def get_installed_extensions(self, *args: _String_list, **kwargs):
     verify_requirements = True
     name = 'vexbot_extensions'
+    # get_doc = lambda x: x.get('short', 'No Documentation')
     if not args:
-        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in pkg_resources.iter_entry_points(name)]
+        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in _pkg_resources.iter_entry_points(name)]
     else:
-        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in pkg_resources.iter_entry_points(name) if x.module_name in args]
+        extensions = ['{}: {}'.format(x.name, _meta_data[x.name].get('short', 'No Documentation')) for x in _pkg_resources.iter_entry_points(name) if x.module_name in args]
     return sorted(extensions, key=str.lower)
 
 
 def get_installed_modules(self, *args, **kwargs):
     result = set()
-    [result.add(x.module_name) for x in pkg_resources.iter_entry_points('vexbot_extensions')]
+    [result.add(x.module_name) for x in _pkg_resources.iter_entry_points('vexbot_extensions')]
     return result
 
 
-def _install(package) -> pkg_resources.Distribution:
-    pip.main(['install', package.project_name])
-    pkg_resources._initialize_master_working_set()
-    return pkg_resources.get_distribution(package.project_name)
+def _install(package) -> _pkg_resources.Distribution:
+    _pip.main(['install', package.project_name])
+    _pkg_resources._initialize_master_working_set()
+    return _pkg_resources.get_distribution(package.project_name)
 
 
 def add_extensions(self,
@@ -37,13 +43,26 @@ def add_extensions(self,
     # FIXME: implement
     not_found = set()
     # NOTE: The dist should be used to figure out which name we want, not by grabbing blindly
-    entry_points = [x for x in pkg_resources.iter_entry_points('vexbot_extensions') if x.name in args]
+    entry_points = [x
+                    for x
+                    in _pkg_resources.iter_entry_points('vexbot_extensions')
+                    if x.name in args]
+
     for entry in entry_points:
         entry.require(installer=_install)
         function = entry.resolve()
-        values = {'alias': alias, 'call_name': call_name, 'hidden': hidden, 'kwargs': kwargs}
+        values = {'alias': alias,
+                  'call_name': call_name,
+                  'hidden': hidden,
+                  'kwargs': kwargs}
+
         self._config['extensions'][entry.name] = values
-        self.extend(function, alias=alias, name=call_name, hidden=hidden, update=False)
+        self.extend(function,
+                    alias=alias,
+                    name=call_name,
+                    hidden=hidden,
+                    update=False)
+
     self._config.sync()
     update_method = getattr(self, 'update_commands')
     if update and update_method:
@@ -54,7 +73,11 @@ def add_extensions(self,
 
 def add_extensions_from_dict(self, extensions: dict):
     keys = tuple(extensions.keys())
-    entry_points = [x for x in pkg_resources.iter_entry_points('vexbot_extensions') if x.name in keys]
+    entry_points = [x
+                    for x
+                    in _pkg_resources.iter_entry_points('vexbot_extensions')
+                    if x.name in keys]
+
     for entry in entry_points:
         entry.require(installer=_install)
         function = entry.resolve()
@@ -68,7 +91,7 @@ def add_extensions_from_dict(self, extensions: dict):
             else:
                 values['short'] = meta.get('short', 'No Documentation')
 
-        name = values.pop('call_name', function.__name__)
+        values.pop('call_name', function.__name__)
         _extend(self.__class__, function, **values)
 
 
@@ -80,10 +103,35 @@ def get_extensions(self, *args, values: bool=False, no_doc=False, **kwargs):
     if no_doc:
         return tuple(extensions)
 
-    extensions = ['{}: {}'.format(x, _meta_data[x].get('short', 'No Documentation')) for x in extensions]
+    extensions = ['{}: {}'.format(x, _meta_data[x].get('short',
+                                                       'No Documentation'))
+
+                  for x
+                  in extensions]
+
     return extensions
 
 
-def remove_extension(self, *args, **kwargs) -> str:
+def remove_extension(self, *args, **kwargs):
     for arg in args:
-        popped = self._config['extensions'].pop(arg, None)
+        self._config['extensions'].pop(arg, None)
+
+
+def get_signatures(self, *args, **kwargs) -> list:
+    results = []
+    for arg in args:
+        callback = self._commands.get(arg)
+        if callback is None:
+            continue
+
+        results.append(_inspect.signature(callback))
+
+    return results
+
+
+def usage(self, *args, **kwargs) -> str:
+    # NOTE: Man page format
+
+    # SYNOPSIS -> A formal description of how to run it and what command line options it takes. -> typing
+    # DESCRIPTION -> A textual description of the functioning of the command or function.
+    pass
