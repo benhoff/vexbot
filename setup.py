@@ -63,9 +63,6 @@ setup(
                                       'vexbot_generate_unit_file=vexbot.util.generate_config_file:main'],
                     'vexbot_extensions': extensions_},
     packages=find_packages(), # exclude=['docs', 'tests']
-    dependency_links=[
-        'git+https://github.com/jonathanslenders/python-prompt-toolkit@2.0#egg=prompt-toolkit-2.0.0'],
-
     install_requires=[
         # 'pluginmanager>=0.4.1',
         'pyzmq',
