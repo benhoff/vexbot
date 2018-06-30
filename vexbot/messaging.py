@@ -1,14 +1,13 @@
-import time
-import uuid
-import json
-import logging
+import time as _time
+import uuid as _uuid
+import json as _json
+import logging as _logging
 
-import zmq
-import zmq.devices
-from zmq.eventloop import IOLoop
-from zmq.eventloop.ioloop import PeriodicCallback
+import zmq as _zmq
+import zmq.eventloop as _zmq_eventloop
+import zmq.eventloop.ioloop as _zmq_event_ioloop
 
-from rx.subjects import Subject as _Subject
+import rx.subjects as _rx_subjects
 
 from vexbot import _get_default_port_config
 from vexbot.scheduler import Scheduler
@@ -18,30 +17,60 @@ from vexbot.util.lru_cache import LRUCache as _LRUCache
 from vexbot._logging import MessagingLogger
 from vexbot._logging import LoopPubHandler
 
-from vexmessage import create_vex_message, decode_vex_message, Request, Message
+from vexmessage import create_vex_message, decode_vex_message, Request
 
 
 class _HeartbeatHelper:
-    def __init__(self, messaging, loop):
+    def __init__(self, messaging, loop: _zmq_eventloop.IOLoop):
+        """
+        Sends heartbeats every 1.5 seconds if there haven't been any messages
+        sent on the chatter socket
+
+        Args:
+            messaging: See class definition below
+            loop: event loop
+        """
         self.messaging = messaging
-        self.last_message_time = time.time()
-        self._heart_beat = PeriodicCallback(self._send_state, 1000, loop)
+        self.last_message_time = _time.time()
+        # do `self._send_state` every 1 sec
+        self._heart_beat = _zmq_event_ioloop.PeriodicCallback(self._send_state,
+                                                              1000,
+                                                              loop)
+
         name = self.messaging._service_name + '.messaging.heartbeat'
-        self.logger = logging.getLogger(name)
+        self.logger = _logging.getLogger(name)
 
     def start(self):
+        """
+        Starts the heartbeater
+        """
         self.logger.info(' Start Heart Beat')
+        # start `PeriodicCallback`
         self._heart_beat.start()
 
     def message_recieved(self):
-        self.last_message_time = time.time()
+        """
+        Method to reset the last message recieved. Documents the fact that
+        other messages can act as de-facto heartbeats
+        """
+        self.last_message_time = _time.time()
 
     def _send_state(self):
-        time_now = time.time()
+        """
+        Check to see when the last message was sent. If it is greater than
+        1.5 seconds, send the state
+        """
+        time_now = _time.time()
         delta_time = time_now - self.last_message_time
         if delta_time > 1.5:
-            msg = create_vex_message('', self.messaging._service_name, self.messaging.uuid)
-            self.messaging.add_callback(self.messaging.subscription_socket.send_multipart, msg)
+            msg = create_vex_message('',
+                                     self.messaging._service_name,
+                                     self.messaging.uuid)
+
+            # Alias out the `send_multipart` from the subscription socket
+            send = self.messaging.subscription_socket.send_multipart
+            self.messaging.add_callback(send, msg)
+            # reset the time a message was sent out.
             self.last_message_time = time_now
 
 
@@ -63,9 +92,9 @@ class Messaging:
         # override the default with the `kwargs`
         self.config = {**self.config, **kwargs}
         self._service_name = botname
-        self._logger = logging.getLogger(__name__)
+        self._logger = _logging.getLogger(__name__)
         self._messaging_logger = MessagingLogger(botname)
-        self.uuid = str(uuid.uuid1())
+        self.uuid = str(_uuid.uuid1())
         self._logger.info(' uuid: %s', self.uuid)
 
         self.subscription_socket = None
@@ -75,10 +104,10 @@ class Messaging:
         self.request_socket = None
         self.pub_handler = LoopPubHandler(self)
 
-        self.loop = IOLoop()
+        self.loop = _zmq_eventloop.IOLoop()
         self.scheduler = Scheduler()
-        self._heartbeat_helper = _HeartbeatHelper(messaging=self, loop=self.loop)
-
+        self._heartbeat_helper = _HeartbeatHelper(messaging=self,
+                                                  loop=self.loop)
 
         # Socket factory keeps the zmq context, default address and
         # protocol for socket creation.
@@ -91,9 +120,9 @@ class Messaging:
         self._config_convert_to_address_helper()
         self._address_map = _LRUCache(100)
 
-        self.control = _Subject()
-        self.command = _Subject()
-        self.chatter = _Subject()
+        self.control = _rx_subjects.Subject()
+        self.command = _rx_subjects.Subject()
+        self.chatter = _rx_subjects.Subject()
 
     def _config_convert_to_address_helper(self):
         """
@@ -142,25 +171,25 @@ class Messaging:
 
         self._messaging_logger.control.info(' Address: %s', control_address)
         # NOTE: These sockets will exit the program to exit if there's an issue
-        self.control_socket = create_n_conn(zmq.ROUTER,
+        self.control_socket = create_n_conn(_zmq.ROUTER,
                                             control_address,
                                             on_error='exit',
                                             bind=True,
                                             socket_name='control socket')
         self._messaging_logger.publish.info(' Address: %s', publish_address)
         # publish socket is an XSUB socket
-        self.publish_socket = create_n_conn(zmq.XSUB,
+        self.publish_socket = create_n_conn(_zmq.XSUB,
                                             publish_address,
                                             bind=True,
                                             on_error='exit',
                                             socket_name='publish socket')
         self._messaging_logger.command.info(' Address: %s', command_address)
         # NOTE: these sockets will only log an error if there's an issue
-        self.command_socket = create_n_conn(zmq.ROUTER,
+        self.command_socket = create_n_conn(_zmq.ROUTER,
                                             command_address,
                                             bind=True)
         self._messaging_logger.request.info(' Address: %s', request_address)
-        self.request_socket = create_n_conn(zmq.DEALER,
+        self.request_socket = create_n_conn(_zmq.DEALER,
                                             request_address,
                                             bind=True,
                                             socket_name='request socket')
@@ -179,7 +208,7 @@ class Messaging:
         # factory defaults to bind subscription socket is a XPUB socket
         multiple_create = self._socket_factory.multiple_create_n_connect
         name = 'subscription socket'
-        self.subscription_socket = multiple_create(zmq.XPUB,
+        self.subscription_socket = multiple_create(_zmq.XPUB,
                                                    sub_addresses,
                                                    bind=True,
                                                    socket_name=name)
@@ -221,21 +250,25 @@ class Messaging:
                                             target,
                                             chatter)
 
-        frame = create_vex_message(target, self._service_name, self.uuid, **chatter)
+        frame = create_vex_message(target,
+                                   self._service_name,
+                                   self.uuid,
+                                   **chatter)
+
         self.add_callback(self.subscription_socket.send_multipart,
-                          frame) 
+                          frame)
 
     def send_log(self, *args, **kwargs):
         frame = create_vex_message('', self._service_name, self.uuid, **kwargs)
         if self.subscription_socket:
             self.add_callback(self.subscription_socket.send_multipart,
-                              frame) 
+                              frame)
 
     def send_command(self, command: str, target: str='', *args, **kwargs):
         target = target.encode('utf-8')
         command = command.encode('utf-8')
-        args = json.dumps(args).encode('utf8')
-        kwargs = json.dumps(kwargs).encode('utf8')
+        args = _json.dumps(args).encode('utf8')
+        kwargs = _json.dumps(kwargs).encode('utf8')
         self._messaging_logger.command.info('send command %s: %s | %s',
                                             command, args, kwargs)
         frame = (target, command, args, kwargs)
@@ -251,27 +284,32 @@ class Messaging:
     # FIXME: Not implemented
     def send_request(self, target: str, *args, **kwargs):
         """
-        address must a list instance. Or a string which will be transformed into a address
+        address must a list instance. Or a string which will be transformed
+        into a address
         """
         # TODO: Log error here if not found?
         address = self._get_address_from_source(target)
         if address is None:
             return
 
-        args = json.dumps(args).encode('utf8')
-        kwargs = json.dumps(kwargs).encode('utf8')
+        args = _json.dumps(args).encode('utf8')
+        kwargs = _json.dumps(kwargs).encode('utf8')
 
         # TODO: test that this works
         # NOTE: pop out command?
         frame = (*address, b'', b'MSG', args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
-    def send_command_response(self, source: list, command: str, *args, **kwargs):
+    def send_command_response(self,
+                              source: list,
+                              command: str,
+                              *args,
+                              **kwargs):
         """
         Used in bot observer `on_next` method
         """
-        args = json.dumps(args).encode('utf8')
-        kwargs = json.dumps(kwargs).encode('utf8')
+        args = _json.dumps(args).encode('utf8')
+        kwargs = _json.dumps(kwargs).encode('utf8')
         frame = (*source, b'', command.encode('utf8'), args, kwargs)
         self.add_callback(self.command_socket.send_multipart, frame)
 
@@ -305,9 +343,11 @@ class Messaging:
         # NOTE: Message format is [command, args, kwargs]
         args = message.pop(0)
         try:
-            args = json.loads(args.decode('utf8'))
+            args = _json.loads(args.decode('utf8'))
         except Exception:
-            self._logger.exception(' could not load command. Is the json dump\'d correctly?')
+            err = ' could not load command. Is the json dump\'d correctly?'
+            self._logger.exception(err)
+
             args = ()
         self._messaging_logger.command.debug(' args: %s', args)
         # need to see if we have kwargs, so we'll try and pop them off
@@ -317,7 +357,7 @@ class Messaging:
             kwargs = {}
         else:
             try:
-                kwargs = json.loads(kwargs.decode('utf8'))
+                kwargs = _json.loads(kwargs.decode('utf8'))
             except Exception:
                 err = ' could not load command. Is the json dump\'d correctly?'
                 self._messaging_logger.command.exception(err)
@@ -355,7 +395,11 @@ class Messaging:
         msg = decode_vex_message(msg)
         self.chatter.on_next(msg)
         # FIXME: Awkward way to replace the uuid by creating a new vexmessage
-        msg = create_vex_message(msg.target, msg.source, self.uuid, **msg.contents)
+        msg = create_vex_message(msg.target,
+                                 msg.source,
+                                 self.uuid,
+                                 **msg.contents)
+
         self.loop.add_callback(self.subscription_socket.send_multipart, msg)
         self._heartbeat_helper.message_recieved()
 

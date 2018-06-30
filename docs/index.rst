@@ -1,5 +1,13 @@
-Welcome to vexbot's documentation!
-==================================
+Vexbot Documentation
+====================
+
+Vexbot currently serves as a chatbot/chat aggrgator. Connect many different chat services into one!
+It's being developed as a personal assistant bot. The idea is to provide computing services across any medium.
+
+.. getting started
+.. link to user documentation
+.. link to developer documentation
+.. reference documentation
 
 .. toctree::
    :maxdepth: 2
@@ -16,51 +24,6 @@ Welcome to vexbot's documentation!
 .. TODO role_management
 .. Should commands be called extensions?
 
-
-Installation
-------------
-
-You will need an active DBus user session bus. Depending on your distro, you might already have one (Arch linux, for example).
-
-For Ubuntu:
-
-.. code-block:: bash
-
-  $ apt-get install dbus-user-session python3-gi python3-dev python3-pip build-essential
-
-For everyone:
-
-.. code-block:: bash
-
-  $ python3 -m venv <DIR>
-
-.. code-block:: bash
-
-  $ source <DIR>/bin/activate
-
-.. code-block:: bash
-
-  $ ln -s /usr/lib/python3/dist-packages/gi <DIR>/lib/python3.5/site-packages/
-
-.. code-block:: bash
-
-  $ pip install vexbot[process_manager]
-
-Make sure your virtual environment is activated. Then run:
-
-.. code-block:: bash
-
-  $ vexbot_generate_certificates
-
-.. code-block:: bash
-
- $ vexbot_generate_unit_file
-
-.. code-block:: bash
-
- $ systemctl --user daemon-reload
-
-Your bot is ready to run!
 
 Running
 -------
