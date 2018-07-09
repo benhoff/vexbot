@@ -11,6 +11,7 @@ from os import path
 
 from tblib import Traceback
 from prompt_toolkit.styles import Attrs
+from prompt_toolkit.output import ColorDepth
 
 from vexmessage import Message, Request
 
@@ -43,11 +44,13 @@ except ImportError:
 
 def _get_attributes(output, color: str):
     attr = Attrs(color=color, bgcolor='', bold=False, underline=False,
-                 italic=False, blink=False, reverse=False)
-    if output.true_color() and not output.ansi_colors_only():
-        return output._escape_code_cache_true_color[attr]
-    else:
-        return output._escape_code_cache[attr]
+                 italic=False, blink=False, reverse=False, hidden=False)
+    # if output.true_color() and not output.ansi_colors_only():
+        # return output._escape_code_cache_true_color[attr]
+    # else:
+    # FIXME: probably want this to be configurable
+    escape_code_caches = output._escape_code_caches[ColorDepth.default()]
+    return escape_code_caches[attr]
 
 
 class CommandObserver(Observer):

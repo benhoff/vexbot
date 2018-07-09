@@ -6,7 +6,7 @@ import pprint as _pprint
 import logging
 from threading import Thread as _Thread
 
-from prompt_toolkit.shortcuts import Prompt
+from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from zmq.eventloop.ioloop import PeriodicCallback
@@ -49,7 +49,7 @@ def _get_default_history_filepath():
     return path.join(vexdir, 'vexshell_history')
 
 
-class Shell(Prompt):
+class Shell(PromptSession):
     def __init__(self, history_filepath=None):
         self._logger = logging.getLogger(__name__)
         if history_filepath is None:
