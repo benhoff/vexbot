@@ -89,7 +89,7 @@ def main():
     _check_vexbot_filepath(create_if_missing=True)
     cert_path = get_certificate_filepath()
     if not os.path.exists(cert_path):
-        os.mkdir(cert_path)
+        os.makedirs(cert_path, exist_ok=True)
 
     remove_certificates = input('Remove certificates if present? Y/n: ')
     remove_certificates = remove_certificates.lower()
