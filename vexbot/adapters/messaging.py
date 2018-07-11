@@ -2,7 +2,7 @@
 Attributes:
     Messaging: Used for creating Adapter messaging
 """
-
+import asyncio
 import uuid as _uuid
 import time as _time
 import logging as _logging
@@ -51,7 +51,8 @@ class _HeartbeatReciever:
                  identity_callback: _Callable=None):
 
         self.messaging = messaging
-        self._heart_beat_check = _PeriodicCallback(self._get_state, 1000, loop)
+        # self._heart_beat_check = _PeriodicCallback(self._get_state, 1000, loop)
+        self._heart_beat_check = _PeriodicCallback(self._get_state, 1000)
         self._last_bot_uuid = None
         self.last_message = None
         self._last_message_time = _time.time()
@@ -261,6 +262,7 @@ class Messaging:
         self._setup()
 
         if self._run_control_loop:
+            asyncio.set_event_loop(asyncio.new_event_loop())
             self._heartbeat_reciever.start()
             self._logger.info(' Start Loop')
             return self.loop.start()

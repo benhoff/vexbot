@@ -3,6 +3,8 @@ import time
 # import signal
 
 
+# TODO: try/catch around this. If pydbus isn't installed, probably an
+# incomplete installation
 from pydbus import SessionBus as _SessionBus
 from pydbus import SystemBus as _SystemBus
 

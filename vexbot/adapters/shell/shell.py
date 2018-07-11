@@ -66,8 +66,7 @@ class Shell(PromptSession):
                                daemon=True)
 
         self._bot_status_monitor = PeriodicCallback(self._monitor_bot_state,
-                                                    1000,
-                                                    self.messaging.loop)
+                                                    1000)
 
         self.shebangs = ['!', ]
         self.command_observer = CommandObserver(self.messaging, prompt=self)
