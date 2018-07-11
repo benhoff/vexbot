@@ -101,13 +101,7 @@ class Messaging:
 
         self.loop = _zmq_eventloop.IOLoop()
         self.scheduler = Scheduler()
-<<<<<<< HEAD
-        self._heartbeat_helper = _HeartbeatHelper(messaging=self,
-                                                  loop=self.loop)
-=======
         self._heartbeat_helper = _HeartbeatHelper(messaging=self)
-
->>>>>>> master
 
         # Socket factory keeps the zmq context, default address and
         # protocol for socket creation.
