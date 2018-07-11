@@ -70,7 +70,7 @@ setup(
         'rx',
         'tblib', # traceback serilization
         'tornado', # zmq asnyc framework
-        'prompt-toolkit>=2.0.0', # shell
+        'prompt_toolkit>=2.0.0', # shell
         ],
 
     extras_require={
