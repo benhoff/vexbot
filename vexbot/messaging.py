@@ -21,22 +21,17 @@ from vexmessage import create_vex_message, decode_vex_message, Request
 
 
 class _HeartbeatHelper:
-    def __init__(self, messaging, loop: _zmq_eventloop.IOLoop):
+    def __init__(self, messaging):
         """
         Sends heartbeats every 1.5 seconds if there haven't been any messages
         sent on the chatter socket
 
         Args:
             messaging: See class definition below
-            loop: event loop
         """
         self.messaging = messaging
-        self.last_message_time = _time.time()
-        # do `self._send_state` every 1 sec
-        self._heart_beat = _zmq_event_ioloop.PeriodicCallback(self._send_state,
-                                                              1000,
-                                                              loop)
-
+        self.last_message_time = time.time()
+        self._heart_beat = PeriodicCallback(self._send_state)
         name = self.messaging._service_name + '.messaging.heartbeat'
         self.logger = _logging.getLogger(name)
 
@@ -106,8 +101,13 @@ class Messaging:
 
         self.loop = _zmq_eventloop.IOLoop()
         self.scheduler = Scheduler()
+<<<<<<< HEAD
         self._heartbeat_helper = _HeartbeatHelper(messaging=self,
                                                   loop=self.loop)
+=======
+        self._heartbeat_helper = _HeartbeatHelper(messaging=self)
+
+>>>>>>> master
 
         # Socket factory keeps the zmq context, default address and
         # protocol for socket creation.
