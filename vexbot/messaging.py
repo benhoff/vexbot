@@ -22,10 +22,10 @@ from vexmessage import create_vex_message, decode_vex_message, Request, Message
 
 
 class _HeartbeatHelper:
-    def __init__(self, messaging, loop):
+    def __init__(self, messaging):
         self.messaging = messaging
         self.last_message_time = time.time()
-        self._heart_beat = PeriodicCallback(self._send_state, 1000, loop)
+        self._heart_beat = PeriodicCallback(self._send_state, 1000)
         name = self.messaging._service_name + '.messaging.heartbeat'
         self.logger = logging.getLogger(name)
 
@@ -77,7 +77,7 @@ class Messaging:
 
         self.loop = IOLoop()
         self.scheduler = Scheduler()
-        self._heartbeat_helper = _HeartbeatHelper(messaging=self, loop=self.loop)
+        self._heartbeat_helper = _HeartbeatHelper(messaging=self)
 
 
         # Socket factory keeps the zmq context, default address and

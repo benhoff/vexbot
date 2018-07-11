@@ -75,7 +75,7 @@ setup(
         ],
 
     extras_require={
-        'nlp': ['wheel', 'spacy', 'sklearn', 'sklearn_crfsuite'],
+        'nlp': ['wheel', 'spacy', 'sklearn', 'sklearn_crfsuite', 'scipy'],
         'socket_io': ['requests', 'websocket-client'],
         'summarization': ['gensim', 'newspaper3k'],
         'youtube': ['google-api-python-client'],
