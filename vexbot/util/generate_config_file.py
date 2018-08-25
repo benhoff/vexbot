@@ -36,7 +36,8 @@ def config(filepath=None, remove_config=False):
                       filepath)
         return
 
-    parser = configparser.ConfigParser()
+    parser = configparser.SafeConfigParser()
+    parser.optionxform = str
     parser['Unit'] = {'Description': 'Helper Bot'}
     parser['Service'] = {'Type': 'simple',
                          'ExecStart': _get_vexbot_robot(),
@@ -50,9 +51,9 @@ def config(filepath=None, remove_config=False):
 
 
 def main():
-    remove_config = input('Remove config if present? Y/n: ')
+    remove_config = input('Remove config if present? [Y]/n: ')
     remove_config = remove_config.lower()
-    if remove_config in ('y', 'yes', 'ye'):
+    if remove_config in ('y', 'yes', 'ye', ''):
         remove_config = True
     else:
         remove_config = False
