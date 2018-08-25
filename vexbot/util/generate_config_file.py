@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import inspect
 import configparser
@@ -39,8 +40,10 @@ def config(filepath=None, remove_config=False):
     parser = configparser.SafeConfigParser()
     parser.optionxform = str
     parser['Unit'] = {'Description': 'Helper Bot'}
-    parser['Service'] = {'Type': 'dbus',
-                         'ExecStart': _get_vexbot_robot(),
+    # Change type to `simple` instead of `dbus`
+    # https://github.com/systemd/systemd/issues/892
+    parser['Service'] = {'Type': 'simple',
+                         'ExecStart': '{} {}'.format(sys.executable, _get_vexbot_robot()),
                          'StandardOutput': 'syslog',
                          'StandardError': 'syslog'}
 

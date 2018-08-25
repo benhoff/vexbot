@@ -7,6 +7,8 @@ import zmq as _zmq
 import zmq.eventloop as _zmq_eventloop
 import zmq.eventloop.ioloop as _zmq_event_ioloop
 
+from tornado.ioloop import PeriodicCallback
+
 import rx.subjects as _rx_subjects
 
 from vexbot import _get_default_port_config
@@ -30,8 +32,8 @@ class _HeartbeatHelper:
             messaging: See class definition below
         """
         self.messaging = messaging
-        self.last_message_time = time.time()
-        self._heart_beat = PeriodicCallback(self._send_state)
+        self.last_message_time = _time.time()
+        self._heart_beat = PeriodicCallback(self._send_state, 1500)
         name = self.messaging._service_name + '.messaging.heartbeat'
         self.logger = _logging.getLogger(name)
 
